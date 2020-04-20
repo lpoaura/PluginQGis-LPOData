@@ -1,0 +1,54 @@
+### This file contains metadata for your plugin.
+
+### This file should be included when you package your plugin.
+
+### Mandatory items:
+
+[general]
+name=Scripts LPO
+qgisMinimumVersion=3.4
+
+description=Scripts processing for LPO
+about=Provide a brief description of the plugin and its purpose.
+
+version=0.1
+author=Elsa Guilley (LPO AuRA)
+email=lpo-aura@lpo.fr
+
+# URL for the source code repository
+repository=https://github.com/lpoaura/PluginQGis-LPOAuRA
+# URL for tickets and bug reports
+tracker=https://github.com/lpoaura/PluginQGis-LPOAuRA/issues
+
+### End of mandatory metadata
+
+### Recommended items:
+
+hasProcessingProvider=yes
+
+# Category of the plugin: Raster, Vector, Database or Web
+category=Analysis
+
+# Changelog lists the plugin versions
+# changelog=
+
+# experimental flag
+experimental=True
+
+# deprecated flag (applies to the whole plugin, not just a single version)
+deprecated=False
+
+# Tags are comma separated with spaces allowed
+tags=python
+
+homepage=https://github.com/lpoaura/PluginQGis-LPOAuRA
+icon=icon.png
+
+# Since QGIS 3.8, a comma separated list of plugins to be installed
+# (or upgraded) can be specified.
+# Check the documentation for more information.
+# plugin_dependencies=
+
+# If the plugin can run on QGIS Server
+server=False
+
