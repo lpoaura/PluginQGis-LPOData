@@ -26,43 +26,40 @@ __copyright__ = '(C) 2020 by Elsa Guilley (LPO AuRA)'
 # This will get replaced with a git SHA1 when you do a git archive
 __revision__ = '$Format:%H$'
 
+import os
+from qgis.PyQt.QtGui import QIcon
+
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.core import (QgsProcessing,
-                       QgsFeatureSink,
                        QgsProcessingAlgorithm,
-                       QgsProcessingParameterFeatureSource,
-                       QgsProcessingParameterFeatureSink)
+                       QgsProcessingParameterVectorLayer,
+                       QgsProcessingOutputVectorLayer,
+                       QgsDataSourceUri,
+                       QgsVectorLayer,
+                       QgsProcessingContext,
+                       QgsProcessingException)
+
+pluginPath = os.path.dirname(__file__)
 
 
 class ExtractData(QgsProcessingAlgorithm):
     """
-    This is an example algorithm that takes a vector layer and
-    creates a new identical one.
-
-    It is meant to be used as an example of how to create your own
-    algorithms and explain methods and variables used to do it. An
-    algorithm like this will be available in all elements, and there
-    is not need for additional work.
-
-    All Processing algorithms should extend the QgsProcessingAlgorithm
-    class.
+    This algorithm takes a vector layer with only one entity and
+    returns an intersected points PostGIS layer.
     """
 
-    # Constants used to refer to parameters and outputs. They will be
-    # used when calling the algorithm from another algorithm, or when
-    # calling from the QGIS console.
-
+    # Constants used to refer to parameters and outputs
+    ZONE_ETUDE = 'ZONE_ETUDE'
     OUTPUT = 'OUTPUT'
-    INPUT = 'INPUT'
 
     def name(self):
         return 'ExtractData'
 
     def displayName(self):
-        return 'Extract data'
+        return 'Extract observation data'
 
-    #def icon(self):
-        #return QIcon(os.path.join(pluginPath, 'icons', '.png'))
+    def icon(self):
+        return QIcon(os.path.join(pluginPath, 'icons', 'extract_data.png'))
 
     def groupId(self):
         return 'initialisation'
@@ -70,29 +67,27 @@ class ExtractData(QgsProcessingAlgorithm):
     def group(self):
         return 'Initialisation'
 
-    def initAlgorithm(self, config):
+    def initAlgorithm(self, config=None):
         """
         Here we define the inputs and output of the algorithm, along
         with some other properties.
         """
 
-        # We add the input vector features source. It can have any kind of
-        # geometry.
+        # Input vector layer
         self.addParameter(
-            QgsProcessingParameterFeatureSource(
-                self.INPUT,
-                self.tr('Input layer'),
+            QgsProcessingParameterVectorLayer(
+                self.ZONE_ETUDE,
+                self.tr("Zone d'étude"),
                 [QgsProcessing.TypeVectorAnyGeometry]
             )
         )
 
-        # We add a feature sink in which to store our processed features (this
-        # usually takes the form of a newly created vector layer when the
-        # algorithm is run in QGIS).
-        self.addParameter(
-            QgsProcessingParameterFeatureSink(
+        # Output PostGIS layer
+        self.addOutput(
+            QgsProcessingOutputVectorLayer(
                 self.OUTPUT,
-                self.tr('Output layer')
+                self.tr('Couche en sortie'),
+                QgsProcessing.TypeVectorAnyGeometry
             )
         )
 
@@ -100,40 +95,38 @@ class ExtractData(QgsProcessingAlgorithm):
         """
         Here is where the processing itself takes place.
         """
+        # feedback.pushInfo('Bonjour')
 
-        # Retrieve the feature source and sink. The 'dest_id' variable is used
-        # to uniquely identify the feature sink, and must be included in the
-        # dictionary returned by the processAlgorithm function.
-        source = self.parameterAsSource(parameters, self.INPUT, context)
-        (sink, dest_id) = self.parameterAsSink(parameters, self.OUTPUT,
-                context, source.fields(), source.wkbType(), source.sourceCrs())
+        # Retrieve the input vector layer
+        zone_etude = self.parameterAsVectorLayer(parameters, self.ZONE_ETUDE, context)
+        # Retrieve the geometry of the unique entity
+        for feature in zone_etude.getFeatures(): # There must be only one entity
+            emprise = feature.geometry() # QgsGeometry object
 
-        # Compute the number of steps to display within the progress bar and
-        # get features from source
-        total = 100.0 / source.featureCount() if source.featureCount() else 0
-        features = source.getFeatures()
+        # URI --> Configures connection to database and the SQL query
+        uri = QgsDataSourceUri()
+        uri.setConnection("bdd.lpo-aura.org", "5432", "gnlpoaura", "lpoaura_egu", "Pra52@o2")
+        query = "st_within(geom, ST_MPolyFromText('{}', 2154))".format(emprise.asWkt()) #Ou ST_PolygonFromText
+        uri.setDataSource("src_vn", "observations", "geom", query)
+        # Retrieve the PostGIS layer
+        layer_obs = QgsVectorLayer(uri.uri(), "Données d'observations", "postgres")
 
-        for current, feature in enumerate(features):
-            # Stop the algorithm if cancel button has been clicked
-            if feedback.isCanceled():
-                break
+        # Check if the PostGIS layer is valid
+        if not layer_obs.isValid():
+            raise QgsProcessingException(self.tr("""Cette couche n'est pas valide !
+                Checker les logs de PostGIS pour visualiser les messages d'erreur."""))   
+        
+        # Prepare the PostGIS layer display
+        context.temporaryLayerStore().addMapLayer(layer_obs)
+        context.addLayerToLoadOnCompletion(
+            layer_obs.id(),
+            QgsProcessingContext.LayerDetails("Données d'observations", context.project(), self.OUTPUT)
+        )
 
-            # Add a feature in the sink
-            sink.addFeature(feature, QgsFeatureSink.FastInsert)
-
-            # Update the progress bar
-            feedback.setProgress(int(current * total))
-
-        # Return the results of the algorithm. In this case our only result is
-        # the feature sink which contains the processed features, but some
-        # algorithms may return multiple feature sinks, calculated numeric
-        # statistics, etc. These should all be included in the returned
-        # dictionary, with keys matching the feature corresponding parameter
-        # or output names.
-        return {self.OUTPUT: dest_id}
+        return {self.OUTPUT: layer_obs.id()}
 
     def tr(self, string):
         return QCoreApplication.translate('Processing', string)
 
     def createInstance(self):
-        return ScriptsLPOAlgorithm()
+        return ExtractData()
