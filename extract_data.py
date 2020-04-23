@@ -36,6 +36,7 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingOutputVectorLayer,
                        QgsDataSourceUri,
                        QgsVectorLayer,
+                       QgsWkbTypes,
                        QgsProcessingContext,
                        QgsProcessingException)
 
@@ -73,7 +74,7 @@ class ExtractData(QgsProcessingAlgorithm):
         with some other properties.
         """
 
-        # Input vector layer
+        # Input vector layer = study area
         self.addParameter(
             QgsProcessingParameterVectorLayer(
                 self.ZONE_ETUDE,
@@ -95,18 +96,29 @@ class ExtractData(QgsProcessingAlgorithm):
         """
         Here is where the processing itself takes place.
         """
-        # feedback.pushInfo('Bonjour')
 
-        # Retrieve the input vector layer
+        # Retrieve the input vector layer = study area
         zone_etude = self.parameterAsVectorLayer(parameters, self.ZONE_ETUDE, context)
-        # Retrieve the geometry of the unique entity
-        for feature in zone_etude.getFeatures(): # There must be only one entity
-            emprise = feature.geometry() # QgsGeometry object
+        # Initialization of the SQL query
+        query = ""
+        # For each entity in the study area...
+        for feature in zone_etude.getFeatures():
+            # Retrieve the geometry
+            area = feature.geometry() # QgsGeometry object
+            # Retrieve the geometry type (single or multiple)
+            geomSingleType = QgsWkbTypes.isSingleType(area.wkbType())
+            # Increment the query
+            if geomSingleType:
+                query = query + "st_within(geom, ST_PolygonFromText('{}', 2154)) or ".format(area.asWkt())
+            else:
+                query = query + "st_within(geom, ST_MPolyFromText('{}', 2154)) or ".format(area.asWkt())
+        # Remove the last "or" in the query which is useless
+        query = query[:len(query)-4]
+        #feedback.pushInfo('Requête : {}'.format(query))
 
         # URI --> Configures connection to database and the SQL query
         uri = QgsDataSourceUri()
         uri.setConnection("bdd.lpo-aura.org", "5432", "gnlpoaura", "lpoaura_egu", "Pra52@o2")
-        query = "st_within(geom, ST_MPolyFromText('{}', 2154))".format(emprise.asWkt()) #Ou ST_PolygonFromText
         uri.setDataSource("src_vn", "observations", "geom", query)
         # Retrieve the PostGIS layer
         layer_obs = QgsVectorLayer(uri.uri(), "Données d'observations", "postgres")
