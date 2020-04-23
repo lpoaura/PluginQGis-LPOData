@@ -57,7 +57,7 @@ class ExtractData(QgsProcessingAlgorithm):
         return 'ExtractData'
 
     def displayName(self):
-        return 'Extract observation data'
+        return 'Extract observation data from study area'
 
     def icon(self):
         return QIcon(os.path.join(pluginPath, 'icons', 'extract_data.png'))
@@ -118,7 +118,7 @@ class ExtractData(QgsProcessingAlgorithm):
 
         # URI --> Configures connection to database and the SQL query
         uri = QgsDataSourceUri()
-        uri.setConnection("bdd.lpo-aura.org", "5432", "gnlpoaura", "lpoaura_egu", "Pra52@o2")
+        uri.setConnection("****************", "5432", "*********", "***********", "**********")
         uri.setDataSource("src_vn", "observations", "geom", query)
         # Retrieve the PostGIS layer
         layer_obs = QgsVectorLayer(uri.uri(), "Données d'observations", "postgres")
