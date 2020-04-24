@@ -137,7 +137,7 @@ class ExtractData(QgsProcessingAlgorithm):
             # URI --> Configures connection to database and the SQL query
         uri = postgis.uri_from_name(connection)
         uri.setDataSource("src_lpodatas", "observations", "geom", where)
-        layer_obs = QgsVectorLayer(uri.uri(), "Données d'observations", "postgres")
+        layer_obs = QgsVectorLayer(uri.uri(), "Données d'observations {}".format(zone_etude.name()), "postgres")
 
         # Check if the PostGIS layer is valid
         if not layer_obs.isValid():
@@ -147,11 +147,18 @@ class ExtractData(QgsProcessingAlgorithm):
              feedback.pushInfo('La couche PostGIS demandée est valide, la requête SQL a été exécutée avec succès !')   
         
         # Load the PostGIS layer
-        context.temporaryLayerStore().addMapLayer(layer_obs)
-        context.addLayerToLoadOnCompletion(
-            layer_obs.id(),
-            QgsProcessingContext.LayerDetails("Données d'observations", context.project(), self.OUTPUT)
-        )
+        root = context.project().layerTreeRoot()
+        plugin_lpo_group = root.findGroup('Résultats plugin LPO')
+        if not plugin_lpo_group:
+            plugin_lpo_group = root.insertGroup(0, 'Résultats plugin LPO')
+        context.project().addMapLayers([layer_obs], False)
+        plugin_lpo_group.addLayer(layer_obs)
+        # Variant
+        # context.temporaryLayerStore().addMapLayer(layer_obs)
+        # context.addLayerToLoadOnCompletion(
+        #     layer_obs.id(),
+        #     QgsProcessingContext.LayerDetails("Données d'observations", context.project(), self.OUTPUT)
+        # )
 
         return {self.OUTPUT: layer_obs.id()}
 

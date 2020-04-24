@@ -182,11 +182,18 @@ class SummaryTable(QgsProcessingAlgorithm):
              feedback.pushInfo('La couche PostGIS demandée est valide, la requête SQL a été exécutée avec succès !')
         
         # Load the PostGIS layer
-        context.temporaryLayerStore().addMapLayer(layer_summary)
-        context.addLayerToLoadOnCompletion(
-            layer_summary.id(),
-            QgsProcessingContext.LayerDetails(layer_name, context.project(), self.OUTPUT)
-        )
+        root = context.project().layerTreeRoot()
+        plugin_lpo_group = root.findGroup('Résultats plugin LPO')
+        if not plugin_lpo_group:
+            plugin_lpo_group = root.insertGroup(0, 'Résultats plugin LPO')
+        context.project().addMapLayers([layer_summary], False)
+        plugin_lpo_group.addLayer(layer_summary)
+        # Variant
+        # context.temporaryLayerStore().addMapLayer(layer_summary)
+        # context.addLayerToLoadOnCompletion(
+        #     layer_summary.id(),
+        #     QgsProcessingContext.LayerDetails(layer_name, context.project(), self.OUTPUT)
+        # )
 
         # Open the attribute table of the PostGIS layer
         iface.setActiveLayer(layer_summary)
