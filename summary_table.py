@@ -32,15 +32,16 @@ from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.core import (QgsProcessing,
                        QgsProcessingAlgorithm,
+                       QgsProcessingParameterString,
                        QgsProcessingParameterVectorLayer,
                        QgsProcessingOutputVectorLayer,
                        QgsDataSourceUri,
                        QgsVectorLayer,
                        QgsWkbTypes,
                        QgsProcessingContext,
-                       QgsProcessingException,
-                       QgsProcessingParameterString)
+                       QgsProcessingException)
 from qgis.utils import iface
+from processing.tools import postgis
 
 import processing
 
@@ -49,13 +50,13 @@ pluginPath = os.path.dirname(__file__)
 
 class SummaryTable(QgsProcessingAlgorithm):
     """
-    This algorithm takes a vector layer with only one entity and
-    returns an intersected points PostGIS layer.
+    This algorithm takes a connection to a data base and a vector polygons layer and
+    returns a summary non geometric PostGIS layer.
     """
 
     # Constants used to refer to parameters and outputs
-    ZONE_ETUDE = 'ZONE_ETUDE'
     DATABASE = 'DATABASE'
+    ZONE_ETUDE = 'ZONE_ETUDE'
     OUTPUT = 'OUTPUT'
 
     def name(self):
@@ -79,6 +80,18 @@ class SummaryTable(QgsProcessingAlgorithm):
         with some other properties.
         """
 
+        # Data base connection
+        db_param = QgsProcessingParameterString(
+            self.DATABASE,
+            self.tr('Nom de la connexion à la base de données')
+        )
+        db_param.setMetadata(
+            {
+                'widget_wrapper': {'class': 'processing.gui.wrappers_postgis.ConnectionWidgetWrapper'}
+            }
+        )
+        self.addParameter(db_param)
+
         # Input vector layer = study area
         self.addParameter(
             QgsProcessingParameterVectorLayer(
@@ -87,15 +100,6 @@ class SummaryTable(QgsProcessingAlgorithm):
                 [QgsProcessing.TypeVectorAnyGeometry]
             )
         )
-
-        # Data base connection
-        db_param = QgsProcessingParameterString(
-            self.DATABASE,
-            self.tr('Nom de la connexion à la base de données'))
-        db_param.setMetadata({
-            'widget_wrapper': {
-                'class': 'processing.gui.wrappers_postgis.ConnectionWidgetWrapper'}})
-        self.addParameter(db_param)
 
         # Output PostGIS layer
         self.addOutput(
@@ -113,11 +117,12 @@ class SummaryTable(QgsProcessingAlgorithm):
 
         # Retrieve the input vector layer = study area
         zone_etude = self.parameterAsVectorLayer(parameters, self.ZONE_ETUDE, context)
-
+        # Define the name of the PostGIS summary table which will be created in the DB
         table_name = "summary_table_{}".format(zone_etude.name())
+        # Define the name of the output PostGIS layer (summary table) which will be loaded in the QGis project
         layer_name = "Tableau synthèse {}".format(zone_etude.name())
 
-        # Initialization of the "where" clause
+        # Initialization of the "where" clause of the SQL query, aiming to create the summary table in the DB
         where = "and ("
         # For each entity in the study area...
         for feature in zone_etude.getFeatures():
@@ -125,15 +130,16 @@ class SummaryTable(QgsProcessingAlgorithm):
             area = feature.geometry() # QgsGeometry object
             # Retrieve the geometry type (single or multiple)
             geomSingleType = QgsWkbTypes.isSingleType(area.wkbType())
-            # Increment the query
+            # Increment the "where" clause
             if geomSingleType:
                 where = where + "st_within(geom, ST_PolygonFromText('{}', 2154)) or ".format(area.asWkt())
             else:
                 where = where + "st_within(geom, ST_MPolyFromText('{}', 2154)) or ".format(area.asWkt())
-        # Remove the last "or" in the query which is useless
+        # Remove the last "or" in the "where" clause which is useless
         where = where[:len(where)-4] + ")"
         #feedback.pushInfo('Clause where : {}'.format(where))
         
+        # Define the SQL queries
         queries = [
             "drop table if exists {}".format(table_name),
             """create table {} as (
@@ -145,9 +151,10 @@ class SummaryTable(QgsProcessingAlgorithm):
             order by source_id_sp)""".format(table_name, where),
             "alter table {} add primary key (id)".format(table_name)
         ]
-        #feedback.pushInfo('Requête : {}'.format(queries[1]))
         
+        # Retrieve the data base connection name
         connection = self.parameterAsString(parameters, self.DATABASE, context)
+        # Execute the SQL queries
         for query in queries:
             processing.run(
                 'qgis:postgisexecutesql',
@@ -159,26 +166,29 @@ class SummaryTable(QgsProcessingAlgorithm):
                 context=context,
                 feedback=feedback
             )
+            feedback.pushInfo('Requête SQL exécutée avec succès !')
 
-        # URI --> Configures connection to database and the SQL query
-        uri = QgsDataSourceUri()
-        uri.setConnection("****************", "5432", "*********", "***********", "**********")
+        # Retrieve the output PostGIS layer (summary table) which has just been created
+            # URI --> Configures connection to database and the SQL query
+        uri = postgis.uri_from_name(connection)
         uri.setDataSource(None, table_name, None, "", "id")
-        # Retrieve the PostGIS layer
         layer_summary = QgsVectorLayer(uri.uri(), layer_name, "postgres")
 
         # Check if the PostGIS layer is valid
         if not layer_summary.isValid():
             raise QgsProcessingException(self.tr("""Cette couche n'est pas valide !
-                Checker les logs de PostGIS pour visualiser les messages d'erreur."""))   
+                Checker les logs de PostGIS pour visualiser les messages d'erreur."""))
+        else:
+             feedback.pushInfo('La couche PostGIS demandée est valide, la requête SQL a été exécutée avec succès !')
         
-        # Prepare the PostGIS layer display
+        # Load the PostGIS layer
         context.temporaryLayerStore().addMapLayer(layer_summary)
         context.addLayerToLoadOnCompletion(
             layer_summary.id(),
             QgsProcessingContext.LayerDetails(layer_name, context.project(), self.OUTPUT)
         )
 
+        # Open the attribute table of the PostGIS layer
         iface.setActiveLayer(layer_summary)
         iface.showAttributeTable(layer_summary)
         

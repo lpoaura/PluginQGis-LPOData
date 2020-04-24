@@ -32,6 +32,7 @@ from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.core import (QgsProcessing,
                        QgsProcessingAlgorithm,
+                       QgsProcessingParameterString,
                        QgsProcessingParameterVectorLayer,
                        QgsProcessingOutputVectorLayer,
                        QgsDataSourceUri,
@@ -39,17 +40,19 @@ from qgis.core import (QgsProcessing,
                        QgsWkbTypes,
                        QgsProcessingContext,
                        QgsProcessingException)
+from processing.tools import postgis
 
 pluginPath = os.path.dirname(__file__)
 
 
 class ExtractData(QgsProcessingAlgorithm):
     """
-    This algorithm takes a vector layer with only one entity and
+    This algorithm takes a connection to a data base and a vector polygons layer and
     returns an intersected points PostGIS layer.
     """
 
     # Constants used to refer to parameters and outputs
+    DATABASE = 'DATABASE'
     ZONE_ETUDE = 'ZONE_ETUDE'
     OUTPUT = 'OUTPUT'
 
@@ -73,6 +76,18 @@ class ExtractData(QgsProcessingAlgorithm):
         Here we define the inputs and output of the algorithm, along
         with some other properties.
         """
+
+        # Data base connection
+        db_param = QgsProcessingParameterString(
+            self.DATABASE,
+            self.tr('Nom de la connexion à la base de données')
+        )
+        db_param.setMetadata(
+            {
+                'widget_wrapper': {'class': 'processing.gui.wrappers_postgis.ConnectionWidgetWrapper'}
+            }
+        )
+        self.addParameter(db_param)
 
         # Input vector layer = study area
         self.addParameter(
@@ -99,36 +114,39 @@ class ExtractData(QgsProcessingAlgorithm):
 
         # Retrieve the input vector layer = study area
         zone_etude = self.parameterAsVectorLayer(parameters, self.ZONE_ETUDE, context)
-        # Initialization of the SQL query
-        query = ""
+        # Initialization of the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer
+        where = ""
         # For each entity in the study area...
         for feature in zone_etude.getFeatures():
             # Retrieve the geometry
             area = feature.geometry() # QgsGeometry object
             # Retrieve the geometry type (single or multiple)
             geomSingleType = QgsWkbTypes.isSingleType(area.wkbType())
-            # Increment the query
+            # Increment the "where" clause
             if geomSingleType:
-                query = query + "st_within(geom, ST_PolygonFromText('{}', 2154)) or ".format(area.asWkt())
+                where = where + "st_within(geom, ST_PolygonFromText('{}', 2154)) or ".format(area.asWkt())
             else:
-                query = query + "st_within(geom, ST_MPolyFromText('{}', 2154)) or ".format(area.asWkt())
-        # Remove the last "or" in the query which is useless
-        query = query[:len(query)-4]
-        #feedback.pushInfo('Requête : {}'.format(query))
+                where = where + "st_within(geom, ST_MPolyFromText('{}', 2154)) or ".format(area.asWkt())
+        # Remove the last "or" in the "where" clause which is useless
+        where = where[:len(where)-4]
+        #feedback.pushInfo('Clause where : {}'.format(where))
 
-        # URI --> Configures connection to database and the SQL query
-        uri = QgsDataSourceUri()
-        uri.setConnection("****************", "5432", "*********", "***********", "**********")
-        uri.setDataSource("src_lpodatas", "observations", "geom", query)
-        # Retrieve the PostGIS layer
+        # Retrieve the data base connection name
+        connection = self.parameterAsString(parameters, self.DATABASE, context)
+        # Retrieve the output PostGIS layer
+            # URI --> Configures connection to database and the SQL query
+        uri = postgis.uri_from_name(connection)
+        uri.setDataSource("src_lpodatas", "observations", "geom", where)
         layer_obs = QgsVectorLayer(uri.uri(), "Données d'observations", "postgres")
 
         # Check if the PostGIS layer is valid
         if not layer_obs.isValid():
             raise QgsProcessingException(self.tr("""Cette couche n'est pas valide !
-                Checker les logs de PostGIS pour visualiser les messages d'erreur."""))   
+                Checker les logs de PostGIS pour visualiser les messages d'erreur."""))
+        else:
+             feedback.pushInfo('La couche PostGIS demandée est valide, la requête SQL a été exécutée avec succès !')   
         
-        # Prepare the PostGIS layer display
+        # Load the PostGIS layer
         context.temporaryLayerStore().addMapLayer(layer_obs)
         context.addLayerToLoadOnCompletion(
             layer_obs.id(),
