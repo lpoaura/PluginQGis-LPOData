@@ -28,6 +28,8 @@ __revision__ = '$Format:%H$'
 
 import os
 from qgis.PyQt.QtGui import QIcon
+from qgis.utils import iface
+from qgis.gui import QgsMessageBar
 
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.core import (QgsProcessing,
@@ -39,6 +41,7 @@ from qgis.core import (QgsProcessing,
                        QgsVectorLayer,
                        QgsWkbTypes,
                        QgsProcessingContext,
+                       Qgis,
                        QgsProcessingException)
 from processing.tools import postgis
 
@@ -53,7 +56,7 @@ class ExtractData(QgsProcessingAlgorithm):
 
     # Constants used to refer to parameters and outputs
     DATABASE = 'DATABASE'
-    ZONE_ETUDE = 'ZONE_ETUDE'
+    STUDY_AREA = 'STUDY_AREA'
     OUTPUT = 'OUTPUT'
 
     def name(self):
@@ -92,7 +95,7 @@ class ExtractData(QgsProcessingAlgorithm):
         # Input vector layer = study area
         self.addParameter(
             QgsProcessingParameterVectorLayer(
-                self.ZONE_ETUDE,
+                self.STUDY_AREA,
                 self.tr("Zone d'étude"),
                 [QgsProcessing.TypeVectorAnyGeometry]
             )
@@ -113,11 +116,24 @@ class ExtractData(QgsProcessingAlgorithm):
         """
 
         # Retrieve the input vector layer = study area
-        zone_etude = self.parameterAsVectorLayer(parameters, self.ZONE_ETUDE, context)
+        study_area = self.parameterAsVectorLayer(parameters, self.STUDY_AREA, context)
+        # Check if the study area is a polygon layer
+        if QgsWkbTypes.displayString(study_area.wkbType()) not in ['Polygon', 'MultiPolygon']:
+            iface.messageBar().pushMessage("Erreur", "La zone d'étude fournie n'est pas valide ! Veuillez sélectionner une couche vecteur de type polygone.", level=Qgis.Critical, duration=10)
+            raise QgsProcessingException(self.tr("La zone d'étude fournie n'est pas valide ! Veuillez sélectionner une couche vecteur de type polygone."))
+        # Check if the study area is 2154
+        if study_area.dataProvider().crs().authid() != 'EPSG:2154':
+            iface.messageBar().pushMessage("Erreur", "La zone d'étude fournie n'est pas valide ! Veuillez sélectionner une couche vecteur ayant un EPSG:2154.", level=Qgis.Critical, duration=10)
+            raise QgsProcessingException(self.tr("La zone d'étude fournie n'est pas valide ! Veuillez sélectionner une couche vecteur ayant un EPSG:2154."))
+        # Retrieve the potential features selection
+        if len(study_area.selectedFeatures()) > 0:
+            selection = study_area.selectedFeatures() # Get only the selected features
+        else:
+            selection = study_area.getFeatures() # If there is no feature selected, get all of them
         # Initialization of the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer
         where = ""
         # For each entity in the study area...
-        for feature in zone_etude.getFeatures():
+        for feature in selection:
             # Retrieve the geometry
             area = feature.geometry() # QgsGeometry object
             # Retrieve the geometry type (single or multiple)
@@ -137,12 +153,12 @@ class ExtractData(QgsProcessingAlgorithm):
             # URI --> Configures connection to database and the SQL query
         uri = postgis.uri_from_name(connection)
         uri.setDataSource("src_lpodatas", "observations", "geom", where)
-        layer_obs = QgsVectorLayer(uri.uri(), "Données d'observations {}".format(zone_etude.name()), "postgres")
+        layer_obs = QgsVectorLayer(uri.uri(), "Données d'observations {}".format(study_area.name()), "postgres")
 
         # Check if the PostGIS layer is valid
         if not layer_obs.isValid():
-            raise QgsProcessingException(self.tr("""Cette couche n'est pas valide !
-                Checker les logs de PostGIS pour visualiser les messages d'erreur."""))
+            raise QgsProcessingException(self.tr("""La couche PostGIS chargée n'est pas valide !
+                Checkez les logs de PostGIS pour visualiser les messages d'erreur."""))
         else:
              feedback.pushInfo('La couche PostGIS demandée est valide, la requête SQL a été exécutée avec succès !')   
         

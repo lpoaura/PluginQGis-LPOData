@@ -103,15 +103,6 @@ class Histogram(QgsProcessingAlgorithm):
             )
         )
 
-        # Output PostGIS layer
-        # self.addOutput(
-        #     QgsProcessingOutputVectorLayer(
-        #         self.OUTPUT,
-        #         self.tr('Couche en sortie'),
-        #         QgsProcessing.TypeVectorAnyGeometry
-        #     )
-        # )
-
     def processAlgorithm(self, parameters, context, feedback):
         """
         Here is where the processing itself takes place.
@@ -157,19 +148,18 @@ class Histogram(QgsProcessingAlgorithm):
         else:
              feedback.pushInfo('La couche PostGIS demandée est valide, la requête SQL a été exécutée avec succès !')
 
-
+        plt.rcdefaults()
         libel = [feature['groupe_taxo'] for feature in layer_histo.getFeatures()]
         feedback.pushInfo('Libellés : {}'.format(libel))
-        X = np.arange(len(libel))
-        feedback.pushInfo('Valeurs en X : {}'.format(X))
+        #X = np.arange(len(libel))
+        #feedback.pushInfo('Valeurs en X : {}'.format(X))
         Y = [int(feature['nb_observations']) for feature in layer_histo.getFeatures()]
         feedback.pushInfo('Valeurs en Y : {}'.format(Y))
-        # fig = plt.figure()
-        # ax = fig.add_axes([0, 0, 1, 1])
-        plt.rcdefaults()
-        fig, ax = plt.subplots()
-        ax.bar(X, Y, align='center', color='blue', ecolor='black')
-        ax.set_xticks(X)
+        fig = plt.figure()
+        ax = fig.add_axes([0, 0, 1, 1])
+        # fig, ax = plt.subplots()
+        ax.bar(libel, Y)
+        # ax.set_xticks(X)
         ax.set_xticklabels(libel)
         ax.set_ylabel(u'Nombre d\'observations')
         ax.set_title(u'Etat des connaissances par groupes d\'espèces')
