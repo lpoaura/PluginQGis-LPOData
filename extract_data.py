@@ -28,8 +28,6 @@ __revision__ = '$Format:%H$'
 
 import os
 from qgis.PyQt.QtGui import QIcon
-from qgis.utils import iface
-from qgis.gui import QgsMessageBar
 
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.core import (QgsProcessing,
@@ -38,12 +36,9 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterVectorLayer,
                        QgsProcessingOutputVectorLayer,
                        QgsDataSourceUri,
-                       QgsVectorLayer,
-                       QgsWkbTypes,
-                       QgsProcessingContext,
-                       Qgis,
-                       QgsProcessingException)
+                       QgsVectorLayer)
 from processing.tools import postgis
+from .common_functions import check_layer_geometry, check_layer_is_valid, construct_sql_array_polygons, load_layer
 
 pluginPath = os.path.dirname(__file__)
 
@@ -101,7 +96,7 @@ class ExtractData(QgsProcessingAlgorithm):
             )
         )
 
-        # Output PostGIS layer
+        # Output PostGIS layer = biodiversity data
         self.addOutput(
             QgsProcessingOutputVectorLayer(
                 self.OUTPUT,
@@ -118,75 +113,25 @@ class ExtractData(QgsProcessingAlgorithm):
         # Retrieve the input vector layer = study area
         study_area = self.parameterAsVectorLayer(parameters, self.STUDY_AREA, context)
         # Check if the study area is a polygon layer
-        if QgsWkbTypes.displayString(study_area.wkbType()) not in ['Polygon', 'MultiPolygon']:
-            iface.messageBar().pushMessage("Erreur", "La zone d'étude fournie n'est pas valide ! Veuillez sélectionner une couche vecteur de type POLYGONE.", level=Qgis.Critical, duration=10)
-            raise QgsProcessingException(self.tr("La zone d'étude fournie n'est pas valide ! Veuillez sélectionner une couche vecteur de type POLYGONE."))
-        # Retrieve the CRS
-        crs = study_area.dataProvider().crs().authid().split(':')[1]
-        #feedback.pushInfo('SRC : {}'.format(crs))
-        # Retrieve the potential features selection
-        if len(study_area.selectedFeatures()) > 0:
-            selection = study_area.selectedFeatures() # Get only the selected features
-        else:
-            selection = study_area.getFeatures() # If there is no feature selected, get all of them
+        check_layer_geometry(study_area)
 
-        # Initialization of the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer
-        where = "and ("
-        # Format the geometry of src_lpodatas.observations if different from the study area
-        if crs == '2154':
-            geom = "geom"
-        else:
-            geom = "st_transform(geom, {})".format(crs)
-        # For each entity in the study area...
-        for feature in selection:
-            # Retrieve the geometry
-            area = feature.geometry() # QgsGeometry object
-            # Retrieve the geometry type (single or multiple)
-            geomSingleType = QgsWkbTypes.isSingleType(area.wkbType())
-            # Increment the "where" clause
-            if geomSingleType:
-                where = where + "st_within({}, ST_PolygonFromText('{}', {})) or ".format(geom, area.asWkt(), crs)
-            else:
-                where = where + "st_within({}, ST_MPolyFromText('{}', {})) or ".format(geom, area.asWkt(), crs)
-        # Remove the last "or" in the "where" clause which is useless
-        where = where[:len(where)-4] + ")"
-        #feedback.pushInfo('Clause where : {}'.format(where))
+        # Construct the sql array containing the study area's features geometry
+        array_polygons = construct_sql_array_polygons(study_area)        
+        # Define the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer = biodiversity data
+        where = "is_valid and st_within(geom, st_union({}))".format(array_polygons)
 
-        # Define the SQL query
-        query = """(select *
-            from src_lpodatas.observations 
-            where is_valid {})""".format(where)
-        #feedback.pushInfo('Requête : {}'.format(query))
-        
         # Retrieve the data base connection name
         connection = self.parameterAsString(parameters, self.DATABASE, context)
-        # Retrieve the output PostGIS layer
-            # URI --> Configures connection to database and the SQL query
+        # URI --> Configures connection to database and the SQL query
         uri = postgis.uri_from_name(connection)
-        #uri.setDataSource("src_lpodatas", "observations", "geom", "is valid {}".format(where))
-        uri.setDataSource("", query, "geom", "", "id_observations")
-        layer_obs = QgsVectorLayer(uri.uri(), "Données d'observations {}".format(study_area.name()), "postgres")
+        uri.setDataSource("src_lpodatas", "observations", "geom", where)
 
+        # Retrieve the output PostGIS layer = biodiversity data
+        layer_obs = QgsVectorLayer(uri.uri(), "Données d'observations {}".format(study_area.name()), "postgres")
         # Check if the PostGIS layer is valid
-        if not layer_obs.isValid():
-            raise QgsProcessingException(self.tr("""La couche PostGIS chargée n'est pas valide !
-                Checkez les logs de PostGIS pour visualiser les messages d'erreur."""))
-        else:
-             feedback.pushInfo('La couche PostGIS demandée est valide, la requête SQL a été exécutée avec succès !')
-                
+        check_layer_is_valid(feedback, layer_obs)
         # Load the PostGIS layer
-        root = context.project().layerTreeRoot()
-        plugin_lpo_group = root.findGroup('Résultats plugin LPO')
-        if not plugin_lpo_group:
-            plugin_lpo_group = root.insertGroup(0, 'Résultats plugin LPO')
-        context.project().addMapLayers([layer_obs], False)
-        plugin_lpo_group.addLayer(layer_obs)
-        # Variant
-        # context.temporaryLayerStore().addMapLayer(layer_obs)
-        # context.addLayerToLoadOnCompletion(
-        #     layer_obs.id(),
-        #     QgsProcessingContext.LayerDetails("Données d'observations", context.project(), self.OUTPUT)
-        # )
+        load_layer(context, layer_obs)
 
         return {self.OUTPUT: layer_obs.id()}
 

@@ -42,6 +42,7 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingException)
 from qgis.utils import iface
 from processing.tools import postgis
+from .common_functions import check_layer_geometry, set_features
 
 import processing
 import matplotlib.pyplot as plt
@@ -58,7 +59,7 @@ class Histogram(QgsProcessingAlgorithm):
 
     # Constants used to refer to parameters and outputs
     DATABASE = 'DATABASE'
-    ZONE_ETUDE = 'ZONE_ETUDE'
+    STUDY_AREA = 'STUDY_AREA'
     OUTPUT = 'OUTPUT'
 
     def name(self):
@@ -97,7 +98,7 @@ class Histogram(QgsProcessingAlgorithm):
         # Input vector layer = study area
         self.addParameter(
             QgsProcessingParameterVectorLayer(
-                self.ZONE_ETUDE,
+                self.STUDY_AREA,
                 self.tr("Zone d'étude"),
                 [QgsProcessing.TypeVectorAnyGeometry]
             )
@@ -109,11 +110,13 @@ class Histogram(QgsProcessingAlgorithm):
         """
 
         # Retrieve the input vector layer = study area
-        zone_etude = self.parameterAsVectorLayer(parameters, self.ZONE_ETUDE, context)
+        study_area = self.parameterAsVectorLayer(parameters, self.STUDY_AREA, context)
+        # Check if the study area is a polygon layer
+        check_layer_geometry(study_area)
         # Initialization of the "where" clause of the SQL query, aiming to retrieve the data for the histogram
         where = "and ("
         # For each entity in the study area...
-        for feature in zone_etude.getFeatures():
+        for feature in set_features(study_area):
             # Retrieve the geometry
             area = feature.geometry() # QgsGeometry object
             # Retrieve the geometry type (single or multiple)
