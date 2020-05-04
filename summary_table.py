@@ -35,13 +35,16 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterString,
                        QgsProcessingParameterVectorLayer,
                        QgsProcessingOutputVectorLayer,
+                       QgsProcessingParameterBoolean,
                        QgsDataSourceUri,
                        QgsVectorLayer,
                        QgsWkbTypes,
                        QgsProcessingContext,
+                       Qgis,
                        QgsProcessingException)
 from qgis.utils import iface
 from processing.tools import postgis
+from .common_functions import simplifyName
 
 import processing
 
@@ -56,8 +59,10 @@ class SummaryTable(QgsProcessingAlgorithm):
 
     # Constants used to refer to parameters and outputs
     DATABASE = 'DATABASE'
-    ZONE_ETUDE = 'ZONE_ETUDE'
+    STUDY_AREA = 'STUDY_AREA'
+    ADD_TABLE = 'ADD_TABLE'
     OUTPUT = 'OUTPUT'
+    OUTPUT_NAME = 'OUTPUT_NAME'
 
     def name(self):
         return 'SummaryTable'
@@ -95,9 +100,18 @@ class SummaryTable(QgsProcessingAlgorithm):
         # Input vector layer = study area
         self.addParameter(
             QgsProcessingParameterVectorLayer(
-                self.ZONE_ETUDE,
+                self.STUDY_AREA,
                 self.tr("Zone d'étude"),
                 [QgsProcessing.TypeVectorAnyGeometry]
+            )
+        )
+
+        # Boolean : True = add the summary table in the DB ; False = don't
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.ADD_TABLE,
+                self.tr("Enregistrer les données en sortie dans une nouvelle table PostgreSQL"),
+                False
             )
         )
 
@@ -110,68 +124,110 @@ class SummaryTable(QgsProcessingAlgorithm):
             )
         )
 
+        # Output PostGIS layer name
+        self.addParameter(
+            QgsProcessingParameterString(
+                self.OUTPUT_NAME,
+                self.tr("Nom de la couche en sortie"),
+                self.tr("tableau_synthese")
+            )
+        )
+
     def processAlgorithm(self, parameters, context, feedback):
         """
         Here is where the processing itself takes place.
         """
 
-        # Retrieve the input vector layer = study area
-        zone_etude = self.parameterAsVectorLayer(parameters, self.ZONE_ETUDE, context)
-        # Define the name of the PostGIS summary table which will be created in the DB
-        table_name = "summary_table_{}".format(zone_etude.name())
-        # Define the name of the output PostGIS layer (summary table) which will be loaded in the QGis project
-        layer_name = "Tableau synthèse {}".format(zone_etude.name())
+        # Retrieve the output PostGIS layer name
+        layer_name = self.parameterAsString(parameters, self.OUTPUT_NAME, context)
+        format_name = simplifyName(layer_name)
+        feedback.pushInfo('Nom formaté : {}'.format(format_name))
 
-        # Initialization of the "where" clause of the SQL query, aiming to create the summary table in the DB
+        # Retrieve the input vector layer = study area
+        study_area = self.parameterAsVectorLayer(parameters, self.STUDY_AREA, context)
+        # Check if the study area is a polygon layer
+        if QgsWkbTypes.displayString(study_area.wkbType()) not in ['Polygon', 'MultiPolygon']:
+            iface.messageBar().pushMessage("Erreur", "La zone d'étude fournie n'est pas valide ! Veuillez sélectionner une couche vecteur de type POLYGONE.", level=Qgis.Critical, duration=10)
+            raise QgsProcessingException(self.tr("La zone d'étude fournie n'est pas valide ! Veuillez sélectionner une couche vecteur de type POLYGONE."))
+        # Retrieve the CRS
+        crs = study_area.dataProvider().crs().authid().split(':')[1]
+        # Retrieve the potential features selection
+        if len(study_area.selectedFeatures()) > 0:
+            selection = study_area.selectedFeatures() # Get only the selected features
+        else:
+            selection = study_area.getFeatures() # If there is no feature selected, get all of them
+        # Define the name of the output PostGIS layer (summary table) which will be loaded in the QGis project
+        layer_name = "Tableau synthèse {}".format(study_area.name())
+
+        # Initialization of the "where" clause of the SQL query, aiming to retrieve the data for the summary table
         where = "and ("
+        # Format the geometry of src_lpodatas.observations if different from the study area
+        if crs == '2154':
+            geom = "geom"
+        else:
+            geom = "st_transform(geom, {})".format(crs)
         # For each entity in the study area...
-        for feature in zone_etude.getFeatures():
+        for feature in selection:
             # Retrieve the geometry
             area = feature.geometry() # QgsGeometry object
             # Retrieve the geometry type (single or multiple)
             geomSingleType = QgsWkbTypes.isSingleType(area.wkbType())
             # Increment the "where" clause
             if geomSingleType:
-                where = where + "st_within(geom, ST_PolygonFromText('{}', 2154)) or ".format(area.asWkt())
+                where = where + "st_within({}, ST_PolygonFromText('{}', {})) or ".format(geom, area.asWkt(), crs)
             else:
-                where = where + "st_within(geom, ST_MPolyFromText('{}', 2154)) or ".format(area.asWkt())
+                where = where + "st_within({}, ST_MPolyFromText('{}', {})) or ".format(geom, area.asWkt(), crs)
         # Remove the last "or" in the "where" clause which is useless
         where = where[:len(where)-4] + ")"
         #feedback.pushInfo('Clause where : {}'.format(where))
-        
-        # Define the SQL queries
-        queries = [
-            "drop table if exists {}".format(table_name),
-            """create table {} as (
-            select row_number() OVER () AS id, source_id_sp, nom_sci, nom_vern, 
-            count(*) as nb_observations, count(distinct(observateur)) as nb_observateurs, max(date_an) as derniere_observation 
-            from src_lpodatas.observations 
-            where is_valid {} 
-            group by source_id_sp, nom_sci, nom_vern 
-            order by source_id_sp)""".format(table_name, where),
-            "alter table {} add primary key (id)".format(table_name)
-        ]
-        
+
         # Retrieve the data base connection name
         connection = self.parameterAsString(parameters, self.DATABASE, context)
-        # Execute the SQL queries
-        for query in queries:
-            processing.run(
-                'qgis:postgisexecutesql',
-                {
-                    'DATABASE': connection,
-                    'SQL': query
-                },
-                is_child_algorithm=True,
-                context=context,
-                feedback=feedback
-            )
-            feedback.pushInfo('Requête SQL exécutée avec succès !')
-
-        # Retrieve the output PostGIS layer (summary table) which has just been created
-            # URI --> Configures connection to database and the SQL query
+        # URI --> Configures connection to database and the SQL query
         uri = postgis.uri_from_name(connection)
-        uri.setDataSource(None, table_name, None, "", "id")
+        # Retrieve the boolean
+        add_table = self.parameterAsBool(parameters, self.ADD_TABLE, context)
+        if add_table:
+            # Define the name of the PostGIS summary table which will be created in the DB
+            table_name = "summary_table_{}".format(study_area.name())
+            # Define the SQL queries
+            queries = [
+                "drop table if exists {}".format(table_name),
+                """create table {} as (
+                select row_number() OVER () AS id, source_id_sp, nom_sci, nom_vern, 
+                count(*) as nb_observations, count(distinct(observateur)) as nb_observateurs, max(date_an) as derniere_observation 
+                from src_lpodatas.observations 
+                where is_valid {} 
+                group by source_id_sp, nom_sci, nom_vern 
+                order by source_id_sp)""".format(table_name, where),
+                "alter table {} add primary key (id)".format(table_name)
+            ]
+            # Execute the SQL queries
+            for query in queries:
+                processing.run(
+                    'qgis:postgisexecutesql',
+                    {
+                        'DATABASE': connection,
+                        'SQL': query
+                    },
+                    is_child_algorithm=True,
+                    context=context,
+                    feedback=feedback
+                )
+                feedback.pushInfo('Requête SQL exécutée avec succès !')
+            # Format the URI
+            uri.setDataSource(None, table_name, None, "", "id")
+        else:
+            # Define the SQL queries
+            query = """(select row_number() OVER () AS id, source_id_sp, nom_sci, nom_vern, 
+                count(*) as nb_observations, count(distinct(observateur)) as nb_observateurs, max(date_an) as derniere_observation 
+                from src_lpodatas.observations 
+                where is_valid {} 
+                group by source_id_sp, nom_sci, nom_vern 
+                order by source_id_sp)""".format(where)
+            # Format the URI
+            uri.setDataSource("", query, None, "", "id")
+        # Retrieve the output PostGIS layer (summary table) which has just been created
         layer_summary = QgsVectorLayer(uri.uri(), layer_name, "postgres")
 
         # Check if the PostGIS layer is valid

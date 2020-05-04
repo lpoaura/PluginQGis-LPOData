@@ -119,19 +119,24 @@ class ExtractData(QgsProcessingAlgorithm):
         study_area = self.parameterAsVectorLayer(parameters, self.STUDY_AREA, context)
         # Check if the study area is a polygon layer
         if QgsWkbTypes.displayString(study_area.wkbType()) not in ['Polygon', 'MultiPolygon']:
-            iface.messageBar().pushMessage("Erreur", "La zone d'étude fournie n'est pas valide ! Veuillez sélectionner une couche vecteur de type polygone.", level=Qgis.Critical, duration=10)
-            raise QgsProcessingException(self.tr("La zone d'étude fournie n'est pas valide ! Veuillez sélectionner une couche vecteur de type polygone."))
-        # Check if the study area is 2154
-        if study_area.dataProvider().crs().authid() != 'EPSG:2154':
-            iface.messageBar().pushMessage("Erreur", "La zone d'étude fournie n'est pas valide ! Veuillez sélectionner une couche vecteur ayant un EPSG:2154.", level=Qgis.Critical, duration=10)
-            raise QgsProcessingException(self.tr("La zone d'étude fournie n'est pas valide ! Veuillez sélectionner une couche vecteur ayant un EPSG:2154."))
+            iface.messageBar().pushMessage("Erreur", "La zone d'étude fournie n'est pas valide ! Veuillez sélectionner une couche vecteur de type POLYGONE.", level=Qgis.Critical, duration=10)
+            raise QgsProcessingException(self.tr("La zone d'étude fournie n'est pas valide ! Veuillez sélectionner une couche vecteur de type POLYGONE."))
+        # Retrieve the CRS
+        crs = study_area.dataProvider().crs().authid().split(':')[1]
+        #feedback.pushInfo('SRC : {}'.format(crs))
         # Retrieve the potential features selection
         if len(study_area.selectedFeatures()) > 0:
             selection = study_area.selectedFeatures() # Get only the selected features
         else:
             selection = study_area.getFeatures() # If there is no feature selected, get all of them
+
         # Initialization of the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer
-        where = ""
+        where = "and ("
+        # Format the geometry of src_lpodatas.observations if different from the study area
+        if crs == '2154':
+            geom = "geom"
+        else:
+            geom = "st_transform(geom, {})".format(crs)
         # For each entity in the study area...
         for feature in selection:
             # Retrieve the geometry
@@ -140,19 +145,26 @@ class ExtractData(QgsProcessingAlgorithm):
             geomSingleType = QgsWkbTypes.isSingleType(area.wkbType())
             # Increment the "where" clause
             if geomSingleType:
-                where = where + "st_within(geom, ST_PolygonFromText('{}', 2154)) or ".format(area.asWkt())
+                where = where + "st_within({}, ST_PolygonFromText('{}', {})) or ".format(geom, area.asWkt(), crs)
             else:
-                where = where + "st_within(geom, ST_MPolyFromText('{}', 2154)) or ".format(area.asWkt())
+                where = where + "st_within({}, ST_MPolyFromText('{}', {})) or ".format(geom, area.asWkt(), crs)
         # Remove the last "or" in the "where" clause which is useless
-        where = where[:len(where)-4]
+        where = where[:len(where)-4] + ")"
         #feedback.pushInfo('Clause where : {}'.format(where))
 
+        # Define the SQL query
+        query = """(select *
+            from src_lpodatas.observations 
+            where is_valid {})""".format(where)
+        #feedback.pushInfo('Requête : {}'.format(query))
+        
         # Retrieve the data base connection name
         connection = self.parameterAsString(parameters, self.DATABASE, context)
         # Retrieve the output PostGIS layer
             # URI --> Configures connection to database and the SQL query
         uri = postgis.uri_from_name(connection)
-        uri.setDataSource("src_lpodatas", "observations", "geom", where)
+        #uri.setDataSource("src_lpodatas", "observations", "geom", "is valid {}".format(where))
+        uri.setDataSource("", query, "geom", "", "id_observations")
         layer_obs = QgsVectorLayer(uri.uri(), "Données d'observations {}".format(study_area.name()), "postgres")
 
         # Check if the PostGIS layer is valid
@@ -160,8 +172,8 @@ class ExtractData(QgsProcessingAlgorithm):
             raise QgsProcessingException(self.tr("""La couche PostGIS chargée n'est pas valide !
                 Checkez les logs de PostGIS pour visualiser les messages d'erreur."""))
         else:
-             feedback.pushInfo('La couche PostGIS demandée est valide, la requête SQL a été exécutée avec succès !')   
-        
+             feedback.pushInfo('La couche PostGIS demandée est valide, la requête SQL a été exécutée avec succès !')
+                
         # Load the PostGIS layer
         root = context.project().layerTreeRoot()
         plugin_lpo_group = root.findGroup('Résultats plugin LPO')
