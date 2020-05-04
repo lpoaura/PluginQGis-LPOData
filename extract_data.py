@@ -35,6 +35,7 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterString,
                        QgsProcessingParameterVectorLayer,
                        QgsProcessingOutputVectorLayer,
+                       QgsProcessingParameterFeatureSource,
                        QgsDataSourceUri,
                        QgsVectorLayer)
 from processing.tools import postgis
@@ -89,7 +90,7 @@ class ExtractData(QgsProcessingAlgorithm):
 
         # Input vector layer = study area
         self.addParameter(
-            QgsProcessingParameterVectorLayer(
+            QgsProcessingParameterFeatureSource(
                 self.STUDY_AREA,
                 self.tr("Zone d'étude"),
                 [QgsProcessing.TypeVectorAnyGeometry]
