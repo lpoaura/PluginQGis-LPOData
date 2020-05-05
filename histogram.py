@@ -137,16 +137,16 @@ class Histogram(QgsProcessingAlgorithm):
         # Construct the sql array containing the study area's features geometry
         array_polygons = construct_sql_array_polygons(study_area)
         # Define the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer = histogram data
-        where = "is_valid and st_within(geom, st_union({}))".format(array_polygons)
+        where = "is_valid and ST_within(geom, ST_union({}))".format(array_polygons)
 
         # Retrieve the data base connection name
         connection = self.parameterAsString(parameters, self.DATABASE, context)
         # Define the SQL query
-        query = """(select groupe_taxo, count(*) as nb_observations
-            from src_lpodatas.observations 
-            where {} 
-            group by groupe_taxo 
-            order by count(*) desc)""".format(where)
+        query = """(SELECT groupe_taxo, COUNT(*) AS nb_observations
+            FROM src_lpodatas.observations 
+            WHERE {} 
+            GROUP BY groupe_taxo 
+            ORDER BY count(*) desc)""".format(where)
         # URI --> Configures connection to database and the SQL query
         uri = postgis.uri_from_name(connection)
         uri.setDataSource("", query, None, "", "groupe_taxo")

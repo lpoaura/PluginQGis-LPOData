@@ -63,7 +63,7 @@ class SummaryTable(QgsProcessingAlgorithm):
         return 'SummaryTable'
 
     def displayName(self):
-        return 'Create a summary table'
+        return 'Create a summary table per species'
 
     def icon(self):
         return QIcon(os.path.join(pluginPath, 'icons', 'summary_table.png'))
@@ -145,7 +145,7 @@ class SummaryTable(QgsProcessingAlgorithm):
         # Construct the sql array containing the study area's features geometry
         array_polygons = construct_sql_array_polygons(study_area)
         # Define the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer = summary table
-        where = "is_valid and st_within(geom, st_union({}))".format(array_polygons)
+        where = "is_valid and ST_within(geom, ST_union({}))".format(array_polygons)
 
         # Retrieve the data base connection name
         connection = self.parameterAsString(parameters, self.DATABASE, context)
@@ -159,15 +159,29 @@ class SummaryTable(QgsProcessingAlgorithm):
             table_name = simplify_name(format_name)
             # Define the SQL queries
             queries = [
-                "drop table if exists {}".format(table_name),
-                """create table {} as (
-                select row_number() OVER () AS id, source_id_sp, nom_sci, nom_vern, 
-                count(*) as nb_observations, count(distinct(observateur)) as nb_observateurs, max(date_an) as derniere_observation 
-                from src_lpodatas.observations 
-                where {} 
-                group by source_id_sp, nom_sci, nom_vern 
-                order by source_id_sp)""".format(table_name, where),
-                "alter table {} add primary key (id)".format(table_name)
+                "DROP TABLE if exists {}".format(table_name),
+                """CREATE TABLE {} AS (WITH data AS
+                (SELECT source_id_sp, nom_sci AS nom_scientifique, nom_vern AS nom_vernaculaire, groupe_taxo,
+                COUNT(*) AS nb_donnees, COUNT(distinct(observateur)) AS nb_observateurs,
+                COALESCE(SUM(CASE WHEN mortalite THEN 1 ELSE 0 END),0) AS nb_mortalite,
+                max(sn.code_nidif) AS max_atlas_code, max(nombre_total) AS nb_individus_max,
+                min (date_an) as premiere_observation, max(date_an) as derniere_observation,
+                string_agg(distinct source,', ') as sources
+                FROM src_lpodatas.observations obs
+                LEFT JOIN referentiel.statut_nidif sn ON obs.oiso_code_nidif = sn.code_repro
+                WHERE {}
+                GROUP BY source_id_sp, nom_sci, nom_vern, groupe_taxo),
+                synthese AS
+                (SELECT DISTINCT source_id_sp, nom_scientifique, nom_vernaculaire, groupe_taxo,
+                nb_donnees, nb_observateurs, nb_mortalite,
+                sn2.statut_nidif, nb_individus_max,
+                premiere_observation, derniere_observation, sources
+                FROM data d
+                LEFT JOIN referentiel.statut_nidif sn2 ON d.max_atlas_code = sn2.code_nidif
+                ORDER BY groupe_taxo, source_id_sp)
+                SELECT row_number() OVER () AS id, *
+                FROM synthese)""".format(table_name, where),
+                "ALTER TABLE {} add primary key (id)".format(table_name)
             ]
             # Execute the SQL queries
             execute_sql_queries(context, feedback, connection, queries)
@@ -176,12 +190,27 @@ class SummaryTable(QgsProcessingAlgorithm):
 
         else:
             # Define the SQL query
-            query = """(select row_number() OVER () AS id, source_id_sp, nom_sci, nom_vern, 
-                count(*) as nb_observations, count(distinct(observateur)) as nb_observateurs, max(date_an) as derniere_observation 
-                from src_lpodatas.observations 
-                where {} 
-                group by source_id_sp, nom_sci, nom_vern 
-                order by source_id_sp)""".format(where)
+            query = """(WITH data AS
+                (SELECT source_id_sp, nom_sci AS nom_scientifique, nom_vern AS nom_vernaculaire, groupe_taxo,
+                COUNT(*) AS nb_donnees, COUNT(distinct(observateur)) AS nb_observateurs,
+                COALESCE(SUM(CASE WHEN mortalite THEN 1 ELSE 0 END),0) AS nb_mortalite,
+                max(sn.code_nidif) AS max_atlas_code, max(nombre_total) AS nb_individus_max,
+                min (date_an) as premiere_observation, max(date_an) as derniere_observation,
+                string_agg(distinct source,', ') as sources 
+                FROM src_lpodatas.observations obs
+                LEFT JOIN referentiel.statut_nidif sn ON obs.oiso_code_nidif = sn.code_repro 
+                WHERE {} 
+                GROUP BY source_id_sp, nom_sci, nom_vern, groupe_taxo),
+                synthese AS
+                (SELECT DISTINCT source_id_sp, nom_scientifique, nom_vernaculaire, groupe_taxo,
+                nb_donnees, nb_observateurs, nb_mortalite,
+                sn2.statut_nidif, nb_individus_max,
+                premiere_observation, derniere_observation, sources 
+                FROM data d 
+                LEFT JOIN referentiel.statut_nidif sn2 ON d.max_atlas_code = sn2.code_nidif
+                ORDER BY groupe_taxo, source_id_sp)
+                SELECT row_number() OVER () AS id, *
+                FROM synthese)""".format(where)
             # Format the URI
             uri.setDataSource("", query, None, "", "id")
 
