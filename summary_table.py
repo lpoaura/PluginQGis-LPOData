@@ -28,12 +28,13 @@ __revision__ = '$Format:%H$'
 
 import os
 from qgis.PyQt.QtGui import QIcon
+from qgis.utils import iface
 
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.core import (QgsProcessing,
                        QgsProcessingAlgorithm,
                        QgsProcessingParameterString,
-                       QgsProcessingParameterVectorLayer,
+                       QgsProcessingParameterFeatureSource,
                        QgsProcessingOutputVectorLayer,
                        QgsProcessingParameterBoolean,
                        QgsDataSourceUri,
@@ -92,19 +93,10 @@ class SummaryTable(QgsProcessingAlgorithm):
 
         # Input vector layer = study area
         self.addParameter(
-            QgsProcessingParameterVectorLayer(
+            QgsProcessingParameterFeatureSource(
                 self.STUDY_AREA,
                 self.tr("Zone d'étude"),
                 [QgsProcessing.TypeVectorAnyGeometry]
-            )
-        )
-
-        # Boolean : True = add the summary table in the DB ; False = don't
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.ADD_TABLE,
-                self.tr("Enregistrer les données en sortie dans une nouvelle table PostgreSQL"),
-                False
             )
         )
 
@@ -126,6 +118,15 @@ class SummaryTable(QgsProcessingAlgorithm):
             )
         )
 
+        # Boolean : True = add the summary table in the DB ; False = don't
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.ADD_TABLE,
+                self.tr("Enregistrer les données en sortie dans une nouvelle table PostgreSQL"),
+                False
+            )
+        )
+
     def processAlgorithm(self, parameters, context, feedback):
         """
         Here is where the processing itself takes place.
@@ -137,11 +138,11 @@ class SummaryTable(QgsProcessingAlgorithm):
         feedback.pushInfo('Nom formaté : {}'.format(format_name))
 
         # Retrieve the input vector layer = study area
-        study_area = self.parameterAsVectorLayer(parameters, self.STUDY_AREA, context)
+        study_area = self.parameterAsSource(parameters, self.STUDY_AREA, context)
         # Check if the study area is a polygon layer
         check_layer_geometry(study_area)
         # Define the name of the output PostGIS layer (summary table) which will be loaded in the QGis project
-        layer_name = "Tableau synthèse {}".format(study_area.name())
+        layer_name = "Tableau synthèse {}".format(study_area.sourceName())
 
         # Construct the sql array containing the study area's features geometry
         array_polygons = construct_sql_array_polygons(study_area)
@@ -157,7 +158,7 @@ class SummaryTable(QgsProcessingAlgorithm):
 
         if add_table:
             # Define the name of the PostGIS summary table which will be created in the DB
-            table_name = "summary_table_{}".format(study_area.name())
+            table_name = "summary_table_{}".format(study_area.sourceName())
             # Define the SQL queries
             queries = [
                 "drop table if exists {}".format(table_name),

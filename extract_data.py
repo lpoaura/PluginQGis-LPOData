@@ -33,9 +33,8 @@ from qgis.PyQt.QtCore import QCoreApplication
 from qgis.core import (QgsProcessing,
                        QgsProcessingAlgorithm,
                        QgsProcessingParameterString,
-                       QgsProcessingParameterVectorLayer,
-                       QgsProcessingOutputVectorLayer,
                        QgsProcessingParameterFeatureSource,
+                       QgsProcessingOutputVectorLayer,
                        QgsDataSourceUri,
                        QgsVectorLayer)
 from processing.tools import postgis
@@ -91,6 +90,7 @@ class ExtractData(QgsProcessingAlgorithm):
         # Input vector layer = study area
         self.addParameter(
             QgsProcessingParameterFeatureSource(
+            #QgsProcessingParameterVectorLayer(
                 self.STUDY_AREA,
                 self.tr("Zone d'étude"),
                 [QgsProcessing.TypeVectorAnyGeometry]
@@ -112,7 +112,8 @@ class ExtractData(QgsProcessingAlgorithm):
         """
 
         # Retrieve the input vector layer = study area
-        study_area = self.parameterAsVectorLayer(parameters, self.STUDY_AREA, context)
+        #study_area = self.parameterAsVectorLayer(parameters, self.STUDY_AREA, context)
+        study_area = self.parameterAsSource(parameters, self.STUDY_AREA, context)
         # Check if the study area is a polygon layer
         check_layer_geometry(study_area)
 
@@ -128,7 +129,7 @@ class ExtractData(QgsProcessingAlgorithm):
         uri.setDataSource("src_lpodatas", "observations", "geom", where)
 
         # Retrieve the output PostGIS layer = biodiversity data
-        layer_obs = QgsVectorLayer(uri.uri(), "Données d'observations {}".format(study_area.name()), "postgres")
+        layer_obs = QgsVectorLayer(uri.uri(), "Données d'observations {}".format(study_area.sourceName()), "postgres")
         # Check if the PostGIS layer is valid
         check_layer_is_valid(feedback, layer_obs)
         # Load the PostGIS layer

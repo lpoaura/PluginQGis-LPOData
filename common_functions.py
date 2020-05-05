@@ -85,7 +85,7 @@ def construct_sql_array_polygons(layer):
     # Initialization of the sql array containing the study area's features geometry
     array_polygons = "array["
     # For each entity in the study area...
-    for feature in set_features(layer):
+    for feature in layer.getFeatures():
         # Retrieve the geometry
         area = feature.geometry() # QgsGeometry object
         # Retrieve the geometry type (single or multiple)
