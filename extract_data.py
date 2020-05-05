@@ -27,6 +27,7 @@ __copyright__ = '(C) 2020 by Elsa Guilley (LPO AuRA)'
 __revision__ = '$Format:%H$'
 
 import os
+from datetime import datetime
 from qgis.PyQt.QtGui import QIcon
 
 from qgis.PyQt.QtCore import QCoreApplication
@@ -53,6 +54,7 @@ class ExtractData(QgsProcessingAlgorithm):
     DATABASE = 'DATABASE'
     STUDY_AREA = 'STUDY_AREA'
     OUTPUT = 'OUTPUT'
+    OUTPUT_NAME = 'OUTPUT_NAME'
 
     def name(self):
         return 'ExtractData'
@@ -90,7 +92,6 @@ class ExtractData(QgsProcessingAlgorithm):
         # Input vector layer = study area
         self.addParameter(
             QgsProcessingParameterFeatureSource(
-            #QgsProcessingParameterVectorLayer(
                 self.STUDY_AREA,
                 self.tr("Zone d'étude"),
                 [QgsProcessing.TypeVectorAnyGeometry]
@@ -106,19 +107,31 @@ class ExtractData(QgsProcessingAlgorithm):
             )
         )
 
+        # Output PostGIS layer name
+        self.addParameter(
+            QgsProcessingParameterString(
+                self.OUTPUT_NAME,
+                self.tr("Nom de la couche en sortie"),
+                self.tr("Données d'observation")
+            )
+        )
+
     def processAlgorithm(self, parameters, context, feedback):
         """
         Here is where the processing itself takes place.
         """
 
         # Retrieve the input vector layer = study area
-        #study_area = self.parameterAsVectorLayer(parameters, self.STUDY_AREA, context)
         study_area = self.parameterAsSource(parameters, self.STUDY_AREA, context)
         # Check if the study area is a polygon layer
         check_layer_geometry(study_area)
+        # Retrieve the output PostGIS layer name and format it
+        layer_name = self.parameterAsString(parameters, self.OUTPUT_NAME, context)
+        ts = datetime.now()
+        format_name = layer_name + " " + str(ts.strftime('%s'))
 
         # Construct the sql array containing the study area's features geometry
-        array_polygons = construct_sql_array_polygons(study_area)        
+        array_polygons = construct_sql_array_polygons(study_area)
         # Define the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer = biodiversity data
         where = "is_valid and st_within(geom, st_union({}))".format(array_polygons)
 
@@ -129,7 +142,7 @@ class ExtractData(QgsProcessingAlgorithm):
         uri.setDataSource("src_lpodatas", "observations", "geom", where)
 
         # Retrieve the output PostGIS layer = biodiversity data
-        layer_obs = QgsVectorLayer(uri.uri(), "Données d'observations {}".format(study_area.sourceName()), "postgres")
+        layer_obs = QgsVectorLayer(uri.uri(), format_name, "postgres")
         # Check if the PostGIS layer is valid
         check_layer_is_valid(feedback, layer_obs)
         # Load the PostGIS layer

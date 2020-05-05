@@ -67,17 +67,6 @@ def check_layer_is_valid(feedback, layer):
         feedback.pushInfo("La couche PostGIS demandée est valide, la requête SQL a été exécutée avec succès !")
     return None
 
-def set_features(layer):
-    """
-    Retrieve the selected features of the input vector layer.
-    """
-    if len(layer.selectedFeatures()) > 0:
-        selection = layer.selectedFeatures()
-    else:
-        # If there is no feature selected, get all of them
-        selection = layer.getFeatures() 
-    return selection
-
 def construct_sql_array_polygons(layer):
     """
     Construct the sql array containing the input vector layer's features geometry.
@@ -131,5 +120,5 @@ def execute_sql_queries(context, feedback, connection, queries):
             context=context,
             feedback=feedback
         )
-    feedback.pushInfo('Requête SQL exécutée avec succès !')
+        feedback.pushInfo('Requête SQL exécutée avec succès !')
     return None

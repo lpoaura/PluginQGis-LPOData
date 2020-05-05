@@ -27,6 +27,7 @@ __copyright__ = '(C) 2020 by Elsa Guilley (LPO AuRA)'
 __revision__ = '$Format:%H$'
 
 import os
+from datetime import datetime
 from qgis.PyQt.QtGui import QIcon
 from qgis.utils import iface
 
@@ -114,7 +115,7 @@ class SummaryTable(QgsProcessingAlgorithm):
             QgsProcessingParameterString(
                 self.OUTPUT_NAME,
                 self.tr("Nom de la couche en sortie"),
-                self.tr("tableau_synthese")
+                self.tr("Tableau synthèse")
             )
         )
 
@@ -132,17 +133,14 @@ class SummaryTable(QgsProcessingAlgorithm):
         Here is where the processing itself takes place.
         """
 
-        # Retrieve the output PostGIS layer name
-        layer_name = self.parameterAsString(parameters, self.OUTPUT_NAME, context)
-        format_name = simplify_name(layer_name)
-        feedback.pushInfo('Nom formaté : {}'.format(format_name))
-
         # Retrieve the input vector layer = study area
         study_area = self.parameterAsSource(parameters, self.STUDY_AREA, context)
         # Check if the study area is a polygon layer
         check_layer_geometry(study_area)
-        # Define the name of the output PostGIS layer (summary table) which will be loaded in the QGis project
-        layer_name = "Tableau synthèse {}".format(study_area.sourceName())
+        # Retrieve the output PostGIS layer name and format it
+        layer_name = self.parameterAsString(parameters, self.OUTPUT_NAME, context)
+        ts = datetime.now()
+        format_name = layer_name + " " + str(ts.strftime('%s'))
 
         # Construct the sql array containing the study area's features geometry
         array_polygons = construct_sql_array_polygons(study_area)
@@ -158,7 +156,7 @@ class SummaryTable(QgsProcessingAlgorithm):
 
         if add_table:
             # Define the name of the PostGIS summary table which will be created in the DB
-            table_name = "summary_table_{}".format(study_area.sourceName())
+            table_name = simplify_name(format_name)
             # Define the SQL queries
             queries = [
                 "drop table if exists {}".format(table_name),
@@ -177,7 +175,7 @@ class SummaryTable(QgsProcessingAlgorithm):
             uri.setDataSource(None, table_name, None, "", "id")
 
         else:
-            # Define the SQL queries
+            # Define the SQL query
             query = """(select row_number() OVER () AS id, source_id_sp, nom_sci, nom_vern, 
                 count(*) as nb_observations, count(distinct(observateur)) as nb_observateurs, max(date_an) as derniere_observation 
                 from src_lpodatas.observations 
@@ -188,7 +186,7 @@ class SummaryTable(QgsProcessingAlgorithm):
             uri.setDataSource("", query, None, "", "id")
 
         # Retrieve the output PostGIS layer = summary table
-        layer_summary = QgsVectorLayer(uri.uri(), layer_name, "postgres")
+        layer_summary = QgsVectorLayer(uri.uri(), format_name, "postgres")
         # Check if the PostGIS layer is valid
         check_layer_is_valid(feedback, layer_summary)
         # Load the PostGIS layer

@@ -27,26 +27,23 @@ __copyright__ = '(C) 2020 by Elsa Guilley (LPO AuRA)'
 __revision__ = '$Format:%H$'
 
 import os
+from datetime import datetime
 from qgis.PyQt.QtGui import QIcon
+from qgis.utils import iface
+
+import matplotlib.pyplot as plt
+import numpy as np
 
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.core import (QgsProcessing,
                        QgsProcessingAlgorithm,
                        QgsProcessingParameterString,
-                       QgsProcessingParameterVectorLayer,
+                       QgsProcessingParameterFeatureSource,
                        QgsProcessingOutputVectorLayer,
                        QgsDataSourceUri,
-                       QgsVectorLayer,
-                       QgsWkbTypes,
-                       QgsProcessingContext,
-                       QgsProcessingException)
-from qgis.utils import iface
+                       QgsVectorLayer)
 from processing.tools import postgis
-from .common_functions import check_layer_geometry, set_features
-
-import processing
-import matplotlib.pyplot as plt
-import numpy as np
+from .common_functions import check_layer_geometry, check_layer_is_valid, construct_sql_array_polygons, load_layer
 
 pluginPath = os.path.dirname(__file__)
 
@@ -61,12 +58,13 @@ class Histogram(QgsProcessingAlgorithm):
     DATABASE = 'DATABASE'
     STUDY_AREA = 'STUDY_AREA'
     OUTPUT = 'OUTPUT'
+    OUTPUT_NAME = 'OUTPUT_NAME'
 
     def name(self):
         return 'Histogram'
 
     def displayName(self):
-        return 'Create an histogram'
+        return 'NE PAS TESTER - Create an histogram'
 
     def icon(self):
         return QIcon(os.path.join(pluginPath, 'icons', 'histogram.png'))
@@ -97,10 +95,28 @@ class Histogram(QgsProcessingAlgorithm):
 
         # Input vector layer = study area
         self.addParameter(
-            QgsProcessingParameterVectorLayer(
+            QgsProcessingParameterFeatureSource(
                 self.STUDY_AREA,
                 self.tr("Zone d'étude"),
                 [QgsProcessing.TypeVectorAnyGeometry]
+            )
+        )
+
+        # Output PostGIS layer = histogram data
+        self.addOutput(
+            QgsProcessingOutputVectorLayer(
+                self.OUTPUT,
+                self.tr('Couche en sortie'),
+                QgsProcessing.TypeVectorAnyGeometry
+            )
+        )
+
+        # Output PostGIS layer name
+        self.addParameter(
+            QgsProcessingParameterString(
+                self.OUTPUT_NAME,
+                self.tr("Nom de la couche en sortie"),
+                self.tr("Données histogramme")
             )
         )
 
@@ -110,46 +126,40 @@ class Histogram(QgsProcessingAlgorithm):
         """
 
         # Retrieve the input vector layer = study area
-        study_area = self.parameterAsVectorLayer(parameters, self.STUDY_AREA, context)
+        study_area = self.parameterAsSource(parameters, self.STUDY_AREA, context)
         # Check if the study area is a polygon layer
         check_layer_geometry(study_area)
-        # Initialization of the "where" clause of the SQL query, aiming to retrieve the data for the histogram
-        where = "and ("
-        # For each entity in the study area...
-        for feature in set_features(study_area):
-            # Retrieve the geometry
-            area = feature.geometry() # QgsGeometry object
-            # Retrieve the geometry type (single or multiple)
-            geomSingleType = QgsWkbTypes.isSingleType(area.wkbType())
-            # Increment the "where" clause
-            if geomSingleType:
-                where = where + "st_within(geom, ST_PolygonFromText('{}', 2154)) or ".format(area.asWkt())
-            else:
-                where = where + "st_within(geom, ST_MPolyFromText('{}', 2154)) or ".format(area.asWkt())
-        # Remove the last "or" in the "where" clause which is useless
-        where = where[:len(where)-4] + ")"
-        #feedback.pushInfo('Clause where : {}'.format(where))
+        # Retrieve the output PostGIS layer name and format it
+        layer_name = self.parameterAsString(parameters, self.OUTPUT_NAME, context)
+        ts = datetime.now()
+        format_name = layer_name + " " + str(ts.strftime('%s'))
 
-        query = """(select groupe_taxo, count(*) as nb_observations
-            from src_lpodatas.observations 
-            where is_valid {} 
-            group by groupe_taxo 
-            order by count(*) desc)""".format(where)
-        
+        # Construct the sql array containing the study area's features geometry
+        array_polygons = construct_sql_array_polygons(study_area)
+        # Define the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer = histogram data
+        where = "is_valid and st_within(geom, st_union({}))".format(array_polygons)
+
         # Retrieve the data base connection name
         connection = self.parameterAsString(parameters, self.DATABASE, context)
-        # Retrieve the data for the histogram through a layer
-            # URI --> Configures connection to database and the SQL query
+        # Define the SQL query
+        query = """(select groupe_taxo, count(*) as nb_observations
+            from src_lpodatas.observations 
+            where {} 
+            group by groupe_taxo 
+            order by count(*) desc)""".format(where)
+        # URI --> Configures connection to database and the SQL query
         uri = postgis.uri_from_name(connection)
         uri.setDataSource("", query, None, "", "groupe_taxo")
-        layer_histo = QgsVectorLayer(uri.uri(), "Histogram", "postgres")
 
+        # Retrieve the output PostGIS layer = histogram data
+        layer_histo = QgsVectorLayer(uri.uri(), format_name, "postgres")
         # Check if the PostGIS layer is valid
-        if not layer_histo.isValid():
-            raise QgsProcessingException(self.tr("""Cette couche n'est pas valide !
-                Checker les logs de PostGIS pour visualiser les messages d'erreur."""))
-        else:
-             feedback.pushInfo('La couche PostGIS demandée est valide, la requête SQL a été exécutée avec succès !')
+        check_layer_is_valid(feedback, layer_histo)
+        # Load the PostGIS layer
+        load_layer(context, layer_histo)
+        # Open the attribute table of the PostGIS layer
+        iface.setActiveLayer(layer_histo)
+        iface.showAttributeTable(layer_histo)
 
         plt.rcdefaults()
         libel = [feature['groupe_taxo'] for feature in layer_histo.getFeatures()]
@@ -168,7 +178,7 @@ class Histogram(QgsProcessingAlgorithm):
         ax.set_title(u'Etat des connaissances par groupes d\'espèces')
         plt.show()
         
-        return {}
+        return {self.OUTPUT: layer_histo.id()}
 
     def tr(self, string):
         return QCoreApplication.translate('Processing', string)
