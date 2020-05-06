@@ -46,14 +46,14 @@ def simplify_name(string):
     )
     return string.lower().translate(translation_table)
 
-def check_layer_geometry(layer):
-    """
-    Check if the input vector layer is a polygon layer.
-    """
-    if QgsWkbTypes.displayString(layer.wkbType()) not in ['Polygon', 'MultiPolygon']:
-        iface.messageBar().pushMessage("Erreur", "La zone d'étude fournie n'est pas valide ! Veuillez sélectionner une couche vecteur de type POLYGONE.", level=Qgis.Critical, duration=10)
-        raise QgsProcessingException("La zone d'étude fournie n'est pas valide ! Veuillez sélectionner une couche vecteur de type POLYGONE.")
-    return None
+# def check_layer_geometry(layer):
+#     """
+#     Check if the input vector layer is a polygon layer.
+#     """
+#     if QgsWkbTypes.displayString(layer.wkbType()) not in ['Polygon', 'MultiPolygon']:
+#         iface.messageBar().pushMessage("Erreur", "La zone d'étude fournie n'est pas valide ! Veuillez sélectionner une couche vecteur de type POLYGONE.", level=Qgis.Critical, duration=10)
+#         raise QgsProcessingException("La zone d'étude fournie n'est pas valide ! Veuillez sélectionner une couche vecteur de type POLYGONE.")
+#     return None
 
 def check_layer_is_valid(feedback, layer):
     """
@@ -73,6 +73,8 @@ def construct_sql_array_polygons(layer):
     """
     # Initialization of the sql array containing the study area's features geometry
     array_polygons = "array["
+    # Retrieve the CRS of the layer
+    crs = layer.sourceCrs().authid().split(':')[1]
     # For each entity in the study area...
     for feature in layer.getFeatures():
         # Retrieve the geometry
@@ -81,9 +83,9 @@ def construct_sql_array_polygons(layer):
         geomSingleType = QgsWkbTypes.isSingleType(area.wkbType())
         # Increment the sql array
         if geomSingleType:
-            array_polygons += "ST_PolygonFromText('{}', 2154), ".format(area.asWkt())
+            array_polygons += "ST_transform(ST_PolygonFromText('{}', {}), 2154), ".format(area.asWkt(), crs)
         else:
-            array_polygons += "ST_MPolyFromText('{}', 2154), ".format(area.asWkt())
+            array_polygons += "ST_transform(ST_MPolyFromText('{}', {}), 2154), ".format(area.asWkt(), crs)
     # Remove the last "," in the sql array which is useless, and end the array
     array_polygons = array_polygons[:len(array_polygons)-2] + "]"
     return array_polygons

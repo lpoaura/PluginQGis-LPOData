@@ -36,10 +36,11 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterString,
                        QgsProcessingParameterFeatureSource,
                        QgsProcessingOutputVectorLayer,
+                       QgsProcessingParameterDefinition,
                        QgsDataSourceUri,
                        QgsVectorLayer)
 from processing.tools import postgis
-from .common_functions import check_layer_geometry, check_layer_is_valid, construct_sql_array_polygons, load_layer
+from .common_functions import check_layer_is_valid, construct_sql_array_polygons, load_layer
 
 pluginPath = os.path.dirname(__file__)
 
@@ -55,21 +56,22 @@ class ExtractData(QgsProcessingAlgorithm):
     STUDY_AREA = 'STUDY_AREA'
     OUTPUT = 'OUTPUT'
     OUTPUT_NAME = 'OUTPUT_NAME'
+    TABLE = 'TABLE'
 
     def name(self):
         return 'ExtractData'
 
     def displayName(self):
-        return 'Extract observation data from study area'
+        return "Extraction de données d'observation"
 
     def icon(self):
         return QIcon(os.path.join(pluginPath, 'icons', 'extract_data.png'))
 
     def groupId(self):
-        return 'initialisation'
+        return 'test'
 
     def group(self):
-        return 'Initialisation'
+        return 'Test'
 
     def initAlgorithm(self, config=None):
         """
@@ -80,7 +82,7 @@ class ExtractData(QgsProcessingAlgorithm):
         # Data base connection
         db_param = QgsProcessingParameterString(
             self.DATABASE,
-            self.tr('Nom de la connexion à la base de données')
+            self.tr("1/ Sélectionnez votre connexion à la base de données LPO AuRA")
         )
         db_param.setMetadata(
             {
@@ -93,8 +95,8 @@ class ExtractData(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterFeatureSource(
                 self.STUDY_AREA,
-                self.tr("Zone d'étude"),
-                [QgsProcessing.TypeVectorAnyGeometry]
+                self.tr("2/ Sélectionnez votre zone d'étude, à partir de laquelle seront extraites les données d'observations"),
+                [QgsProcessing.TypeVectorPolygon]
             )
         )
 
@@ -111,7 +113,7 @@ class ExtractData(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterString(
                 self.OUTPUT_NAME,
-                self.tr("Nom de la couche en sortie"),
+                self.tr("3/ Définissez un nom pour votre couche en sortie"),
                 self.tr("Données d'observation")
             )
         )
@@ -123,8 +125,6 @@ class ExtractData(QgsProcessingAlgorithm):
 
         # Retrieve the input vector layer = study area
         study_area = self.parameterAsSource(parameters, self.STUDY_AREA, context)
-        # Check if the study area is a polygon layer
-        check_layer_geometry(study_area)
         # Retrieve the output PostGIS layer name and format it
         layer_name = self.parameterAsString(parameters, self.OUTPUT_NAME, context)
         ts = datetime.now()
@@ -133,7 +133,7 @@ class ExtractData(QgsProcessingAlgorithm):
         # Construct the sql array containing the study area's features geometry
         array_polygons = construct_sql_array_polygons(study_area)
         # Define the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer = biodiversity data
-        where = "is_valid and ST_within(geom, SY_union({}))".format(array_polygons)
+        where = "is_valid and ST_within(geom, ST_union({}))".format(array_polygons)
 
         # Retrieve the data base connection name
         connection = self.parameterAsString(parameters, self.DATABASE, context)

@@ -41,7 +41,7 @@ from qgis.core import (QgsProcessing,
                        QgsDataSourceUri,
                        QgsVectorLayer)
 from processing.tools import postgis
-from .common_functions import simplify_name, check_layer_geometry, check_layer_is_valid, construct_sql_array_polygons, load_layer, execute_sql_queries
+from .common_functions import simplify_name, check_layer_is_valid, construct_sql_array_polygons, load_layer, execute_sql_queries
 
 pluginPath = os.path.dirname(__file__)
 
@@ -63,16 +63,16 @@ class SummaryTable(QgsProcessingAlgorithm):
         return 'SummaryTable'
 
     def displayName(self):
-        return 'Create a summary table per species'
+        return 'Tableau de synthèse par espèce'
 
     def icon(self):
-        return QIcon(os.path.join(pluginPath, 'icons', 'summary_table.png'))
+        return QIcon(os.path.join(pluginPath, 'icons', 'table.png'))
 
     def groupId(self):
-        return 'treatments'
+        return 'test'
 
     def group(self):
-        return 'Treatments'
+        return 'Test'
 
     def initAlgorithm(self, config=None):
         """
@@ -83,7 +83,7 @@ class SummaryTable(QgsProcessingAlgorithm):
         # Data base connection
         db_param = QgsProcessingParameterString(
             self.DATABASE,
-            self.tr('Nom de la connexion à la base de données')
+            self.tr("1/ Sélectionnez votre connexion à la base de données LPO AuRA")
         )
         db_param.setMetadata(
             {
@@ -96,8 +96,8 @@ class SummaryTable(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterFeatureSource(
                 self.STUDY_AREA,
-                self.tr("Zone d'étude"),
-                [QgsProcessing.TypeVectorAnyGeometry]
+                self.tr("2/ Sélectionnez votre zone d'étude, à partir de laquelle seront extraites les données du tableau de synthèse"),
+                [QgsProcessing.TypeVectorPolygon]
             )
         )
 
@@ -114,7 +114,7 @@ class SummaryTable(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterString(
                 self.OUTPUT_NAME,
-                self.tr("Nom de la couche en sortie"),
+                self.tr("3/ Définissez un nom pour votre couche en sortie"),
                 self.tr("Tableau synthèse")
             )
         )
@@ -135,8 +135,6 @@ class SummaryTable(QgsProcessingAlgorithm):
 
         # Retrieve the input vector layer = study area
         study_area = self.parameterAsSource(parameters, self.STUDY_AREA, context)
-        # Check if the study area is a polygon layer
-        check_layer_geometry(study_area)
         # Retrieve the output PostGIS layer name and format it
         layer_name = self.parameterAsString(parameters, self.OUTPUT_NAME, context)
         ts = datetime.now()

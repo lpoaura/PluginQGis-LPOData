@@ -43,7 +43,7 @@ from qgis.core import (QgsProcessing,
                        QgsDataSourceUri,
                        QgsVectorLayer)
 from processing.tools import postgis
-from .common_functions import check_layer_geometry, check_layer_is_valid, construct_sql_array_polygons, load_layer
+from .common_functions import check_layer_is_valid, construct_sql_array_polygons, load_layer
 
 pluginPath = os.path.dirname(__file__)
 
@@ -64,16 +64,16 @@ class Histogram(QgsProcessingAlgorithm):
         return 'Histogram'
 
     def displayName(self):
-        return 'NE PAS TESTER - Create an histogram'
+        return 'Etat des connaissances par groupe taxonomique'
 
     def icon(self):
-        return QIcon(os.path.join(pluginPath, 'icons', 'histogram.png'))
+        return QIcon(os.path.join(pluginPath, 'icons', 'table.png'))
 
     def groupId(self):
-        return 'treatments'
+        return 'test'
 
     def group(self):
-        return 'Treatments'
+        return 'Test'
 
     def initAlgorithm(self, config=None):
         """
@@ -84,7 +84,7 @@ class Histogram(QgsProcessingAlgorithm):
         # Data base connection
         db_param = QgsProcessingParameterString(
             self.DATABASE,
-            self.tr('Nom de la connexion à la base de données')
+            self.tr("1/ Sélectionnez votre connexion à la base de données LPO AuRA")
         )
         db_param.setMetadata(
             {
@@ -97,8 +97,8 @@ class Histogram(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterFeatureSource(
                 self.STUDY_AREA,
-                self.tr("Zone d'étude"),
-                [QgsProcessing.TypeVectorAnyGeometry]
+                self.tr("2/ Sélectionnez votre zone d'étude, à partir de laquelle seront extraites les données de l'état des connaissances"),
+                [QgsProcessing.TypeVectorPolygon]
             )
         )
 
@@ -115,8 +115,8 @@ class Histogram(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterString(
                 self.OUTPUT_NAME,
-                self.tr("Nom de la couche en sortie"),
-                self.tr("Données histogramme")
+                self.tr("3/ Définissez un nom pour votre couche en sortie"),
+                self.tr("Etat des connaissances")
             )
         )
 
@@ -127,8 +127,6 @@ class Histogram(QgsProcessingAlgorithm):
 
         # Retrieve the input vector layer = study area
         study_area = self.parameterAsSource(parameters, self.STUDY_AREA, context)
-        # Check if the study area is a polygon layer
-        check_layer_geometry(study_area)
         # Retrieve the output PostGIS layer name and format it
         layer_name = self.parameterAsString(parameters, self.OUTPUT_NAME, context)
         ts = datetime.now()
@@ -142,7 +140,7 @@ class Histogram(QgsProcessingAlgorithm):
         # Retrieve the data base connection name
         connection = self.parameterAsString(parameters, self.DATABASE, context)
         # Define the SQL query
-        query = """(SELECT groupe_taxo, COUNT(*) AS nb_observations
+        query = """(SELECT groupe_taxo, COUNT(*) AS nb_donnees
             FROM src_lpodatas.observations 
             WHERE {} 
             GROUP BY groupe_taxo 
@@ -161,22 +159,22 @@ class Histogram(QgsProcessingAlgorithm):
         iface.setActiveLayer(layer_histo)
         iface.showAttributeTable(layer_histo)
 
-        plt.rcdefaults()
-        libel = [feature['groupe_taxo'] for feature in layer_histo.getFeatures()]
-        feedback.pushInfo('Libellés : {}'.format(libel))
-        #X = np.arange(len(libel))
-        #feedback.pushInfo('Valeurs en X : {}'.format(X))
-        Y = [int(feature['nb_observations']) for feature in layer_histo.getFeatures()]
-        feedback.pushInfo('Valeurs en Y : {}'.format(Y))
-        fig = plt.figure()
-        ax = fig.add_axes([0, 0, 1, 1])
-        # fig, ax = plt.subplots()
-        ax.bar(libel, Y)
-        # ax.set_xticks(X)
-        ax.set_xticklabels(libel)
-        ax.set_ylabel(u'Nombre d\'observations')
-        ax.set_title(u'Etat des connaissances par groupes d\'espèces')
-        plt.show()
+        # plt.rcdefaults()
+        # libel = [feature['groupe_taxo'] for feature in layer_histo.getFeatures()]
+        # feedback.pushInfo('Libellés : {}'.format(libel))
+        # #X = np.arange(len(libel))
+        # #feedback.pushInfo('Valeurs en X : {}'.format(X))
+        # Y = [int(feature['nb_observations']) for feature in layer_histo.getFeatures()]
+        # feedback.pushInfo('Valeurs en Y : {}'.format(Y))
+        # fig = plt.figure()
+        # ax = fig.add_axes([0, 0, 1, 1])
+        # # fig, ax = plt.subplots()
+        # ax.bar(libel, Y)
+        # # ax.set_xticks(X)
+        # ax.set_xticklabels(libel)
+        # ax.set_ylabel(u'Nombre d\'observations')
+        # ax.set_title(u'Etat des connaissances par groupes d\'espèces')
+        # plt.show()
         
         return {self.OUTPUT: layer_histo.id()}
 
