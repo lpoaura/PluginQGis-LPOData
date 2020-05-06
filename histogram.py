@@ -40,10 +40,11 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterString,
                        QgsProcessingParameterFeatureSource,
                        QgsProcessingOutputVectorLayer,
+                       QgsProcessingParameterBoolean,
                        QgsDataSourceUri,
                        QgsVectorLayer)
 from processing.tools import postgis
-from .common_functions import check_layer_is_valid, construct_sql_array_polygons, load_layer
+from .common_functions import simplify_name, check_layer_is_valid, construct_sql_array_polygons, load_layer, execute_sql_queries
 
 pluginPath = os.path.dirname(__file__)
 
@@ -57,6 +58,7 @@ class Histogram(QgsProcessingAlgorithm):
     # Constants used to refer to parameters and outputs
     DATABASE = 'DATABASE'
     STUDY_AREA = 'STUDY_AREA'
+    ADD_TABLE = 'ADD_TABLE'
     OUTPUT = 'OUTPUT'
     OUTPUT_NAME = 'OUTPUT_NAME'
 
@@ -120,6 +122,15 @@ class Histogram(QgsProcessingAlgorithm):
             )
         )
 
+        # Boolean : True = add the summary table in the DB ; False = don't
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.ADD_TABLE,
+                self.tr("Enregistrer les données en sortie dans une nouvelle table PostgreSQL"),
+                False
+            )
+        )
+
     def processAlgorithm(self, parameters, context, feedback):
         """
         Here is where the processing itself takes place.
@@ -139,15 +150,45 @@ class Histogram(QgsProcessingAlgorithm):
 
         # Retrieve the data base connection name
         connection = self.parameterAsString(parameters, self.DATABASE, context)
-        # Define the SQL query
-        query = """(SELECT groupe_taxo, COUNT(*) AS nb_donnees
-            FROM src_lpodatas.observations 
-            WHERE {} 
-            GROUP BY groupe_taxo 
-            ORDER BY count(*) desc)""".format(where)
         # URI --> Configures connection to database and the SQL query
         uri = postgis.uri_from_name(connection)
-        uri.setDataSource("", query, None, "", "groupe_taxo")
+        # Retrieve the boolean
+        add_table = self.parameterAsBool(parameters, self.ADD_TABLE, context)
+
+        if add_table:
+            # Define the name of the PostGIS summary table which will be created in the DB
+            table_name = simplify_name(format_name)
+            # Define the SQL queries
+            queries = [
+                "DROP TABLE if exists {}".format(table_name),
+                """CREATE TABLE {} AS (SELECT row_number() OVER () AS id,
+                groupe_taxo, COUNT(*) AS nb_donnees,
+                COUNT(DISTINCT(source_id_sp)) as nb_especes,
+                COUNT(DISTINCT(observateur)) as nb_observateurs,
+                COUNT(DISTINCT("date")) as nb_dates
+                FROM src_lpodatas.observations
+                WHERE {} 
+                GROUP BY groupe_taxo
+                ORDER BY groupe_taxo)""".format(table_name, where),
+                "ALTER TABLE {} add primary key (id)".format(table_name)
+            ]
+            # Execute the SQL queries
+            execute_sql_queries(context, feedback, connection, queries)
+            # Format the URI
+            uri.setDataSource(None, table_name, None, "", "id")
+
+        else:
+        # Define the SQL query
+            query = """(SELECT groupe_taxo, COUNT(*) AS nb_donnees, 
+                COUNT(DISTINCT(source_id_sp)) as nb_especes,
+                COUNT(DISTINCT(observateur)) as nb_observateurs, 
+                COUNT(DISTINCT("date")) as nb_dates
+                FROM src_lpodatas.observations 
+                WHERE {} 
+                GROUP BY groupe_taxo 
+                ORDER BY groupe_taxo)""".format(where)
+            # Format the URI
+            uri.setDataSource("", query, None, "", "groupe_taxo")
 
         # Retrieve the output PostGIS layer = histogram data
         layer_histo = QgsVectorLayer(uri.uri(), format_name, "postgres")

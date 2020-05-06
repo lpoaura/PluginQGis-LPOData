@@ -36,9 +36,10 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterString,
                        QgsProcessingParameterFeatureSource,
                        QgsProcessingOutputVectorLayer,
-                       QgsProcessingParameterDefinition,
+                       QgsProcessingParameterFeatureSink,
                        QgsDataSourceUri,
-                       QgsVectorLayer)
+                       QgsVectorLayer,
+                       QgsProcessingException)
 from processing.tools import postgis
 from .common_functions import check_layer_is_valid, construct_sql_array_polygons, load_layer
 
@@ -57,6 +58,8 @@ class ExtractData(QgsProcessingAlgorithm):
     OUTPUT = 'OUTPUT'
     OUTPUT_NAME = 'OUTPUT_NAME'
     TABLE = 'TABLE'
+
+    TARGET_CRS = 'TARGET_CRS'
 
     def name(self):
         return 'ExtractData'
@@ -113,10 +116,18 @@ class ExtractData(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterString(
                 self.OUTPUT_NAME,
-                self.tr("3/ Définissez un nom pour votre couche en sortie"),
+                self.tr("3/ Définissez un nom pour votre nouvelle couche"),
                 self.tr("Données d'observation")
             )
         )
+
+        # self.addParameter(
+        #     QgsProcessingParameterFeatureSink(
+        #         self.OUTPUT,
+        #         self.tr('4/ Enregistrez votre nouvelle couche...'),
+        #         type=QgsProcessing.TypeVectorAnyGeometry
+        #     )
+        # )
 
     def processAlgorithm(self, parameters, context, feedback):
         """
@@ -147,6 +158,11 @@ class ExtractData(QgsProcessingAlgorithm):
         check_layer_is_valid(feedback, layer_obs)
         # Load the PostGIS layer
         load_layer(context, layer_obs)
+
+        # Retrieve sink
+        # (sink, dest_id) = self.parameterAsSink(parameters, self.OUTPUT, context, layer_obs.fields(), layer_obs.wkbType(), layer_obs.sourceCrs())
+        # if sink is None:
+        #     raise QgsProcessingException(self.invalidSinkError(parameters, self.OUTPUT))
 
         return {self.OUTPUT: layer_obs.id()}
 

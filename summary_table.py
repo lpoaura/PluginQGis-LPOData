@@ -160,7 +160,8 @@ class SummaryTable(QgsProcessingAlgorithm):
                 "DROP TABLE if exists {}".format(table_name),
                 """CREATE TABLE {} AS (WITH data AS
                 (SELECT source_id_sp, nom_sci AS nom_scientifique, nom_vern AS nom_vernaculaire, groupe_taxo,
-                COUNT(*) AS nb_donnees, COUNT(distinct(observateur)) AS nb_observateurs,
+                COUNT(*) AS nb_donnees, COUNT(DISTINCT(observateur)) AS nb_observateurs,
+                COUNT(DISTINCT("date")) as nb_dates,
                 COALESCE(SUM(CASE WHEN mortalite THEN 1 ELSE 0 END),0) AS nb_mortalite,
                 max(sn.code_nidif) AS max_atlas_code, max(nombre_total) AS nb_individus_max,
                 min (date_an) as premiere_observation, max(date_an) as derniere_observation,
@@ -171,7 +172,7 @@ class SummaryTable(QgsProcessingAlgorithm):
                 GROUP BY source_id_sp, nom_sci, nom_vern, groupe_taxo),
                 synthese AS
                 (SELECT DISTINCT source_id_sp, nom_scientifique, nom_vernaculaire, groupe_taxo,
-                nb_donnees, nb_observateurs, nb_mortalite,
+                nb_donnees, nb_observateurs, nb_dates, nb_mortalite,
                 sn2.statut_nidif, nb_individus_max,
                 premiere_observation, derniere_observation, sources
                 FROM data d
@@ -190,7 +191,8 @@ class SummaryTable(QgsProcessingAlgorithm):
             # Define the SQL query
             query = """(WITH data AS
                 (SELECT source_id_sp, nom_sci AS nom_scientifique, nom_vern AS nom_vernaculaire, groupe_taxo,
-                COUNT(*) AS nb_donnees, COUNT(distinct(observateur)) AS nb_observateurs,
+                COUNT(*) AS nb_donnees, COUNT(DISTINCT(observateur)) AS nb_observateurs,
+                COUNT(DISTINCT("date")) as nb_dates,
                 COALESCE(SUM(CASE WHEN mortalite THEN 1 ELSE 0 END),0) AS nb_mortalite,
                 max(sn.code_nidif) AS max_atlas_code, max(nombre_total) AS nb_individus_max,
                 min (date_an) as premiere_observation, max(date_an) as derniere_observation,
@@ -201,7 +203,7 @@ class SummaryTable(QgsProcessingAlgorithm):
                 GROUP BY source_id_sp, nom_sci, nom_vern, groupe_taxo),
                 synthese AS
                 (SELECT DISTINCT source_id_sp, nom_scientifique, nom_vernaculaire, groupe_taxo,
-                nb_donnees, nb_observateurs, nb_mortalite,
+                nb_donnees, nb_observateurs, nb_dates, nb_mortalite,
                 sn2.statut_nidif, nb_individus_max,
                 premiere_observation, derniere_observation, sources 
                 FROM data d 
