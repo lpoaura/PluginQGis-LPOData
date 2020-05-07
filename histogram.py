@@ -31,8 +31,9 @@ from datetime import datetime
 from qgis.PyQt.QtGui import QIcon
 from qgis.utils import iface
 
-import matplotlib.pyplot as plt
-import numpy as np
+# import plotly as plt
+# import plotly.graph_objs as go
+# import numpy as np
 
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.core import (QgsProcessing,
@@ -179,7 +180,7 @@ class Histogram(QgsProcessingAlgorithm):
 
         else:
         # Define the SQL query
-            query = """(SELECT groupe_taxo, COUNT(*) AS nb_donnees, 
+            query = """(SELECT groupe_taxo, COUNT(*) AS nb_donnees,
                 COUNT(DISTINCT(source_id_sp)) as nb_especes,
                 COUNT(DISTINCT(observateur)) as nb_observateurs, 
                 COUNT(DISTINCT("date")) as nb_dates
@@ -199,6 +200,14 @@ class Histogram(QgsProcessingAlgorithm):
         # Open the attribute table of the PostGIS layer
         iface.setActiveLayer(layer_histo)
         iface.showAttributeTable(layer_histo)
+
+        # x_var = [feature['groupe_taxo'] for feature in layer_histo.getFeatures()]
+        # y_var = [int(feature['nb_donnees']) for feature in layer_histo.getFeatures()]
+        # data = [go.Bar(x=x_var, y=y_var)]
+        # plt.offline.plot(data, filename="/home/eguilley/Téléchargements/histogram-test.html", auto_open=True)
+        # fig = go.Figure(data=data)
+        # fig.show()
+        # fig.write_image("/home/eguilley/Téléchargements/histogram-test.png")
 
         # plt.rcdefaults()
         # libel = [feature['groupe_taxo'] for feature in layer_histo.getFeatures()]

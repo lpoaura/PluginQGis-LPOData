@@ -30,7 +30,7 @@ import os
 from datetime import datetime
 from qgis.PyQt.QtGui import QIcon
 
-from qgis.PyQt.QtCore import QCoreApplication
+from qgis.PyQt.QtCore import QCoreApplication, QVariant
 from qgis.core import (QgsProcessing,
                        QgsProcessingAlgorithm,
                        QgsProcessingParameterString,
@@ -39,7 +39,7 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterFeatureSink,
                        QgsDataSourceUri,
                        QgsVectorLayer,
-                       QgsProcessingException)
+                       QgsField)
 from processing.tools import postgis
 from .common_functions import check_layer_is_valid, construct_sql_array_polygons, load_layer
 
@@ -104,13 +104,13 @@ class ExtractData(QgsProcessingAlgorithm):
         )
 
         # Output PostGIS layer = biodiversity data
-        # self.addOutput(
-        #     QgsProcessingOutputVectorLayer(
-        #         self.OUTPUT,
-        #         self.tr('Couche en sortie'),
-        #         QgsProcessing.TypeVectorAnyGeometry
-        #     )
-        # )
+        self.addOutput(
+            QgsProcessingOutputVectorLayer(
+                self.OUTPUT,
+                self.tr('Couche en sortie'),
+                QgsProcessing.TypeVectorAnyGeometry
+            )
+        )
 
         # Output PostGIS layer name
         self.addParameter(
@@ -122,13 +122,13 @@ class ExtractData(QgsProcessingAlgorithm):
         )
 
         # Output PostGIS layer = biodiversity data
-        self.addParameter(
-            QgsProcessingParameterFeatureSink(
-                self.OUTPUT,
-                self.tr('4/ Enregistrez votre nouvelle couche...'),
-                QgsProcessing.TypeVectorPoint
-            )
-        )
+        # self.addParameter(
+        #     QgsProcessingParameterFeatureSink(
+        #         self.OUTPUT,
+        #         self.tr('4/ Enregistrez votre nouvelle couche...'),
+        #         QgsProcessing.TypeVectorPoint
+        #     )
+        # )
 
     def processAlgorithm(self, parameters, context, feedback):
         """
@@ -161,14 +161,21 @@ class ExtractData(QgsProcessingAlgorithm):
         load_layer(context, layer_obs)
 
         # Retrieve sink
-        (sink, dest_id) = self.parameterAsSink(parameters, self.OUTPUT, context, layer_obs.fields(), layer_obs.wkbType(), layer_obs.sourceCrs())
-        if sink is None:
-            raise QgsProcessingException(self.invalidSinkError(parameters, self.OUTPUT))
-        for feature in layer_obs.getFeatures():
-            sink.addFeature(feature)
+        # try:
+        #     (sink, dest_id) = self.parameterAsSink(parameters, self.OUTPUT, context, layer_obs.fields(), layer_obs.wkbType(), layer_obs.sourceCrs())
+        # except Exception as e:
+        #     raise e
+        
+        # try:
+        #     if sink is None:
+        #         raise QgsProcessingException(self.invalidSinkError(parameters, self.OUTPUT))
+        #     for feature in layer_obs.getFeatures():
+        #         sink.addFeature(feature)
+        # except Exception as e:
+        #     raise e
 
-        #return {self.OUTPUT: layer_obs.id()}
-        return {self.OUTPUT: dest_id}
+        #return {self.OUTPUT: dest_id}
+        return {self.OUTPUT: layer_obs.id()}
 
     def tr(self, string):
         return QCoreApplication.translate('Processing', string)
