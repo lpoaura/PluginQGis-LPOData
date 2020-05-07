@@ -160,6 +160,22 @@ class ExtractData(QgsProcessingAlgorithm):
         # Load the PostGIS layer
         load_layer(context, layer_obs)
 
+        # Create the new fields for the sink
+        fields = layer_obs.fields()
+        new_fields = layer_obs.fields()
+        new_fields.clear()
+        for f in fields:
+            if f.name() == 'comportement':
+                new_fields.append(QgsField('comportement', QVariant., "text"))
+                feedback.pushInfo('OK')
+            elif f.name() == 'details':
+                new_fields.append(QgsField('details', QVariant.TextFormat, "text"))
+                feedback.pushInfo('OK')
+            else:
+                new_fields.append(f)
+        for i,field in enumerate(new_fields):
+            feedback.pushInfo('Elt : {}- {} {}'.format(i, field.name(), field.typeName()))
+
         # Retrieve sink
         # try:
         #     (sink, dest_id) = self.parameterAsSink(parameters, self.OUTPUT, context, layer_obs.fields(), layer_obs.wkbType(), layer_obs.sourceCrs())
