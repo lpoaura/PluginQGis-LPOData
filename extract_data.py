@@ -104,13 +104,13 @@ class ExtractData(QgsProcessingAlgorithm):
         )
 
         # Output PostGIS layer = biodiversity data
-        self.addOutput(
-            QgsProcessingOutputVectorLayer(
-                self.OUTPUT,
-                self.tr('Couche en sortie'),
-                QgsProcessing.TypeVectorAnyGeometry
-            )
-        )
+        # self.addOutput(
+        #     QgsProcessingOutputVectorLayer(
+        #         self.OUTPUT,
+        #         self.tr('Couche en sortie'),
+        #         QgsProcessing.TypeVectorAnyGeometry
+        #     )
+        # )
 
         # Output PostGIS layer name
         self.addParameter(
@@ -121,13 +121,14 @@ class ExtractData(QgsProcessingAlgorithm):
             )
         )
 
-        # self.addParameter(
-        #     QgsProcessingParameterFeatureSink(
-        #         self.OUTPUT,
-        #         self.tr('4/ Enregistrez votre nouvelle couche...'),
-        #         type=QgsProcessing.TypeVectorAnyGeometry
-        #     )
-        # )
+        # Output PostGIS layer = biodiversity data
+        self.addParameter(
+            QgsProcessingParameterFeatureSink(
+                self.OUTPUT,
+                self.tr('4/ Enregistrez votre nouvelle couche...'),
+                QgsProcessing.TypeVectorPoint
+            )
+        )
 
     def processAlgorithm(self, parameters, context, feedback):
         """
@@ -160,11 +161,14 @@ class ExtractData(QgsProcessingAlgorithm):
         load_layer(context, layer_obs)
 
         # Retrieve sink
-        # (sink, dest_id) = self.parameterAsSink(parameters, self.OUTPUT, context, layer_obs.fields(), layer_obs.wkbType(), layer_obs.sourceCrs())
-        # if sink is None:
-        #     raise QgsProcessingException(self.invalidSinkError(parameters, self.OUTPUT))
+        (sink, dest_id) = self.parameterAsSink(parameters, self.OUTPUT, context, layer_obs.fields(), layer_obs.wkbType(), layer_obs.sourceCrs())
+        if sink is None:
+            raise QgsProcessingException(self.invalidSinkError(parameters, self.OUTPUT))
+        for feature in layer_obs.getFeatures():
+            sink.addFeature(feature)
 
-        return {self.OUTPUT: layer_obs.id()}
+        #return {self.OUTPUT: layer_obs.id()}
+        return {self.OUTPUT: dest_id}
 
     def tr(self, string):
         return QCoreApplication.translate('Processing', string)
