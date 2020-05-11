@@ -29,7 +29,9 @@ __revision__ = '$Format:%H$'
 from qgis.utils import iface
 from qgis.gui import QgsMessageBar
 
+from qgis.PyQt.QtCore import QVariant
 from qgis.core import (QgsWkbTypes,
+                       QgsField,
                        QgsProcessingException,
                        Qgis)
 import processing
@@ -124,3 +126,20 @@ def execute_sql_queries(context, feedback, connection, queries):
         )
         feedback.pushInfo('Requête SQL exécutée avec succès !')
     return None
+
+def format_layer_export(layer):
+    """
+    Create new valid fields for the sink.
+    """
+    old_fields = layer.fields()
+    new_fields = layer.fields()
+    new_fields.clear()
+    invalid_formats = ["_text", "jsonb"]
+    for field in old_fields:
+        if field.typeName() in invalid_formats:
+            new_fields.append(QgsField(field.name(), QVariant.String, "str"))
+        else:
+            new_fields.append(field)
+    # for i,field in enumerate(new_fields):
+    #     feedback.pushInfo('Elt : {}- {} {}'.format(i, field.name(), field.typeName()))
+    return new_fields

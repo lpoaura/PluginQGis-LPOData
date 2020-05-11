@@ -40,9 +40,11 @@ from qgis.core import (QgsProcessing,
                        QgsDataSourceUri,
                        QgsVectorLayer,
                        QgsField,
-                       QgsProcessingException)
+                       QgsProcessingUtils,
+                       QgsProcessingException,
+                       QgsProject)
 from processing.tools import postgis
-from .common_functions import check_layer_is_valid, construct_sql_array_polygons, load_layer
+from .common_functions import check_layer_is_valid, construct_sql_array_polygons, load_layer, format_layer_export
 
 pluginPath = os.path.dirname(__file__)
 
@@ -58,6 +60,7 @@ class ExtractData(QgsProcessingAlgorithm):
     STUDY_AREA = 'STUDY_AREA'
     OUTPUT = 'OUTPUT'
     OUTPUT_NAME = 'OUTPUT_NAME'
+    dest_id = None
 
     def name(self):
         return 'ExtractData'
@@ -101,15 +104,6 @@ class ExtractData(QgsProcessingAlgorithm):
             )
         )
 
-        # Output PostGIS layer = biodiversity data
-        # self.addOutput(
-        #     QgsProcessingOutputVectorLayer(
-        #         self.OUTPUT,
-        #         self.tr('Couche en sortie'),
-        #         QgsProcessing.TypeVectorAnyGeometry
-        #     )
-        # )
-
         # Output PostGIS layer name
         self.addParameter(
             QgsProcessingParameterString(
@@ -123,8 +117,11 @@ class ExtractData(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterFeatureSink(
                 self.OUTPUT,
-                self.tr('4/ Enregistrez votre nouvelle couche...'),
-                QgsProcessing.TypeVectorPoint
+                self.tr('4/ Si nécessaire, enregistrez votre nouvelle couche (vous pouvez aussi ignorer cette étape)'),
+                QgsProcessing.TypeVectorPoint,
+                None,
+                True,
+                False
             )
         )
 
@@ -155,38 +152,25 @@ class ExtractData(QgsProcessingAlgorithm):
         layer_obs = QgsVectorLayer(uri.uri(), format_name, "postgres")
         # Check if the PostGIS layer is valid
         check_layer_is_valid(feedback, layer_obs)
-        # Load the PostGIS layer
-        load_layer(context, layer_obs)
 
-        # Create the new fields for the sink
-        fields = layer_obs.fields()
-        new_fields = layer_obs.fields()
-        new_fields.clear()
-        for f in fields:
-            if f.name() == 'comportement':
-                new_fields.append(QgsField('comportement', QVariant.String, "str"))
-            elif f.name() == 'details':
-                new_fields.append(QgsField('details', QVariant.String, "str"))
-            else:
-                new_fields.append(f)
-        # for i,field in enumerate(new_fields):
-        #     feedback.pushInfo('Elt : {}- {} {}'.format(i, field.name(), field.typeName()))
-
-        # Retrieve sink
-        try:
-            (sink, dest_id) = self.parameterAsSink(parameters, self.OUTPUT, context, new_fields, layer_obs.wkbType(), layer_obs.sourceCrs())
-        except Exception as e:
-            raise e        
-        try:
-            if sink is None:
-                raise QgsProcessingException(self.invalidSinkError(parameters, self.OUTPUT))
+        # Create new valid fields for the sink
+        new_fields = format_layer_export(layer_obs)
+        # Retrieve the sink for the export
+        (sink, self.dest_id) = self.parameterAsSink(parameters, self.OUTPUT, context, new_fields, layer_obs.wkbType(), layer_obs.sourceCrs())
+        if sink is None:
+            # Load the PostGIS layer and return it
+            load_layer(context, layer_obs)
+            return {self.OUTPUT: layer_obs.id()}
+        else:
+            # Fill the sink and return it
             for feature in layer_obs.getFeatures():
                 sink.addFeature(feature)
-        except Exception as e:
-            raise e
-
-        return {self.OUTPUT: dest_id}
-        #return {self.OUTPUT: layer_obs.id()}
+            return {self.OUTPUT: self.dest_id}
+    
+    #def postProcessAlgorithm(self, context, feedback):
+        # processed_layer = QgsProcessingUtils.mapLayerFromString(self.dest_id, context)
+        # feedback.pushInfo('Processed_layer : {}'.format(processed_layer))
+        #return {self.OUTPUT: self.dest_id}
 
     def tr(self, string):
         return QCoreApplication.translate('Processing', string)
