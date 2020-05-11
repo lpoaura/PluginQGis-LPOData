@@ -39,7 +39,8 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterFeatureSink,
                        QgsDataSourceUri,
                        QgsVectorLayer,
-                       QgsField)
+                       QgsField,
+                       QgsProcessingException)
 from processing.tools import postgis
 from .common_functions import check_layer_is_valid, construct_sql_array_polygons, load_layer
 
@@ -57,9 +58,6 @@ class ExtractData(QgsProcessingAlgorithm):
     STUDY_AREA = 'STUDY_AREA'
     OUTPUT = 'OUTPUT'
     OUTPUT_NAME = 'OUTPUT_NAME'
-    TABLE = 'TABLE'
-
-    TARGET_CRS = 'TARGET_CRS'
 
     def name(self):
         return 'ExtractData'
@@ -104,13 +102,13 @@ class ExtractData(QgsProcessingAlgorithm):
         )
 
         # Output PostGIS layer = biodiversity data
-        self.addOutput(
-            QgsProcessingOutputVectorLayer(
-                self.OUTPUT,
-                self.tr('Couche en sortie'),
-                QgsProcessing.TypeVectorAnyGeometry
-            )
-        )
+        # self.addOutput(
+        #     QgsProcessingOutputVectorLayer(
+        #         self.OUTPUT,
+        #         self.tr('Couche en sortie'),
+        #         QgsProcessing.TypeVectorAnyGeometry
+        #     )
+        # )
 
         # Output PostGIS layer name
         self.addParameter(
@@ -122,13 +120,13 @@ class ExtractData(QgsProcessingAlgorithm):
         )
 
         # Output PostGIS layer = biodiversity data
-        # self.addParameter(
-        #     QgsProcessingParameterFeatureSink(
-        #         self.OUTPUT,
-        #         self.tr('4/ Enregistrez votre nouvelle couche...'),
-        #         QgsProcessing.TypeVectorPoint
-        #     )
-        # )
+        self.addParameter(
+            QgsProcessingParameterFeatureSink(
+                self.OUTPUT,
+                self.tr('4/ Enregistrez votre nouvelle couche...'),
+                QgsProcessing.TypeVectorPoint
+            )
+        )
 
     def processAlgorithm(self, parameters, context, feedback):
         """
@@ -166,32 +164,29 @@ class ExtractData(QgsProcessingAlgorithm):
         new_fields.clear()
         for f in fields:
             if f.name() == 'comportement':
-                new_fields.append(QgsField('comportement', QVariant., "text"))
-                feedback.pushInfo('OK')
+                new_fields.append(QgsField('comportement', QVariant.String, "str"))
             elif f.name() == 'details':
-                new_fields.append(QgsField('details', QVariant.TextFormat, "text"))
-                feedback.pushInfo('OK')
+                new_fields.append(QgsField('details', QVariant.String, "str"))
             else:
                 new_fields.append(f)
-        for i,field in enumerate(new_fields):
-            feedback.pushInfo('Elt : {}- {} {}'.format(i, field.name(), field.typeName()))
+        # for i,field in enumerate(new_fields):
+        #     feedback.pushInfo('Elt : {}- {} {}'.format(i, field.name(), field.typeName()))
 
         # Retrieve sink
-        # try:
-        #     (sink, dest_id) = self.parameterAsSink(parameters, self.OUTPUT, context, layer_obs.fields(), layer_obs.wkbType(), layer_obs.sourceCrs())
-        # except Exception as e:
-        #     raise e
-        
-        # try:
-        #     if sink is None:
-        #         raise QgsProcessingException(self.invalidSinkError(parameters, self.OUTPUT))
-        #     for feature in layer_obs.getFeatures():
-        #         sink.addFeature(feature)
-        # except Exception as e:
-        #     raise e
+        try:
+            (sink, dest_id) = self.parameterAsSink(parameters, self.OUTPUT, context, new_fields, layer_obs.wkbType(), layer_obs.sourceCrs())
+        except Exception as e:
+            raise e        
+        try:
+            if sink is None:
+                raise QgsProcessingException(self.invalidSinkError(parameters, self.OUTPUT))
+            for feature in layer_obs.getFeatures():
+                sink.addFeature(feature)
+        except Exception as e:
+            raise e
 
-        #return {self.OUTPUT: dest_id}
-        return {self.OUTPUT: layer_obs.id()}
+        return {self.OUTPUT: dest_id}
+        #return {self.OUTPUT: layer_obs.id()}
 
     def tr(self, string):
         return QCoreApplication.translate('Processing', string)
