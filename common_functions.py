@@ -100,7 +100,7 @@ def load_layer(context, layer):
     plugin_lpo_group = root.findGroup('Résultats plugin LPO')
     if not plugin_lpo_group:
         plugin_lpo_group = root.insertGroup(0, 'Résultats plugin LPO')
-    context.project().addMapLayers([layer], False)
+    context.project().addMapLayer(layer, False)
     plugin_lpo_group.addLayer(layer)
     ### Variant
     # context.temporaryLayerStore().addMapLayer(layer)
@@ -111,7 +111,7 @@ def load_layer(context, layer):
 
 def execute_sql_queries(context, feedback, connection, queries):
     """
-    Execute severals sql queries.
+    Execute several sql queries.
     """
     for query in queries:
         processing.run(
