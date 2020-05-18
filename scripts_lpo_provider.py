@@ -32,6 +32,7 @@ from qgis.PyQt.QtGui import QIcon
 from qgis.core import QgsProcessingProvider
 from .extract_data import ExtractData
 from .summary_table import SummaryTable
+from .histogram import Histogram
 
 pluginPath = os.path.dirname(__file__)
 
@@ -79,7 +80,7 @@ class ScriptsLPOProvider(QgsProcessingProvider):
         """
         Loads all algorithms belonging to this provider.
         """
-        algorithms = [ExtractData(), SummaryTable()]
+        algorithms = [ExtractData(), SummaryTable(), Histogram()]
         for algo in algorithms:
             self.addAlgorithm(algo)
 

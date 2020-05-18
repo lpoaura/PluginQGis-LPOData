@@ -2,7 +2,7 @@
 
 """
 /***************************************************************************
-        ScriptsLPO : summary_table.py
+        ScriptsLPO : graph.py
         -------------------
         Date                 : 2020-04-16
         Copyright            : (C) 2020 by Elsa Guilley (LPO AuRA)
@@ -31,6 +31,10 @@ from datetime import datetime
 from qgis.PyQt.QtGui import QIcon
 from qgis.utils import iface
 
+# import plotly as plt
+# import plotly.graph_objs as go
+# import numpy as np
+
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.core import (QgsProcessing,
                        QgsProcessingAlgorithm,
@@ -46,7 +50,7 @@ from .common_functions import simplify_name, check_layer_is_valid, construct_sql
 pluginPath = os.path.dirname(__file__)
 
 
-class SummaryTable(QgsProcessingAlgorithm):
+class Histogram(QgsProcessingAlgorithm):
     """
     This algorithm takes a connection to a data base and a vector polygons layer and
     returns a summary non geometric PostGIS layer.
@@ -60,10 +64,10 @@ class SummaryTable(QgsProcessingAlgorithm):
     OUTPUT_NAME = 'OUTPUT_NAME'
 
     def name(self):
-        return 'SummaryTable'
+        return 'Histogram'
 
     def displayName(self):
-        return 'Tableau de synthèse par espèce'
+        return 'Etat des connaissances par groupe taxonomique'
 
     def icon(self):
         return QIcon(os.path.join(pluginPath, 'icons', 'table.png'))
@@ -96,12 +100,12 @@ class SummaryTable(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterFeatureSource(
                 self.STUDY_AREA,
-                self.tr("2/ Sélectionnez votre zone d'étude, à partir de laquelle seront extraites les données du tableau de synthèse"),
+                self.tr("2/ Sélectionnez votre zone d'étude, à partir de laquelle seront extraites les données de l'état des connaissances"),
                 [QgsProcessing.TypeVectorPolygon]
             )
         )
 
-        # Output PostGIS layer = summary table
+        # Output PostGIS layer = histogram data
         self.addOutput(
             QgsProcessingOutputVectorLayer(
                 self.OUTPUT,
@@ -115,7 +119,7 @@ class SummaryTable(QgsProcessingAlgorithm):
             QgsProcessingParameterString(
                 self.OUTPUT_NAME,
                 self.tr("3/ Définissez un nom pour votre couche en sortie"),
-                self.tr("Tableau synthèse")
+                self.tr("Etat des connaissances")
             )
         )
 
@@ -142,7 +146,7 @@ class SummaryTable(QgsProcessingAlgorithm):
 
         # Construct the sql array containing the study area's features geometry
         array_polygons = construct_sql_array_polygons(study_area)
-        # Define the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer = summary table
+        # Define the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer = histogram data
         where = "is_valid and ST_within(geom, ST_union({}))".format(array_polygons)
 
         # Retrieve the data base connection name
@@ -158,28 +162,15 @@ class SummaryTable(QgsProcessingAlgorithm):
             # Define the SQL queries
             queries = [
                 "DROP TABLE if exists {}".format(table_name),
-                """CREATE TABLE {} AS (WITH data AS
-                (SELECT source_id_sp, nom_sci AS nom_scientifique, nom_vern AS nom_vernaculaire, groupe_taxo,
-                COUNT(*) AS nb_donnees, COUNT(DISTINCT(observateur)) AS nb_observateurs,
-                COUNT(DISTINCT("date")) as nb_dates,
-                COALESCE(SUM(CASE WHEN mortalite THEN 1 ELSE 0 END),0) AS nb_mortalite,
-                max(sn.code_nidif) AS max_atlas_code, max(nombre_total) AS nb_individus_max,
-                min (date_an) as premiere_observation, max(date_an) as derniere_observation,
-                string_agg(distinct source,', ') as sources
-                FROM src_lpodatas.observations obs
-                LEFT JOIN referentiel.statut_nidif sn ON obs.oiso_code_nidif = sn.code_repro
-                WHERE {}
-                GROUP BY source_id_sp, nom_sci, nom_vern, groupe_taxo),
-                synthese AS
-                (SELECT DISTINCT source_id_sp, nom_scientifique, nom_vernaculaire, groupe_taxo,
-                nb_donnees, nb_observateurs, nb_dates, nb_mortalite,
-                sn2.statut_nidif, nb_individus_max,
-                premiere_observation, derniere_observation, sources
-                FROM data d
-                LEFT JOIN referentiel.statut_nidif sn2 ON d.max_atlas_code = sn2.code_nidif
-                ORDER BY groupe_taxo, source_id_sp)
-                SELECT row_number() OVER () AS id, *
-                FROM synthese)""".format(table_name, where),
+                """CREATE TABLE {} AS (SELECT row_number() OVER () AS id,
+                groupe_taxo, COUNT(*) AS nb_donnees,
+                COUNT(DISTINCT(source_id_sp)) as nb_especes,
+                COUNT(DISTINCT(observateur)) as nb_observateurs,
+                COUNT(DISTINCT("date")) as nb_dates
+                FROM src_lpodatas.observations
+                WHERE {} 
+                GROUP BY groupe_taxo
+                ORDER BY groupe_taxo)""".format(table_name, where),
                 "ALTER TABLE {} add primary key (id)".format(table_name)
             ]
             # Execute the SQL queries
@@ -188,46 +179,57 @@ class SummaryTable(QgsProcessingAlgorithm):
             uri.setDataSource(None, table_name, None, "", "id")
 
         else:
-            # Define the SQL query
-            query = """(WITH data AS
-                (SELECT source_id_sp, nom_sci AS nom_scientifique, nom_vern AS nom_vernaculaire, groupe_taxo,
-                COUNT(*) AS nb_donnees, COUNT(DISTINCT(observateur)) AS nb_observateurs,
-                COUNT(DISTINCT("date")) as nb_dates,
-                COALESCE(SUM(CASE WHEN mortalite THEN 1 ELSE 0 END),0) AS nb_mortalite,
-                max(sn.code_nidif) AS max_atlas_code, max(nombre_total) AS nb_individus_max,
-                min (date_an) as premiere_observation, max(date_an) as derniere_observation,
-                string_agg(distinct source,', ') as sources 
-                FROM src_lpodatas.observations obs
-                LEFT JOIN referentiel.statut_nidif sn ON obs.oiso_code_nidif = sn.code_repro 
+        # Define the SQL query
+            query = """(SELECT groupe_taxo, COUNT(*) AS nb_donnees,
+                COUNT(DISTINCT(source_id_sp)) as nb_especes,
+                COUNT(DISTINCT(observateur)) as nb_observateurs, 
+                COUNT(DISTINCT("date")) as nb_dates
+                FROM src_lpodatas.observations 
                 WHERE {} 
-                GROUP BY source_id_sp, nom_sci, nom_vern, groupe_taxo),
-                synthese AS
-                (SELECT DISTINCT source_id_sp, nom_scientifique, nom_vernaculaire, groupe_taxo,
-                nb_donnees, nb_observateurs, nb_dates, nb_mortalite,
-                sn2.statut_nidif, nb_individus_max,
-                premiere_observation, derniere_observation, sources 
-                FROM data d 
-                LEFT JOIN referentiel.statut_nidif sn2 ON d.max_atlas_code = sn2.code_nidif
-                ORDER BY groupe_taxo, source_id_sp)
-                SELECT row_number() OVER () AS id, *
-                FROM synthese)""".format(where)
+                GROUP BY groupe_taxo 
+                ORDER BY groupe_taxo)""".format(where)
             # Format the URI
-            uri.setDataSource("", query, None, "", "id")
+            uri.setDataSource("", query, None, "", "groupe_taxo")
 
-        # Retrieve the output PostGIS layer = summary table
-        layer_summary = QgsVectorLayer(uri.uri(), format_name, "postgres")
+        # Retrieve the output PostGIS layer = histogram data
+        layer_histo = QgsVectorLayer(uri.uri(), format_name, "postgres")
         # Check if the PostGIS layer is valid
-        check_layer_is_valid(feedback, layer_summary)
+        check_layer_is_valid(feedback, layer_histo)
         # Load the PostGIS layer
-        load_layer(context, layer_summary)
+        load_layer(context, layer_histo)
         # Open the attribute table of the PostGIS layer
-        iface.setActiveLayer(layer_summary)
-        iface.showAttributeTable(layer_summary)
+        iface.setActiveLayer(layer_histo)
+        iface.showAttributeTable(layer_histo)
 
-        return {self.OUTPUT: layer_summary.id()}
+        # x_var = [feature['groupe_taxo'] for feature in layer_histo.getFeatures()]
+        # y_var = [int(feature['nb_donnees']) for feature in layer_histo.getFeatures()]
+        # data = [go.Bar(x=x_var, y=y_var)]
+        # plt.offline.plot(data, filename="/home/eguilley/Téléchargements/histogram-test.html", auto_open=True)
+        # fig = go.Figure(data=data)
+        # fig.show()
+        # fig.write_image("/home/eguilley/Téléchargements/histogram-test.png")
+
+        # plt.rcdefaults()
+        # libel = [feature['groupe_taxo'] for feature in layer_histo.getFeatures()]
+        # feedback.pushInfo('Libellés : {}'.format(libel))
+        # #X = np.arange(len(libel))
+        # #feedback.pushInfo('Valeurs en X : {}'.format(X))
+        # Y = [int(feature['nb_observations']) for feature in layer_histo.getFeatures()]
+        # feedback.pushInfo('Valeurs en Y : {}'.format(Y))
+        # fig = plt.figure()
+        # ax = fig.add_axes([0, 0, 1, 1])
+        # # fig, ax = plt.subplots()
+        # ax.bar(libel, Y)
+        # # ax.set_xticks(X)
+        # ax.set_xticklabels(libel)
+        # ax.set_ylabel(u'Nombre d\'observations')
+        # ax.set_title(u'Etat des connaissances par groupes d\'espèces')
+        # plt.show()
+        
+        return {self.OUTPUT: layer_histo.id()}
 
     def tr(self, string):
         return QCoreApplication.translate('Processing', string)
 
     def createInstance(self):
-        return SummaryTable()
+        return Histogram()

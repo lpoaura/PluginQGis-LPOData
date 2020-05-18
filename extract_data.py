@@ -27,20 +27,24 @@ __copyright__ = '(C) 2020 by Elsa Guilley (LPO AuRA)'
 __revision__ = '$Format:%H$'
 
 import os
+from datetime import datetime
 from qgis.PyQt.QtGui import QIcon
 
-from qgis.PyQt.QtCore import QCoreApplication
+from qgis.PyQt.QtCore import QCoreApplication, QVariant
 from qgis.core import (QgsProcessing,
                        QgsProcessingAlgorithm,
                        QgsProcessingParameterString,
-                       QgsProcessingParameterVectorLayer,
+                       QgsProcessingParameterFeatureSource,
                        QgsProcessingOutputVectorLayer,
+                       QgsProcessingParameterFeatureSink,
                        QgsDataSourceUri,
                        QgsVectorLayer,
-                       QgsWkbTypes,
-                       QgsProcessingContext,
-                       QgsProcessingException)
+                       QgsField,
+                       QgsProcessingUtils,
+                       QgsProcessingException,
+                       QgsProject)
 from processing.tools import postgis
+from .common_functions import check_layer_is_valid, construct_sql_array_polygons, load_layer, format_layer_export
 
 pluginPath = os.path.dirname(__file__)
 
@@ -53,23 +57,25 @@ class ExtractData(QgsProcessingAlgorithm):
 
     # Constants used to refer to parameters and outputs
     DATABASE = 'DATABASE'
-    ZONE_ETUDE = 'ZONE_ETUDE'
+    STUDY_AREA = 'STUDY_AREA'
     OUTPUT = 'OUTPUT'
+    OUTPUT_NAME = 'OUTPUT_NAME'
+    dest_id = None
 
     def name(self):
         return 'ExtractData'
 
     def displayName(self):
-        return 'Extract observation data from study area'
+        return "Extraction de données d'observation"
 
     def icon(self):
         return QIcon(os.path.join(pluginPath, 'icons', 'extract_data.png'))
 
     def groupId(self):
-        return 'initialisation'
+        return 'test'
 
     def group(self):
-        return 'Initialisation'
+        return 'Test'
 
     def initAlgorithm(self, config=None):
         """
@@ -80,7 +86,7 @@ class ExtractData(QgsProcessingAlgorithm):
         # Data base connection
         db_param = QgsProcessingParameterString(
             self.DATABASE,
-            self.tr('Nom de la connexion à la base de données')
+            self.tr("1/ Sélectionnez votre connexion à la base de données LPO AuRA")
         )
         db_param.setMetadata(
             {
@@ -91,19 +97,31 @@ class ExtractData(QgsProcessingAlgorithm):
 
         # Input vector layer = study area
         self.addParameter(
-            QgsProcessingParameterVectorLayer(
-                self.ZONE_ETUDE,
-                self.tr("Zone d'étude"),
-                [QgsProcessing.TypeVectorAnyGeometry]
+            QgsProcessingParameterFeatureSource(
+                self.STUDY_AREA,
+                self.tr("2/ Sélectionnez votre zone d'étude, à partir de laquelle seront extraites les données d'observations"),
+                [QgsProcessing.TypeVectorPolygon]
             )
         )
 
-        # Output PostGIS layer
-        self.addOutput(
-            QgsProcessingOutputVectorLayer(
+        # Output PostGIS layer name
+        self.addParameter(
+            QgsProcessingParameterString(
+                self.OUTPUT_NAME,
+                self.tr("3/ Définissez un nom pour votre nouvelle couche"),
+                self.tr("Données d'observation")
+            )
+        )
+
+        # Output PostGIS layer = biodiversity data
+        self.addParameter(
+            QgsProcessingParameterFeatureSink(
                 self.OUTPUT,
-                self.tr('Couche en sortie'),
-                QgsProcessing.TypeVectorAnyGeometry
+                self.tr('4/ Si nécessaire, enregistrez votre nouvelle couche (vous pouvez aussi ignorer cette étape)'),
+                QgsProcessing.TypeVectorPoint,
+                None,
+                True,
+                False
             )
         )
 
@@ -113,54 +131,46 @@ class ExtractData(QgsProcessingAlgorithm):
         """
 
         # Retrieve the input vector layer = study area
-        zone_etude = self.parameterAsVectorLayer(parameters, self.ZONE_ETUDE, context)
-        # Initialization of the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer
-        where = ""
-        # For each entity in the study area...
-        for feature in zone_etude.getFeatures():
-            # Retrieve the geometry
-            area = feature.geometry() # QgsGeometry object
-            # Retrieve the geometry type (single or multiple)
-            geomSingleType = QgsWkbTypes.isSingleType(area.wkbType())
-            # Increment the "where" clause
-            if geomSingleType:
-                where = where + "st_within(geom, ST_PolygonFromText('{}', 2154)) or ".format(area.asWkt())
-            else:
-                where = where + "st_within(geom, ST_MPolyFromText('{}', 2154)) or ".format(area.asWkt())
-        # Remove the last "or" in the "where" clause which is useless
-        where = where[:len(where)-4]
-        #feedback.pushInfo('Clause where : {}'.format(where))
+        study_area = self.parameterAsSource(parameters, self.STUDY_AREA, context)
+        # Retrieve the output PostGIS layer name and format it
+        layer_name = self.parameterAsString(parameters, self.OUTPUT_NAME, context)
+        ts = datetime.now()
+        format_name = layer_name + " " + str(ts.strftime('%s'))
+
+        # Construct the sql array containing the study area's features geometry
+        array_polygons = construct_sql_array_polygons(study_area)
+        # Define the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer = biodiversity data
+        where = "is_valid and ST_within(geom, ST_union({}))".format(array_polygons)
 
         # Retrieve the data base connection name
         connection = self.parameterAsString(parameters, self.DATABASE, context)
-        # Retrieve the output PostGIS layer
-            # URI --> Configures connection to database and the SQL query
+        # URI --> Configures connection to database and the SQL query
         uri = postgis.uri_from_name(connection)
         uri.setDataSource("src_lpodatas", "observations", "geom", where)
-        layer_obs = QgsVectorLayer(uri.uri(), "Données d'observations {}".format(zone_etude.name()), "postgres")
 
+        # Retrieve the output PostGIS layer = biodiversity data
+        layer_obs = QgsVectorLayer(uri.uri(), format_name, "postgres")
         # Check if the PostGIS layer is valid
-        if not layer_obs.isValid():
-            raise QgsProcessingException(self.tr("""Cette couche n'est pas valide !
-                Checker les logs de PostGIS pour visualiser les messages d'erreur."""))
-        else:
-             feedback.pushInfo('La couche PostGIS demandée est valide, la requête SQL a été exécutée avec succès !')   
-        
-        # Load the PostGIS layer
-        root = context.project().layerTreeRoot()
-        plugin_lpo_group = root.findGroup('Résultats plugin LPO')
-        if not plugin_lpo_group:
-            plugin_lpo_group = root.insertGroup(0, 'Résultats plugin LPO')
-        context.project().addMapLayers([layer_obs], False)
-        plugin_lpo_group.addLayer(layer_obs)
-        # Variant
-        # context.temporaryLayerStore().addMapLayer(layer_obs)
-        # context.addLayerToLoadOnCompletion(
-        #     layer_obs.id(),
-        #     QgsProcessingContext.LayerDetails("Données d'observations", context.project(), self.OUTPUT)
-        # )
+        check_layer_is_valid(feedback, layer_obs)
 
-        return {self.OUTPUT: layer_obs.id()}
+        # Create new valid fields for the sink
+        new_fields = format_layer_export(layer_obs)
+        # Retrieve the sink for the export
+        (sink, self.dest_id) = self.parameterAsSink(parameters, self.OUTPUT, context, new_fields, layer_obs.wkbType(), layer_obs.sourceCrs())
+        if sink is None:
+            # Load the PostGIS layer and return it
+            load_layer(context, layer_obs)
+            return {self.OUTPUT: layer_obs.id()}
+        else:
+            # Fill the sink and return it
+            for feature in layer_obs.getFeatures():
+                sink.addFeature(feature)
+            return {self.OUTPUT: self.dest_id}
+    
+    #def postProcessAlgorithm(self, context, feedback):
+        # processed_layer = QgsProcessingUtils.mapLayerFromString(self.dest_id, context)
+        # feedback.pushInfo('Processed_layer : {}'.format(processed_layer))
+        #return {self.OUTPUT: self.dest_id}
 
     def tr(self, string):
         return QCoreApplication.translate('Processing', string)
