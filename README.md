@@ -1,7 +1,7 @@
 # Scripts de processing framework de la LPO AuRA
 
 Ce plugin ajoute à QGIS des scripts d'exploitation des données naturalistes de
-la [LPO Auvergne-Rhône-Alpes](https://auvergne-rhone-alpes.lpo.fr/) à QGIS.
+la [LPO Auvergne-Rhône-Alpes](https://auvergne-rhone-alpes.lpo.fr/).
 
 ## Licence
 
