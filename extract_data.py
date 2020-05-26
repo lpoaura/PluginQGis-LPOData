@@ -135,7 +135,7 @@ class ExtractData(QgsProcessingAlgorithm):
         # Retrieve the output PostGIS layer name and format it
         layer_name = self.parameterAsString(parameters, self.OUTPUT_NAME, context)
         ts = datetime.now()
-        format_name = layer_name + " " + str(ts.strftime('%s'))
+        format_name = layer_name + " " + str(ts.strftime('%S'))
 
         # Construct the sql array containing the study area's features geometry
         array_polygons = construct_sql_array_polygons(study_area)
