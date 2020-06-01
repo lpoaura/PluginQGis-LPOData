@@ -83,7 +83,8 @@ class SummaryTable(QgsProcessingAlgorithm):
         # Data base connection
         db_param = QgsProcessingParameterString(
             self.DATABASE,
-            self.tr("1/ Sélectionnez votre connexion à la base de données LPO AuRA")
+            self.tr("1/ Sélectionnez votre connexion à la base de données LPO AuRA"),
+            defaultValue='gnlpoaura'
         )
         db_param.setMetadata(
             {
@@ -138,7 +139,7 @@ class SummaryTable(QgsProcessingAlgorithm):
         # Retrieve the output PostGIS layer name and format it
         layer_name = self.parameterAsString(parameters, self.OUTPUT_NAME, context)
         ts = datetime.now()
-        format_name = layer_name + " " + str(ts.timestamp()).split('.')[0]
+        format_name = layer_name + " " + str(ts.strftime('%Y%m%d_%H%M%S'))
 
         # Construct the sql array containing the study area's features geometry
         array_polygons = construct_sql_array_polygons(study_area)
@@ -159,21 +160,23 @@ class SummaryTable(QgsProcessingAlgorithm):
             queries = [
                 "DROP TABLE if exists {}".format(table_name),
                 """CREATE TABLE {} AS (WITH data AS
-                (SELECT source_id_sp, nom_sci AS nom_scientifique, nom_vern AS nom_vernaculaire, groupe_taxo,
-                COUNT(*) AS nb_donnees, COUNT(DISTINCT(observateur)) AS nb_observateurs,
-                COUNT(DISTINCT("date")) as nb_dates,
+                (SELECT source_id_sp, taxref_cdnom AS cd_nom, cd_ref, rang,
+                nom_sci AS nom_scientifique, obs.nom_vern AS nom_vernaculaire, groupe_taxo,
+                COUNT(*)::decimal AS nb_donnees, COUNT(*) OVER () AS total_count,
+                COUNT(DISTINCT(observateur)) AS nb_observateurs, COUNT(DISTINCT("date")) as nb_dates,
                 COALESCE(SUM(CASE WHEN mortalite THEN 1 ELSE 0 END),0) AS nb_mortalite,
                 max(sn.code_nidif) AS max_atlas_code, max(nombre_total) AS nb_individus_max,
                 min (date_an) as premiere_observation, max(date_an) as derniere_observation,
                 string_agg(distinct source,', ') as sources
                 FROM src_lpodatas.observations obs
                 LEFT JOIN referentiel.statut_nidif sn ON obs.oiso_code_nidif = sn.code_repro
+                LEFT JOIN referentiel.taxref t ON obs.taxref_cdnom = t.cd_nom
                 WHERE {}
-                GROUP BY source_id_sp, nom_sci, nom_vern, groupe_taxo),
+                GROUP BY source_id_sp, taxref_cdnom, cd_ref, rang, nom_sci, obs.nom_vern, groupe_taxo),
                 synthese AS
-                (SELECT DISTINCT source_id_sp, nom_scientifique, nom_vernaculaire, groupe_taxo,
-                nb_donnees, nb_observateurs, nb_dates, nb_mortalite,
-                sn2.statut_nidif, nb_individus_max,
+                (SELECT DISTINCT source_id_sp, cd_nom, cd_ref, rang, nom_scientifique, nom_vernaculaire, groupe_taxo,
+                nb_donnees, ROUND(nb_donnees/total_count, 4)*100 as pourcentage_du_total,
+                nb_observateurs, nb_dates, nb_mortalite, sn2.statut_nidif, nb_individus_max,
                 premiere_observation, derniere_observation, sources
                 FROM data d
                 LEFT JOIN referentiel.statut_nidif sn2 ON d.max_atlas_code = sn2.code_nidif
@@ -190,21 +193,23 @@ class SummaryTable(QgsProcessingAlgorithm):
         else:
             # Define the SQL query
             query = """(WITH data AS
-                (SELECT source_id_sp, nom_sci AS nom_scientifique, nom_vern AS nom_vernaculaire, groupe_taxo,
-                COUNT(*) AS nb_donnees, COUNT(DISTINCT(observateur)) AS nb_observateurs,
-                COUNT(DISTINCT("date")) as nb_dates,
+                (SELECT source_id_sp, taxref_cdnom AS cd_nom, cd_ref, rang,
+                nom_sci AS nom_scientifique, obs.nom_vern AS nom_vernaculaire, groupe_taxo,
+                COUNT(*)::decimal AS nb_donnees, COUNT(*) OVER () AS total_count,
+                COUNT(DISTINCT(observateur)) AS nb_observateurs, COUNT(DISTINCT("date")) as nb_dates,
                 COALESCE(SUM(CASE WHEN mortalite THEN 1 ELSE 0 END),0) AS nb_mortalite,
                 max(sn.code_nidif) AS max_atlas_code, max(nombre_total) AS nb_individus_max,
                 min (date_an) as premiere_observation, max(date_an) as derniere_observation,
                 string_agg(distinct source,', ') as sources 
                 FROM src_lpodatas.observations obs
                 LEFT JOIN referentiel.statut_nidif sn ON obs.oiso_code_nidif = sn.code_repro 
+                LEFT JOIN referentiel.taxref t ON obs.taxref_cdnom = t.cd_nom
                 WHERE {} 
-                GROUP BY source_id_sp, nom_sci, nom_vern, groupe_taxo),
+                GROUP BY source_id_sp, taxref_cdnom, cd_ref, rang, nom_sci, obs.nom_vern, groupe_taxo),
                 synthese AS
-                (SELECT DISTINCT source_id_sp, nom_scientifique, nom_vernaculaire, groupe_taxo,
-                nb_donnees, nb_observateurs, nb_dates, nb_mortalite,
-                sn2.statut_nidif, nb_individus_max,
+                (SELECT DISTINCT source_id_sp, cd_nom, cd_ref, rang, nom_scientifique, nom_vernaculaire, groupe_taxo,
+                nb_donnees, ROUND(nb_donnees/total_count, 4)*100 as pourcentage_du_total,
+                nb_observateurs, nb_dates, nb_mortalite, sn2.statut_nidif, nb_individus_max,
                 premiere_observation, derniere_observation, sources 
                 FROM data d 
                 LEFT JOIN referentiel.statut_nidif sn2 ON d.max_atlas_code = sn2.code_nidif

@@ -39,10 +39,7 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterFeatureSink,
                        QgsDataSourceUri,
                        QgsVectorLayer,
-                       QgsField,
-                       QgsProcessingUtils,
-                       QgsProcessingException,
-                       QgsProject)
+                       QgsProcessingParameterField)
 from processing.tools import postgis
 from .common_functions import check_layer_is_valid, construct_sql_array_polygons, load_layer, format_layer_export
 
@@ -57,6 +54,9 @@ class ExtractData(QgsProcessingAlgorithm):
 
     # Constants used to refer to parameters and outputs
     DATABASE = 'DATABASE'
+    SCHEMA = 'SCHEMA'
+    TABLENAME = 'TABLENAME'
+    FIELDS = 'FIELDS'
     STUDY_AREA = 'STUDY_AREA'
     OUTPUT = 'OUTPUT'
     OUTPUT_NAME = 'OUTPUT_NAME'
@@ -86,14 +86,44 @@ class ExtractData(QgsProcessingAlgorithm):
         # Data base connection
         db_param = QgsProcessingParameterString(
             self.DATABASE,
-            self.tr("1/ Sélectionnez votre connexion à la base de données LPO AuRA")
+            self.tr("1/ Sélectionnez votre connexion à la base de données LPO AuRA"),
+            defaultValue='gnlpoaura'
         )
         db_param.setMetadata(
-            {
-                'widget_wrapper': {'class': 'processing.gui.wrappers_postgis.ConnectionWidgetWrapper'}
-            }
+            {'widget_wrapper': {'class': 'processing.gui.wrappers_postgis.ConnectionWidgetWrapper'}}
         )
         self.addParameter(db_param)
+
+        # List of DB schemas
+        schema_param = QgsProcessingParameterString(
+            self.SCHEMA,
+            self.tr('Schéma'),
+            defaultValue='public'
+        )
+        schema_param.setMetadata(
+            {
+                'widget_wrapper': {
+                    'class': 'processing.gui.wrappers_postgis.SchemaWidgetWrapper',
+                    'connection_param': self.DATABASE
+                }
+            }
+        )
+        self.addParameter(schema_param)
+
+        # List of DB tables
+        table_param = QgsProcessingParameterString(
+            self.TABLENAME,
+            self.tr('Table')
+        )
+        table_param.setMetadata(
+            {
+                'widget_wrapper': {
+                    'class': 'processing.gui.wrappers_postgis.TableWidgetWrapper',
+                    'schema_param': self.SCHEMA
+                }
+            }
+        )
+        self.addParameter(table_param)
 
         # Input vector layer = study area
         self.addParameter(
@@ -135,7 +165,7 @@ class ExtractData(QgsProcessingAlgorithm):
         # Retrieve the output PostGIS layer name and format it
         layer_name = self.parameterAsString(parameters, self.OUTPUT_NAME, context)
         ts = datetime.now()
-        format_name = layer_name + " " + str(ts.timestamp()).split('.')[0]
+        format_name = layer_name + " " + str(ts.strftime('%Y%m%d_%H%M%S'))
 
         # Construct the sql array containing the study area's features geometry
         array_polygons = construct_sql_array_polygons(study_area)

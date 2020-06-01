@@ -44,7 +44,7 @@ def simplify_name(string):
     translation_table = str.maketrans(
         'àâäéèêëîïôöùûüŷÿç~- ',
         'aaaeeeeiioouuuyyc___',
-        "2&'([{|}])`^\/@+-=*°$£%§#.?!;:<>"
+        "&'([{|}])`^\/@+-=*°$£%§#.?!;:<>"
     )
     return string.lower().translate(translation_table)
 

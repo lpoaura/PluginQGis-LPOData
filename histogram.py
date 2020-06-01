@@ -87,7 +87,8 @@ class Histogram(QgsProcessingAlgorithm):
         # Data base connection
         db_param = QgsProcessingParameterString(
             self.DATABASE,
-            self.tr("1/ Sélectionnez votre connexion à la base de données LPO AuRA")
+            self.tr("1/ Sélectionnez votre connexion à la base de données LPO AuRA"),
+            defaultValue='gnlpoaura'
         )
         db_param.setMetadata(
             {
@@ -142,7 +143,7 @@ class Histogram(QgsProcessingAlgorithm):
         # Retrieve the output PostGIS layer name and format it
         layer_name = self.parameterAsString(parameters, self.OUTPUT_NAME, context)
         ts = datetime.now()
-        format_name = layer_name + " " + str(ts.timestamp()).split('.')[0]
+        format_name = layer_name + " " + str(ts.strftime('%Y%m%d_%H%M%S'))
 
         # Construct the sql array containing the study area's features geometry
         array_polygons = construct_sql_array_polygons(study_area)
@@ -168,7 +169,7 @@ class Histogram(QgsProcessingAlgorithm):
                 COUNT(DISTINCT(observateur)) as nb_observateurs,
                 COUNT(DISTINCT("date")) as nb_dates
                 FROM src_lpodatas.observations
-                WHERE {} 
+                WHERE {}
                 GROUP BY groupe_taxo
                 ORDER BY groupe_taxo)""".format(table_name, where),
                 "ALTER TABLE {} add primary key (id)".format(table_name)
