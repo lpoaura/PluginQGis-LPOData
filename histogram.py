@@ -181,16 +181,16 @@ class Histogram(QgsProcessingAlgorithm):
 
         else:
         # Define the SQL query
-            query = """(SELECT groupe_taxo, COUNT(*) AS nb_donnees,
+            query = """SELECT groupe_taxo, COUNT(*) AS nb_donnees,
                 COUNT(DISTINCT(source_id_sp)) as nb_especes,
                 COUNT(DISTINCT(observateur)) as nb_observateurs, 
                 COUNT(DISTINCT("date")) as nb_dates
                 FROM src_lpodatas.observations 
                 WHERE {} 
                 GROUP BY groupe_taxo 
-                ORDER BY groupe_taxo)""".format(where)
+                ORDER BY groupe_taxo""".format(where)
             # Format the URI
-            uri.setDataSource("", query, None, "", "groupe_taxo")
+            uri.setDataSource("", "("+query+")", None, "", "groupe_taxo")
 
         # Retrieve the output PostGIS layer = histogram data
         layer_histo = QgsVectorLayer(uri.uri(), format_name, "postgres")

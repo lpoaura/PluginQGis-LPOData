@@ -39,7 +39,8 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterFeatureSink,
                        QgsDataSourceUri,
                        QgsVectorLayer,
-                       QgsProcessingParameterField)
+                       QgsSettings,
+                       QgsProcessingParameterEnum)
 from processing.tools import postgis
 from .common_functions import check_layer_is_valid, construct_sql_array_polygons, load_layer, format_layer_export
 
@@ -53,10 +54,10 @@ class ExtractData(QgsProcessingAlgorithm):
     """
 
     # Constants used to refer to parameters and outputs
+    AREAS_TYPES = "AREAS_TYPES"
     DATABASE = 'DATABASE'
     SCHEMA = 'SCHEMA'
     TABLENAME = 'TABLENAME'
-    FIELDS = 'FIELDS'
     STUDY_AREA = 'STUDY_AREA'
     OUTPUT = 'OUTPUT'
     OUTPUT_NAME = 'OUTPUT_NAME'
@@ -83,6 +84,18 @@ class ExtractData(QgsProcessingAlgorithm):
         with some other properties.
         """
 
+        db_variables = QgsSettings()
+
+        self.addParameter(
+            QgsProcessingParameterEnum(
+                self.AREAS_TYPES,
+                self.tr("Type de zonage"),
+                db_variables.value("areas_types"),
+                allowMultiple=True,
+                defaultValue=db_variables.value("areas_types")[0]
+            )
+        )
+
         # Data base connection
         db_param = QgsProcessingParameterString(
             self.DATABASE,
@@ -94,36 +107,36 @@ class ExtractData(QgsProcessingAlgorithm):
         )
         self.addParameter(db_param)
 
-        # List of DB schemas
-        schema_param = QgsProcessingParameterString(
-            self.SCHEMA,
-            self.tr('Schéma'),
-            defaultValue='public'
-        )
-        schema_param.setMetadata(
-            {
-                'widget_wrapper': {
-                    'class': 'processing.gui.wrappers_postgis.SchemaWidgetWrapper',
-                    'connection_param': self.DATABASE
-                }
-            }
-        )
-        self.addParameter(schema_param)
+        # # List of DB schemas
+        # schema_param = QgsProcessingParameterString(
+        #     self.SCHEMA,
+        #     self.tr('Schéma'),
+        #     defaultValue='public'
+        # )
+        # schema_param.setMetadata(
+        #     {
+        #         'widget_wrapper': {
+        #             'class': 'processing.gui.wrappers_postgis.SchemaWidgetWrapper',
+        #             'connection_param': self.DATABASE
+        #         }
+        #     }
+        # )
+        # self.addParameter(schema_param)
 
-        # List of DB tables
-        table_param = QgsProcessingParameterString(
-            self.TABLENAME,
-            self.tr('Table')
-        )
-        table_param.setMetadata(
-            {
-                'widget_wrapper': {
-                    'class': 'processing.gui.wrappers_postgis.TableWidgetWrapper',
-                    'schema_param': self.SCHEMA
-                }
-            }
-        )
-        self.addParameter(table_param)
+        # # List of DB tables
+        # table_param = QgsProcessingParameterString(
+        #     self.TABLENAME,
+        #     self.tr('Table')
+        # )
+        # table_param.setMetadata(
+        #     {
+        #         'widget_wrapper': {
+        #             'class': 'processing.gui.wrappers_postgis.TableWidgetWrapper',
+        #             'schema_param': self.SCHEMA
+        #         }
+        #     }
+        # )
+        # self.addParameter(table_param)
 
         # Input vector layer = study area
         self.addParameter(
@@ -176,7 +189,7 @@ class ExtractData(QgsProcessingAlgorithm):
         connection = self.parameterAsString(parameters, self.DATABASE, context)
         # URI --> Configures connection to database and the SQL query
         uri = postgis.uri_from_name(connection)
-        uri.setDataSource("src_lpodatas", "observations", "geom", where)
+        uri.setDataSource("src_lpodatas", "observations", "geom", where, "id_observations")
 
         # Retrieve the output PostGIS layer = biodiversity data
         layer_obs = QgsVectorLayer(uri.uri(), format_name, "postgres")
