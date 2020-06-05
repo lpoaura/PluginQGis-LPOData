@@ -154,7 +154,7 @@ class Histogram(QgsProcessingAlgorithm):
         connection = self.parameterAsString(parameters, self.DATABASE, context)
         # URI --> Configures connection to database and the SQL query
         uri = postgis.uri_from_name(connection)
-        # Retrieve the boolean
+        # Retrieve the boolean add_table
         add_table = self.parameterAsBool(parameters, self.ADD_TABLE, context)
 
         if add_table:
@@ -163,11 +163,12 @@ class Histogram(QgsProcessingAlgorithm):
             # Define the SQL queries
             queries = [
                 "DROP TABLE if exists {}".format(table_name),
-                """CREATE TABLE {} AS (SELECT row_number() OVER () AS id,
-                groupe_taxo, COUNT(*) AS nb_donnees,
-                COUNT(DISTINCT(source_id_sp)) as nb_especes,
-                COUNT(DISTINCT(observateur)) as nb_observateurs,
-                COUNT(DISTINCT("date")) as nb_dates
+                """CREATE TABLE {} AS
+                (SELECT row_number() OVER () AS id,
+                    groupe_taxo, COUNT(*) AS nb_donnees,
+                    COUNT(DISTINCT(source_id_sp)) as nb_especes,
+                    COUNT(DISTINCT(observateur)) as nb_observateurs,
+                    COUNT(DISTINCT("date")) as nb_dates
                 FROM src_lpodatas.observations
                 WHERE {}
                 GROUP BY groupe_taxo
@@ -182,14 +183,14 @@ class Histogram(QgsProcessingAlgorithm):
         else:
         # Define the SQL query
             query = """SELECT groupe_taxo, COUNT(*) AS nb_donnees,
-                COUNT(DISTINCT(source_id_sp)) as nb_especes,
-                COUNT(DISTINCT(observateur)) as nb_observateurs, 
-                COUNT(DISTINCT("date")) as nb_dates
+                    COUNT(DISTINCT(source_id_sp)) as nb_especes,
+                    COUNT(DISTINCT(observateur)) as nb_observateurs, 
+                    COUNT(DISTINCT("date")) as nb_dates
                 FROM src_lpodatas.observations 
                 WHERE {} 
                 GROUP BY groupe_taxo 
                 ORDER BY groupe_taxo""".format(where)
-            # Format the URI
+            # Format the URI with the query
             uri.setDataSource("", "("+query+")", None, "", "groupe_taxo")
 
         # Retrieve the output PostGIS layer = histogram data

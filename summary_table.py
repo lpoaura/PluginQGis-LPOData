@@ -150,7 +150,7 @@ class SummaryTable(QgsProcessingAlgorithm):
         connection = self.parameterAsString(parameters, self.DATABASE, context)
         # URI --> Configures connection to database and the SQL query
         uri = postgis.uri_from_name(connection)
-        # Retrieve the boolean
+        # Retrieve the boolean add_table
         add_table = self.parameterAsBool(parameters, self.ADD_TABLE, context)
 
         if add_table:
@@ -159,33 +159,40 @@ class SummaryTable(QgsProcessingAlgorithm):
             # Define the SQL queries
             queries = [
                 "DROP TABLE if exists {}".format(table_name),
-                """CREATE TABLE {} AS (WITH data AS
-                (SELECT source_id_sp, taxref_cdnom AS cd_nom, cd_ref, rang,
-                nom_sci AS nom_scientifique, obs.nom_vern AS nom_vernaculaire, groupe_taxo,
-                COUNT(*)::decimal AS nb_donnees, COUNT(*) OVER () AS total_count,
-                COUNT(DISTINCT(observateur)) AS nb_observateurs, COUNT(DISTINCT("date")) as nb_dates,
-                COALESCE(SUM(CASE WHEN mortalite THEN 1 ELSE 0 END),0) AS nb_mortalite,
-                max(sn.code_nidif) AS max_atlas_code, max(nombre_total) AS nb_individus_max,
-                min (date_an) as premiere_observation, max(date_an) as derniere_observation,
-                string_agg(distinct obs.source,', ') as sources,
-                string_agg(distinct a.area_name,', ') as communes
+                """CREATE TABLE {} AS
+                (WITH total_count AS
+                (SELECT COUNT(*) as total_count
+                FROM src_lpodatas.observations obs
+                WHERE {}),
+                data AS
+                (SELECT source_id_sp, taxref_cdnom AS cd_nom, cd_ref, nom_rang as rang,
+                    nom_sci AS nom_scientifique, obs.nom_vern AS nom_vernaculaire, groupe_taxo,
+                    COUNT(*)::decimal AS nb_donnees,
+                    COUNT(DISTINCT(observateur)) AS nb_observateurs,
+                    COUNT(DISTINCT("date")) as nb_dates,
+                    COALESCE(SUM(CASE WHEN mortalite THEN 1 ELSE 0 END),0) AS nb_mortalite,
+                    max(sn.code_nidif) AS max_atlas_code, max(nombre_total) AS nb_individus_max,
+                    min (date_an) as premiere_observation, max(date_an) as derniere_observation,
+                    string_agg(distinct obs.source,', ') as sources,
+                    string_agg(distinct a.area_name,', ') as communes
                 FROM src_lpodatas.observations obs
                 LEFT JOIN referentiel.statut_nidif sn ON obs.oiso_code_nidif = sn.code_repro
-                LEFT JOIN referentiel.taxref t ON obs.taxref_cdnom = t.cd_nom
+                LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
+                LEFT JOIN taxonomie.bib_taxref_rangs r ON t.id_rang = r.id_rang
                 LEFT JOIN ref_geo.l_areas a ON public.ST_INTERSECTS(obs.geom, a.geom)
-                WHERE {}
+                WHERE a.id_type=25 and {}
                 GROUP BY source_id_sp, taxref_cdnom, cd_ref, rang, nom_sci, obs.nom_vern, groupe_taxo),
                 synthese AS
                 (SELECT DISTINCT source_id_sp, cd_nom, cd_ref, rang,
-                nom_scientifique, nom_vernaculaire, groupe_taxo,
-                nb_donnees, ROUND(nb_donnees/total_count, 4)*100 as pourcentage_du_total,
-                nb_observateurs, nb_dates, nb_mortalite, sn2.statut_nidif, nb_individus_max,
-                premiere_observation, derniere_observation, communes, sources
-                FROM data d
+                    nom_scientifique, nom_vernaculaire, groupe_taxo,
+                    nb_donnees, ROUND(nb_donnees/total_count, 4)*100 as pourcentage_du_total,
+                    nb_observateurs, nb_dates, nb_mortalite, sn2.statut_nidif, nb_individus_max,
+                    premiere_observation, derniere_observation, communes, sources 
+                FROM total_count, data d 
                 LEFT JOIN referentiel.statut_nidif sn2 ON d.max_atlas_code = sn2.code_nidif
                 ORDER BY groupe_taxo, source_id_sp)
                 SELECT row_number() OVER () AS id, *
-                FROM synthese)""".format(table_name, where),
+                FROM synthese)""".format(table_name, where, where),
                 "ALTER TABLE {} add primary key (id)".format(table_name)
             ]
             # Execute the SQL queries
@@ -195,38 +202,40 @@ class SummaryTable(QgsProcessingAlgorithm):
 
         else:
             # Define the SQL query
-            query = """WITH obs AS
-            (SELECT *, COUNT(*) OVER () AS total_count
-            FROM src_lpodatas.observations
-            where is_valid and st_within(geom, ST_MPolyFromText('MultiPolygon (((832480.58906124380882829 6424204.33488119021058083, 849149.90841426583938301 6423877.4854821115732193, 848496.20961610809899867 6407535.01552816852927208, 832480.58906124380882829 6424204.33488119021058083)))', 2154))),
-            data AS
-            (SELECT total_count, source_id_sp, taxref_cdnom AS cd_nom, cd_ref, rang,
-            nom_sci AS nom_scientifique, obs.nom_vern AS nom_vernaculaire, groupe_taxo,
-            COUNT(*)::decimal AS nb_donnees,
-            COUNT(DISTINCT(observateur)) AS nb_observateurs, COUNT(DISTINCT("date")) as nb_dates,
-            COALESCE(SUM(CASE WHEN mortalite THEN 1 ELSE 0 END),0) AS nb_mortalite,
-            max(sn.code_nidif) AS max_atlas_code, max(nombre_total) AS nb_individus_max,
-            min (date_an) as premiere_observation, max(date_an) as derniere_observation,
-            string_agg(distinct obs.source,', ') as sources,
-            string_agg(distinct a.area_name,', ') as communes
-            FROM obs
-            LEFT JOIN referentiel.statut_nidif sn ON obs.oiso_code_nidif = sn.code_repro
-            LEFT JOIN referentiel.taxref t ON obs.taxref_cdnom = t.cd_nom
-            LEFT JOIN ref_geo.l_areas a ON public.ST_INTERSECTS(obs.geom, a.geom)
-            WHERE a.id_type=25
-            GROUP BY total_count, source_id_sp, taxref_cdnom, cd_ref, rang, nom_sci, obs.nom_vern, groupe_taxo),
-            synthese AS
-            (SELECT DISTINCT source_id_sp, cd_nom, cd_ref, rang,
-            nom_scientifique, nom_vernaculaire, groupe_taxo,
-            nb_donnees, total_count, ROUND(nb_donnees/total_count, 4)*100 as pourcentage_du_total,
-            nb_observateurs, nb_dates, nb_mortalite, sn2.statut_nidif, nb_individus_max,
-            premiere_observation, derniere_observation, communes, sources 
-            FROM data d 
-            LEFT JOIN referentiel.statut_nidif sn2 ON d.max_atlas_code = sn2.code_nidif
-            ORDER BY groupe_taxo, source_id_sp)
-            SELECT row_number() OVER () AS id, *
-            FROM synthese""".format(where)
-            # Format the URI
+            query = """WITH total_count AS
+                (SELECT COUNT(*) as total_count
+                FROM src_lpodatas.observations obs
+                WHERE {}),
+                data AS
+                (SELECT source_id_sp, taxref_cdnom AS cd_nom, cd_ref, nom_rang as rang,
+                    nom_sci AS nom_scientifique, obs.nom_vern AS nom_vernaculaire, groupe_taxo,
+                    COUNT(*)::decimal AS nb_donnees,
+                    COUNT(DISTINCT(observateur)) AS nb_observateurs,
+                    COUNT(DISTINCT("date")) as nb_dates,
+                    COALESCE(SUM(CASE WHEN mortalite THEN 1 ELSE 0 END),0) AS nb_mortalite,
+                    max(sn.code_nidif) AS max_atlas_code, max(nombre_total) AS nb_individus_max,
+                    min (date_an) as premiere_observation, max(date_an) as derniere_observation,
+                    string_agg(distinct obs.source,', ') as sources,
+                    string_agg(distinct a.area_name,', ') as communes
+                FROM src_lpodatas.observations obs
+                LEFT JOIN referentiel.statut_nidif sn ON obs.oiso_code_nidif = sn.code_repro
+                LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
+                LEFT JOIN taxonomie.bib_taxref_rangs r ON t.id_rang = r.id_rang
+                LEFT JOIN ref_geo.l_areas a ON public.ST_INTERSECTS(obs.geom, a.geom)
+                WHERE a.id_type=25 and {}
+                GROUP BY source_id_sp, taxref_cdnom, cd_ref, rang, nom_sci, obs.nom_vern, groupe_taxo),
+                synthese AS
+                (SELECT DISTINCT source_id_sp, cd_nom, cd_ref, rang,
+                    nom_scientifique, nom_vernaculaire, groupe_taxo,
+                    nb_donnees, ROUND(nb_donnees/total_count, 4)*100 as pourcentage_du_total,
+                    nb_observateurs, nb_dates, nb_mortalite, sn2.statut_nidif, nb_individus_max,
+                    premiere_observation, derniere_observation, communes, sources 
+                FROM total_count, data d 
+                LEFT JOIN referentiel.statut_nidif sn2 ON d.max_atlas_code = sn2.code_nidif
+                ORDER BY groupe_taxo, source_id_sp)
+                SELECT row_number() OVER () AS id, *
+                FROM synthese""".format(where, where)
+            # Format the URI with the query
             uri.setDataSource("", "("+query+")", None, "", "id")
 
         # Retrieve the output PostGIS layer = summary table

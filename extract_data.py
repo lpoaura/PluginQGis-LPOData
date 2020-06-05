@@ -28,24 +28,43 @@ __revision__ = '$Format:%H$'
 
 import os
 from datetime import datetime
-from qgis.PyQt.QtGui import QIcon
 
-from qgis.PyQt.QtCore import QCoreApplication, QVariant
+from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtCore import Qt, QCoreApplication, QVariant, QDate
+from qgis.PyQt.QtWidgets import QDateEdit
+from processing.gui.wrappers import WidgetWrapper
+
 from qgis.core import (QgsProcessing,
                        QgsProcessingAlgorithm,
                        QgsProcessingParameterString,
                        QgsProcessingParameterFeatureSource,
+                       QgsProcessingParameterEnum,
                        QgsProcessingOutputVectorLayer,
                        QgsProcessingParameterFeatureSink,
                        QgsDataSourceUri,
                        QgsVectorLayer,
                        QgsSettings,
-                       QgsProcessingParameterEnum)
+                       QgsProcessingParameterDefinition) # advanced parameters
 from processing.tools import postgis
 from .common_functions import check_layer_is_valid, construct_sql_array_polygons, load_layer, format_layer_export
 
 pluginPath = os.path.dirname(__file__)
 
+class DateTimeWidget(WidgetWrapper):
+    """
+    QDateTimeEdit widget with calendar pop up
+    """
+
+    def createWidget(self):
+        self._combo = QDateEdit()
+        self._combo.setCalendarPopup(True)
+        today = QDate.currentDate()
+        self._combo.setDate(today)
+        return self._combo
+
+    def value(self):
+        date_chosen = self._combo.dateTime()
+        return date_chosen.toString(Qt.ISODate)
 
 class ExtractData(QgsProcessingAlgorithm):
     """
@@ -54,11 +73,22 @@ class ExtractData(QgsProcessingAlgorithm):
     """
 
     # Constants used to refer to parameters and outputs
-    AREAS_TYPES = "AREAS_TYPES"
     DATABASE = 'DATABASE'
-    SCHEMA = 'SCHEMA'
-    TABLENAME = 'TABLENAME'
+    #SCHEMA = 'SCHEMA'
+    #TABLENAME = 'TABLENAME'
     STUDY_AREA = 'STUDY_AREA'
+    GROUPE_TAXO = 'GROUPE_TAXO'
+    REGNE = 'REGNE'
+    PHYLUM = 'PHYLUM'
+    CLASSE = 'CLASSE'
+    ORDRE = 'ORDRE'
+    FAMILLE = 'FAMILLE'
+    GROUP1_INPN = 'GROUP1_INPN'
+    GROUP2_INPN = 'GROUP2_INPN'
+    EXTRA_WHERE = 'EXTRA_WHERE'
+    PERIOD = 'PERIOD'
+    START_DATE = 'START_DATE'
+    END_DATE = 'END_DATE'
     OUTPUT = 'OUTPUT'
     OUTPUT_NAME = 'OUTPUT_NAME'
     dest_id = None
@@ -84,22 +114,13 @@ class ExtractData(QgsProcessingAlgorithm):
         with some other properties.
         """
 
-        db_variables = QgsSettings()
-
-        self.addParameter(
-            QgsProcessingParameterEnum(
-                self.AREAS_TYPES,
-                self.tr("Type de zonage"),
-                db_variables.value("areas_types"),
-                allowMultiple=True,
-                defaultValue=db_variables.value("areas_types")[0]
-            )
-        )
+        self.db_variables = QgsSettings()
 
         # Data base connection
         db_param = QgsProcessingParameterString(
             self.DATABASE,
-            self.tr("1/ Sélectionnez votre connexion à la base de données LPO AuRA"),
+            self.tr("""<b>CONNEXION À LA BASE DE DONNÉES</b><br/>
+                <b>1/</b> Sélectionnez votre connexion à la base de données LPO AuRA (<i>gnlpoaura</i>)"""),
             defaultValue='gnlpoaura'
         )
         db_param.setMetadata(
@@ -142,8 +163,141 @@ class ExtractData(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterFeatureSource(
                 self.STUDY_AREA,
-                self.tr("2/ Sélectionnez votre zone d'étude, à partir de laquelle seront extraites les données d'observations"),
+                self.tr("""<b>ZONE D'ÉTUDE</b><br/>
+                    <b>2/</b> Sélectionnez votre zone d'étude, à partir de laquelle seront extraites les données d'observations"""),
                 [QgsProcessing.TypeVectorPolygon]
+            )
+        )
+
+        # Taxons filters
+        self.addParameter(
+            QgsProcessingParameterEnum(
+                self.GROUPE_TAXO,
+                self.tr("""<b>FILTRES DE REQUÊTAGE</b><br/>
+                    <b>3/</b> Si nécessaire, choisissez un/plusieurs <u>taxon(s)</u> parmi les listes déroulantes (à choix multiples) proposées pour filtrer vos données d'observations<br/>
+                    - Groupes taxonomiques :"""),
+                self.db_variables.value("groupe_taxo"),
+                allowMultiple=True,
+                optional=True
+            )
+        )
+
+        regne = QgsProcessingParameterEnum(
+            self.REGNE,
+            self.tr("- Règnes :"),
+            self.db_variables.value("regne"),
+            allowMultiple=True,
+            optional=True
+        )
+        #regne.setFlags(regne.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        self.addParameter(regne)
+
+        phylum = QgsProcessingParameterEnum(
+            self.PHYLUM,
+            self.tr("- Phylum :"),
+            self.db_variables.value("phylum"),
+            allowMultiple=True,
+            optional=True
+        )
+        #phylum.setFlags(phylum.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        self.addParameter(phylum)
+
+        classe = QgsProcessingParameterEnum(
+            self.CLASSE,
+            self.tr("- Classe :"),
+            self.db_variables.value("classe"),
+            allowMultiple=True,
+            optional=True
+        )
+        #classe.setFlags(classe.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        self.addParameter(classe)
+
+        ordre = QgsProcessingParameterEnum(
+            self.ORDRE,
+            self.tr("- Ordre :"),
+            self.db_variables.value("ordre"),
+            allowMultiple=True,
+            optional=True
+        )
+        #ordre.setFlags(ordre.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        self.addParameter(ordre)
+
+        famille = QgsProcessingParameterEnum(
+            self.FAMILLE,
+            self.tr("- Famille :"),
+            self.db_variables.value("famille"),
+            allowMultiple=True,
+            optional=True
+        )
+        #famille.setFlags(famille.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        self.addParameter(famille)
+
+        group1_inpn = QgsProcessingParameterEnum(
+            self.GROUP1_INPN,
+            self.tr("- Groupe 1 INPN :"),
+            self.db_variables.value("group1_inpn"),
+            allowMultiple=True,
+            optional=True
+        )
+        #group1_inpn.setFlags(group1_inpn.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        self.addParameter(group1_inpn)
+
+        group2_inpn = QgsProcessingParameterEnum(
+            self.GROUP2_INPN,
+            self.tr("- Groupe 2 INPN :"),
+            self.db_variables.value("group2_inpn"),
+            allowMultiple=True,
+            optional=True
+        )
+        #group2_inpn.setFlags(group2_inpn.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        self.addParameter(group2_inpn)
+
+        # Datetime filter
+        period = QgsProcessingParameterEnum(
+            self.PERIOD,
+            self.tr("<b>4/</b> Si nécessaire, choisissez une <u>période</u> pour filtrer vos données d'observations"),
+            ["Pas de filtre temporel", "5 dernières années", "10 dernières années", "Date de début - Date de fin (ci-dessous)"],
+            allowMultiple=False,
+            optional=True
+        )
+        period.setMetadata(
+            {
+                'widget_wrapper': {
+                    'useCheckBoxes': True,
+                    'columns': 4
+                }
+            }
+        )
+        self.addParameter(period)
+
+        start_date = QgsProcessingParameterString(
+            self.START_DATE,
+            '- Date de début :',
+            defaultValue="",
+            optional=True
+        )
+        start_date.setMetadata(
+            {'widget_wrapper': {'class': DateTimeWidget}}
+        )
+        self.addParameter(start_date)
+
+        end_date = QgsProcessingParameterString(
+            self.END_DATE,
+            '- Date de fin :',
+            optional=True
+        )
+        end_date.setMetadata(
+            {'widget_wrapper': {'class': DateTimeWidget}}
+        )
+        self.addParameter(end_date)
+
+        # Extra "where" conditions
+        self.addParameter(
+            QgsProcessingParameterString(
+                self.EXTRA_WHERE,
+                self.tr("""<b>5/</b> Si nécessaire, ajoutez des <u>conditions "where"</u> supplémentaires dans l'encadré suivant, en langage SQL (commencez par <i>and</i>)"""),
+                multiLine=True,
+                optional=True
             )
         )
 
@@ -151,7 +305,8 @@ class ExtractData(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterString(
                 self.OUTPUT_NAME,
-                self.tr("3/ Définissez un nom pour votre nouvelle couche"),
+                self.tr("""<b>PARAMÉTRAGE DES RESULTATS EN SORTIE</b><br/>
+                    <b>6/</b> Définissez un nom pour votre nouvelle couche"""),
                 self.tr("Données d'observation")
             )
         )
@@ -160,11 +315,10 @@ class ExtractData(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterFeatureSink(
                 self.OUTPUT,
-                self.tr('4/ Si nécessaire, enregistrez votre nouvelle couche (vous pouvez aussi ignorer cette étape)'),
+                self.tr('<b>7/</b> Si nécessaire, enregistrez votre nouvelle couche (cette étape est <b>optionnelle</b>, vous pouvez aussi <i>Ignorer la sortie</i>)'),
                 QgsProcessing.TypeVectorPoint,
-                None,
-                True,
-                False
+                optional=True,
+                createByDefault=False
             )
         )
 
@@ -179,17 +333,64 @@ class ExtractData(QgsProcessingAlgorithm):
         layer_name = self.parameterAsString(parameters, self.OUTPUT_NAME, context)
         ts = datetime.now()
         format_name = layer_name + " " + str(ts.strftime('%Y%m%d_%H%M%S'))
+        # Retrieve the taxons filters
+        groupe_taxo = [self.db_variables.value('groupe_taxo')[i] for i in (self.parameterAsEnums(parameters, self.GROUPE_TAXO, context))]
+        regne = [self.db_variables.value('regne')[i] for i in (self.parameterAsEnums(parameters, self.REGNE, context))]
+        phylum = [self.db_variables.value('phylum')[i] for i in (self.parameterAsEnums(parameters, self.PHYLUM, context))]
+        classe = [self.db_variables.value('classe')[i] for i in (self.parameterAsEnums(parameters, self.CLASSE, context))]
+        ordre = [self.db_variables.value('ordre')[i] for i in (self.parameterAsEnums(parameters, self.ORDRE, context))]
+        famille = [self.db_variables.value('famille')[i] for i in (self.parameterAsEnums(parameters, self.FAMILLE, context))]
+        group1_inpn = [self.db_variables.value('group1_inpn')[i] for i in (self.parameterAsEnums(parameters, self.GROUP1_INPN, context))]
+        group2_inpn = [self.db_variables.value('group2_inpn')[i] for i in (self.parameterAsEnums(parameters, self.GROUP2_INPN, context))]
+        # Retrieve the extra "where" conditions
+        extra_where = self.parameterAsString(parameters, self.EXTRA_WHERE, context)
+        # Retrieve the start and end dates
+        start_date = self.parameterAsString(parameters, self.START_DATE, context)
+        end_date = self.parameterAsString(parameters, self.END_DATE, context)
+        #feedback.pushInfo("Date début : {}".format(start_date))
+        #feedback.pushInfo("Date fin : {}".format(end_date))
 
+        ### "WHERE" CLAUSE
         # Construct the sql array containing the study area's features geometry
         array_polygons = construct_sql_array_polygons(study_area)
         # Define the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer = biodiversity data
         where = "is_valid and ST_within(geom, ST_union({}))".format(array_polygons)
+        # Define a dictionnary with the aggregated taxons filters
+        taxons_filters = {
+            "groupe_taxo": groupe_taxo,
+            "regne": regne,
+            "phylum": phylum,
+            "classe": classe,
+            "ordre": ordre,
+            "famille": famille,
+            "obs.group1_inpn": group1_inpn,
+            "obs.group2_inpn": group2_inpn
+        }
+        # Complete the "where" clause with the taxons filters (with the help of the dictionnary)
+        taxons_where = ""
+        for key, value in taxons_filters.items():
+            if len(value) > 0:
+                if len(value) == 1:
+                    taxons_where += key + "='" + value[0] + "' or "
+                else:
+                    taxons_where += key + " in " + str(tuple(value)) + " or "
+        if taxons_where != "":
+            where += " and (" + taxons_where[:len(taxons_where)-4] + ")" # Remove the last useless "or"
+        # Complete the "where" clause with the extra filters
+        where += " " + extra_where
+        feedback.pushInfo(where)
 
         # Retrieve the data base connection name
         connection = self.parameterAsString(parameters, self.DATABASE, context)
         # URI --> Configures connection to database and the SQL query
         uri = postgis.uri_from_name(connection)
-        uri.setDataSource("src_lpodatas", "observations", "geom", where, "id_observations")
+        # Define the SQL query
+        query = """SELECT obs.*
+        FROM src_lpodatas.observations obs
+        LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom=t.cd_nom
+        WHERE {}""".format(where)
+        # Format the URI with the query
+        uri.setDataSource("", "("+query+")", "geom", "", "id_observations")
 
         # Retrieve the output PostGIS layer = biodiversity data
         layer_obs = QgsVectorLayer(uri.uri(), format_name, "postgres")
