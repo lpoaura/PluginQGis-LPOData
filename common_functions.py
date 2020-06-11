@@ -92,6 +92,92 @@ def construct_sql_array_polygons(layer):
     array_polygons = array_polygons[:len(array_polygons)-2] + "]"
     return array_polygons
 
+def construct_sql_taxons_filter(taxons_dict):
+    """
+    Construct the sql "where" clause with taxons filters.
+    """
+    taxons_where = " and ("
+    for key, value in taxons_dict.items():
+        if len(value) > 0:
+            if len(value) == 1:
+                taxons_where += "{} = '{}' or ".format(key, value[0])
+            else:
+                taxons_where += "{} in {} or ".format(key, str(tuple(value)))
+    if taxons_where != " and (":
+        taxons_where = taxons_where[:len(taxons_where)-4] + ")"
+        return taxons_where
+    else:
+        return ""
+
+def construct_sql_datetime_filter(self, period_filter, timestamp, parameters, context):
+    """
+    Construct the sql "where" clause with the datetime filter.
+    """
+    datetime_where = ""
+    if period_filter == "5 dernières années":
+        end_year = int(timestamp.strftime('%Y'))
+        start_year = end_year - 5
+        datetime_where += " and (date_an > {} and date_an <= {})".format(start_year, end_year)
+    elif period_filter == "10 dernières années":
+        end_year = int(timestamp.strftime('%Y'))
+        start_year = end_year - 10
+        datetime_where += " and (date_an > {} and date_an <= {})".format(start_year, end_year)
+    elif period_filter == "Date de début - Date de fin (à définir ci-dessous)":
+        # Retrieve the start and end dates
+        start_date = self.parameterAsString(parameters, self.START_DATE, context)
+        end_date = self.parameterAsString(parameters, self.END_DATE, context)
+        if end_date < start_date:
+            raise QgsProcessingException("Veuillez renseigner une date de fin postérieure ou égale à la date de début !")
+        else:
+            datetime_where += " and (date >= '{}'::date and date <= '{}'::date)".format(start_date, end_date)
+    return datetime_where
+
+def construct_sql_select_data_per_time_interval(self, time_interval_param, start_year_param, end_year_param, aggregation_type_param, parameters, context):
+    select_data = ""
+    if time_interval_param == 'Par année':
+        add_five_years = self.parameterAsBool(parameters, self.ADD_FIVE_YEARS, context)
+        if add_five_years:
+            if (end_year_param-start_year_param+1)%5 != 0:
+                raise QgsProcessingException("Veuillez renseigner une période en année qui soit divisible par 5 ! Ex : 2011 - 2020.")
+            else:
+                counter = start_year_param
+                step_limit = start_year_param
+                while counter <= end_year_param:
+                    select_data += ", COUNT({}) filter (WHERE date_an={}) AS \"{}\"".format("*" if aggregation_type_param == 'Nombre de données' else "DISTINCT cd_nom", counter, counter)
+                    if counter == step_limit+4:
+                        select_data += ", COUNT({}) filter (WHERE date_an>={} and date_an<={}) AS \"{} - {}\"".format("*" if aggregation_type_param == 'Nombre de données' else "DISTINCT cd_nom", counter-4, counter, counter-4, counter)
+                        step_limit += 5
+                    counter += 1
+        else:
+            for year in range(start_year_param, end_year_param+1):
+                select_data += ", COUNT({}) filter (WHERE date_an={}) AS \"{}\"".format("*" if aggregation_type_param == 'Nombre de données' else "DISTINCT cd_nom", year, year)
+        select_data += ", COUNT({}) filter (WHERE date_an>={} and date_an<={}) AS \"TOTAL\"".format("*" if aggregation_type_param == 'Nombre de données' else "DISTINCT cd_nom", start_year_param, end_year_param)
+    else:
+        start_month = self.parameterAsEnum(parameters, self.START_MONTH, context)
+        end_month = self.parameterAsEnum(parameters, self.END_MONTH, context)
+        months_numbers_variables = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"]
+        if start_year_param == end_year_param:
+            if end_month < start_month:
+                raise QgsProcessingException("Veuillez renseigner un mois de fin postérieur ou égal au mois de début !")
+            else:
+                for month in range(start_month, end_month+1):
+                    select_data += ", COUNT({}) filter (WHERE to_char(date, 'YYYY-MM')='{}-{}') AS \"{} {}\"".format("*" if aggregation_type_param == 'Nombre de données' else "DISTINCT cd_nom", start_year_param, months_numbers_variables[month], self.months_names_variables[month], start_year_param)
+        elif end_year_param == start_year_param+1:
+            for month in range(start_month, 12):
+                select_data += ", COUNT({}) filter (WHERE to_char(date, 'YYYY-MM')='{}-{}') AS \"{} {}\"".format("*" if aggregation_type_param == 'Nombre de données' else "DISTINCT cd_nom", start_year_param, months_numbers_variables[month], self.months_names_variables[month], start_year_param)
+            for month in range(0, end_month+1):
+                select_data += ", COUNT({}) filter (WHERE to_char(date, 'YYYY-MM')='{}-{}') AS \"{} {}\"".format("*" if aggregation_type_param == 'Nombre de données' else "DISTINCT cd_nom", end_year_param, months_numbers_variables[month], self.months_names_variables[month], end_year_param)
+        else:
+            for month in range(start_month, 12):
+                select_data += ", COUNT({}) filter (WHERE to_char(date, 'YYYY-MM')='{}-{}') AS \"{} {}\"".format("*" if aggregation_type_param == 'Nombre de données' else "DISTINCT cd_nom", start_year_param, months_numbers_variables[month], self.months_names_variables[month], start_year_param)
+            for year in range(start_year_param+1, end_year_param):
+                for month in range(0, 12):
+                    select_data += ", COUNT({}) filter (WHERE to_char(date, 'YYYY-MM')='{}-{}') AS \"{} {}\"".format("*" if aggregation_type_param == 'Nombre de données' else "DISTINCT cd_nom", year, months_numbers_variables[month], self.months_names_variables[month], year)
+            for month in range(0, end_month+1):
+                select_data += ", COUNT({}) filter (WHERE to_char(date, 'YYYY-MM')='{}-{}') AS \"{} {}\"".format("*" if aggregation_type_param == 'Nombre de données' else "DISTINCT cd_nom", end_year_param, months_numbers_variables[month], self.months_names_variables[month], end_year_param)
+        #select_data += ", COUNT({}) filter (WHERE to_char(date, 'YYYY-MM')>='{}-{}' and to_char(date, 'YYYY-MM')<='{}-{}') AS \"TOTAL\"".format("*" if aggregation_type_param == 'Nombre de données' else "DISTINCT cd_nom", months_numbers_variables[start_month], start_year_param, months_numbers_variables[end_month], end_year_param)
+    return select_data
+
 def load_layer(context, layer):
     """
     Load a layer in the current project.

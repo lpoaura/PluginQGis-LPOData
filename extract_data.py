@@ -30,12 +30,13 @@ import os
 from datetime import datetime
 
 from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtCore import Qt, QCoreApplication, QVariant, QDate
+from qgis.PyQt.QtCore import Qt, QCoreApplication, QDate
 from qgis.PyQt.QtWidgets import QDateEdit
 from processing.gui.wrappers import WidgetWrapper
 
 from qgis.core import (QgsProcessing,
                        QgsProcessingAlgorithm,
+                       QgsSettings,
                        QgsProcessingParameterString,
                        QgsProcessingParameterFeatureSource,
                        QgsProcessingParameterEnum,
@@ -43,12 +44,13 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterFeatureSink,
                        QgsDataSourceUri,
                        QgsVectorLayer,
-                       QgsSettings,
+                       QgsProcessingException,
                        QgsProcessingParameterDefinition) # advanced parameters
 from processing.tools import postgis
-from .common_functions import check_layer_is_valid, construct_sql_array_polygons, load_layer, format_layer_export
+from .common_functions import check_layer_is_valid, construct_sql_array_polygons, construct_sql_taxons_filter, construct_sql_datetime_filter, load_layer, format_layer_export
 
 pluginPath = os.path.dirname(__file__)
+
 
 class DateTimeWidget(WidgetWrapper):
     """
@@ -85,10 +87,10 @@ class ExtractData(QgsProcessingAlgorithm):
     FAMILLE = 'FAMILLE'
     GROUP1_INPN = 'GROUP1_INPN'
     GROUP2_INPN = 'GROUP2_INPN'
-    EXTRA_WHERE = 'EXTRA_WHERE'
     PERIOD = 'PERIOD'
     START_DATE = 'START_DATE'
     END_DATE = 'END_DATE'
+    EXTRA_WHERE = 'EXTRA_WHERE'
     OUTPUT = 'OUTPUT'
     OUTPUT_NAME = 'OUTPUT_NAME'
     dest_id = None
@@ -115,6 +117,7 @@ class ExtractData(QgsProcessingAlgorithm):
         """
 
         self.db_variables = QgsSettings()
+        self.period_variables = ["Pas de filtre temporel", "5 dernières années", "10 dernières années", "Date de début - Date de fin (à définir ci-dessous)"]
 
         # Data base connection
         db_param = QgsProcessingParameterString(
@@ -169,7 +172,7 @@ class ExtractData(QgsProcessingAlgorithm):
             )
         )
 
-        # Taxons filters
+        ### Taxons filters ###
         self.addParameter(
             QgsProcessingParameterEnum(
                 self.GROUPE_TAXO,
@@ -252,11 +255,11 @@ class ExtractData(QgsProcessingAlgorithm):
         #group2_inpn.setFlags(group2_inpn.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(group2_inpn)
 
-        # Datetime filter
+        ### Datetime filter ###
         period = QgsProcessingParameterEnum(
             self.PERIOD,
             self.tr("<b>4/</b> Si nécessaire, choisissez une <u>période</u> pour filtrer vos données d'observations"),
-            ["Pas de filtre temporel", "5 dernières années", "10 dernières années", "Date de début - Date de fin (ci-dessous)"],
+            self.period_variables,
             allowMultiple=False,
             optional=True
         )
@@ -332,7 +335,7 @@ class ExtractData(QgsProcessingAlgorithm):
         # Retrieve the output PostGIS layer name and format it
         layer_name = self.parameterAsString(parameters, self.OUTPUT_NAME, context)
         ts = datetime.now()
-        format_name = layer_name + " " + str(ts.strftime('%Y%m%d_%H%M%S'))
+        format_name = "{} {}".format(layer_name, str(ts.strftime('%Y%m%d_%H%M%S')))
         # Retrieve the taxons filters
         groupe_taxo = [self.db_variables.value('groupe_taxo')[i] for i in (self.parameterAsEnums(parameters, self.GROUPE_TAXO, context))]
         regne = [self.db_variables.value('regne')[i] for i in (self.parameterAsEnums(parameters, self.REGNE, context))]
@@ -342,20 +345,17 @@ class ExtractData(QgsProcessingAlgorithm):
         famille = [self.db_variables.value('famille')[i] for i in (self.parameterAsEnums(parameters, self.FAMILLE, context))]
         group1_inpn = [self.db_variables.value('group1_inpn')[i] for i in (self.parameterAsEnums(parameters, self.GROUP1_INPN, context))]
         group2_inpn = [self.db_variables.value('group2_inpn')[i] for i in (self.parameterAsEnums(parameters, self.GROUP2_INPN, context))]
+        # Retrieve the datetime filter
+        period = self.period_variables[self.parameterAsEnum(parameters, self.PERIOD, context)]
         # Retrieve the extra "where" conditions
         extra_where = self.parameterAsString(parameters, self.EXTRA_WHERE, context)
-        # Retrieve the start and end dates
-        start_date = self.parameterAsString(parameters, self.START_DATE, context)
-        end_date = self.parameterAsString(parameters, self.END_DATE, context)
-        #feedback.pushInfo("Date début : {}".format(start_date))
-        #feedback.pushInfo("Date fin : {}".format(end_date))
 
         ### "WHERE" CLAUSE
         # Construct the sql array containing the study area's features geometry
         array_polygons = construct_sql_array_polygons(study_area)
         # Define the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer = biodiversity data
         where = "is_valid and ST_within(geom, ST_union({}))".format(array_polygons)
-        # Define a dictionnary with the aggregated taxons filters
+        # Define a dictionnary with the aggregated taxons filters and complete the "where" clause thanks to it
         taxons_filters = {
             "groupe_taxo": groupe_taxo,
             "regne": regne,
@@ -366,18 +366,14 @@ class ExtractData(QgsProcessingAlgorithm):
             "obs.group1_inpn": group1_inpn,
             "obs.group2_inpn": group2_inpn
         }
-        # Complete the "where" clause with the taxons filters (with the help of the dictionnary)
-        taxons_where = ""
-        for key, value in taxons_filters.items():
-            if len(value) > 0:
-                if len(value) == 1:
-                    taxons_where += key + "='" + value[0] + "' or "
-                else:
-                    taxons_where += key + " in " + str(tuple(value)) + " or "
-        if taxons_where != "":
-            where += " and (" + taxons_where[:len(taxons_where)-4] + ")" # Remove the last useless "or"
-        # Complete the "where" clause with the extra filters
+        taxons_where = construct_sql_taxons_filter(taxons_filters)
+        where += taxons_where
+        # Complete the "where" clause with the datetime filter
+        datetime_where = construct_sql_datetime_filter(self, period, ts, parameters, context)
+        where += datetime_where
+        # Complete the "where" clause with the extra conditions
         where += " " + extra_where
+        
         feedback.pushInfo(where)
 
         # Retrieve the data base connection name

@@ -31,7 +31,8 @@ from qgis.PyQt.QtGui import QIcon
 
 from qgis.core import QgsProcessingProvider
 from .extract_data import ExtractData
-from .summary_table import SummaryTable
+from .summary_table_per_species import SummaryTablePerSpecies
+from .summary_table_per_year import SummaryTablePerYear
 from .histogram import Histogram
 
 pluginPath = os.path.dirname(__file__)
@@ -80,7 +81,7 @@ class ScriptsLPOProvider(QgsProcessingProvider):
         """
         Loads all algorithms belonging to this provider.
         """
-        algorithms = [ExtractData(), SummaryTable(), Histogram()]
+        algorithms = [ExtractData(), SummaryTablePerSpecies(), SummaryTablePerYear(), Histogram()]
         for algo in algorithms:
             self.addAlgorithm(algo)
 
