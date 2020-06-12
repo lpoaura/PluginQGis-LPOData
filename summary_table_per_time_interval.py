@@ -155,7 +155,7 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
         time_interval = QgsProcessingParameterEnum(
             self.TIME_INTERVAL,
             self.tr("""<b>AGRÉGATION TEMPORELLE ET PÉRIODE</b><br/>
-                <b>3/</b> Indiquez l'agrégation temporelle qui vous intéresse"""),
+                <b>3/</b> Sélectionnez l'agrégation temporelle qui vous intéresse"""),
             self.interval_variables,
             allowMultiple=False
         )
@@ -163,7 +163,7 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
             {
                 'widget_wrapper': {
                     'useCheckBoxes': True,
-                    'columns': 3
+                    'columns': len(self.interval_variables)
                 }
             }
         )
@@ -181,7 +181,7 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterEnum(
                 self.START_MONTH,
-                self.tr("""<b>4/</b> Indiquez la période qui vous intéresse<br/>
+                self.tr("""<b>4/</b> Sélectionnez la période qui vous intéresse<br/>
                     - Mois de début (<b>NB</b> : Nécessaire seulement si vous avez sélectionné l'agrégation '<u>Par mois</u>')"""),
                 self.months_names_variables,
                 allowMultiple=False,
@@ -225,7 +225,7 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
         taxonomic_rank = QgsProcessingParameterEnum(
             self.TAXONOMIC_RANK,
             self.tr("""<b>RANG TAXONOMIQUE</b><br/>
-                <b>5/</b> Choisissez le rang taxonomique qui vous intéresse"""),
+                <b>5/</b> Sélectionnez le rang taxonomique qui vous intéresse"""),
             self.taxonomic_ranks_variables,
             allowMultiple=False
         )
@@ -233,7 +233,7 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
             {
                 'widget_wrapper': {
                     'useCheckBoxes': True,
-                    'columns': 2
+                    'columns': len(self.taxonomic_ranks_variables)
                 }
             }
         )
@@ -243,7 +243,7 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
         aggregation_type = QgsProcessingParameterEnum(
             self.AGG,
             self.tr("""<b>TYPE D'AGRÉGATION</b><br/>
-                <b>6/</b> Choisissez le type d'agrégation qui vous intéresse (<b>NB</b> : Si vous avez choisi 'Espèces' pour le rang taxonomique, 'Nombre de données' sera utilisé <u>par défaut</u>)"""),
+                <b>6/</b> Sélectionnez le type d'agrégation qui vous intéresse (<b>NB</b> : Si vous avez choisi 'Espèces' pour le rang taxonomique, 'Nombre de données' sera utilisé <u>par défaut</u>)"""),
             self.agg_variables,
             allowMultiple=False
         )
@@ -251,7 +251,7 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
             {
                 'widget_wrapper': {
                     'useCheckBoxes': True,
-                    'columns': 2
+                    'columns': len(self.agg_variables)
                 }
             }
         )
@@ -262,7 +262,7 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
             QgsProcessingParameterEnum(
                 self.GROUPE_TAXO,
                 self.tr("""<b>FILTRES DE REQUÊTAGE</b><br/>
-                    <b>7/</b> Si nécessaire, choisissez un/plusieurs <u>taxon(s)</u> parmi les listes déroulantes (à choix multiples) proposées pour filtrer vos données d'observations<br/>
+                    <b>7/</b> Si nécessaire, sélectionnez un/plusieurs <u>taxon(s)</u> parmi les listes déroulantes (à choix multiples) proposées pour filtrer vos données d'observations<br/>
                     - Groupes taxonomiques :"""),
                 self.db_variables.value("groupe_taxo"),
                 allowMultiple=True,

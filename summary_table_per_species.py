@@ -146,7 +146,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
             QgsProcessingParameterEnum(
                 self.GROUPE_TAXO,
                 self.tr("""<b>FILTRES DE REQUÊTAGE</b><br/>
-                    <b>3/</b> Si nécessaire, choisissez un/plusieurs <u>taxon(s)</u> parmi les listes déroulantes (à choix multiples) proposées pour filtrer vos données d'observations<br/>
+                    <b>3/</b> Si nécessaire, sélectionnez un/plusieurs <u>taxon(s)</u> parmi les listes déroulantes (à choix multiples) proposées pour filtrer vos données d'observations<br/>
                     - Groupes taxonomiques :"""),
                 self.db_variables.value("groupe_taxo"),
                 allowMultiple=True,
@@ -225,22 +225,22 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
         self.addParameter(group2_inpn)
 
         ### Datetime filter ###
-        period = QgsProcessingParameterEnum(
+        period_type = QgsProcessingParameterEnum(
             self.PERIOD,
-            self.tr("<b>4/</b> Si nécessaire, choisissez une <u>période</u> pour filtrer vos données d'observations"),
+            self.tr("<b>4/</b> Si nécessaire, sélectionnez une <u>période</u> pour filtrer vos données d'observations"),
             self.period_variables,
             allowMultiple=False,
             optional=True
         )
-        period.setMetadata(
+        period_type.setMetadata(
             {
                 'widget_wrapper': {
                     'useCheckBoxes': True,
-                    'columns': 4
+                    'columns': len(self.period_variables)
                 }
             }
         )
-        self.addParameter(period)
+        self.addParameter(period_type)
 
         start_date = QgsProcessingParameterString(
             self.START_DATE,
@@ -323,7 +323,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
         group1_inpn = [self.db_variables.value('group1_inpn')[i] for i in (self.parameterAsEnums(parameters, self.GROUP1_INPN, context))]
         group2_inpn = [self.db_variables.value('group2_inpn')[i] for i in (self.parameterAsEnums(parameters, self.GROUP2_INPN, context))]
         # Retrieve the datetime filter
-        period = self.period_variables[self.parameterAsEnum(parameters, self.PERIOD, context)]
+        period_type = self.period_variables[self.parameterAsEnum(parameters, self.PERIOD, context)]
         # Retrieve the extra "where" conditions
         extra_where = self.parameterAsString(parameters, self.EXTRA_WHERE, context)
 
@@ -346,7 +346,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
         taxons_where = construct_sql_taxons_filter(taxons_filters)
         where += taxons_where
         # Complete the "where" clause with the datetime filter
-        datetime_where = construct_sql_datetime_filter(self, period, ts, parameters, context)
+        datetime_where = construct_sql_datetime_filter(self, period_type, ts, parameters, context)
         where += datetime_where
         # Complete the "where" clause with the extra conditions
         where += " " + extra_where
@@ -374,13 +374,14 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                 max(sn.code_nidif) AS max_atlas_code, max(nombre_total) AS nb_individus_max,
                 min (date_an) as premiere_observation, max(date_an) as derniere_observation,
                 string_agg(distinct obs.source,', ') as sources,
-                string_agg(distinct a.area_name,', ') as communes
+                string_agg(distinct la.area_name,', ') as communes
             FROM src_lpodatas.observations obs
             LEFT JOIN referentiel.statut_nidif sn ON obs.oiso_code_nidif = sn.code_repro
             LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
             LEFT JOIN taxonomie.bib_taxref_rangs r ON t.id_rang = r.id_rang
-            LEFT JOIN ref_geo.l_areas a ON public.ST_INTERSECTS(obs.geom, a.geom)
-            WHERE a.id_type=25 and {}
+            LEFT JOIN ref_geo.l_areas la ON public.ST_INTERSECTS(obs.geom, la.geom)
+            LEFT JOIN ref_geo.bib_areas_types bib ON la.id_type=bib.id_type
+            WHERE bib.type_name='Communes' and {}
             GROUP BY source_id_sp, taxref_cdnom, cd_ref, nom_rang, nom_sci, obs.nom_vern, groupe_taxo),
             synthese AS
             (SELECT DISTINCT source_id_sp, cd_nom, cd_ref, nom_rang AS "Rang", groupe_taxo AS "Groupe taxo",

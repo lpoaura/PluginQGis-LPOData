@@ -109,20 +109,20 @@ def construct_sql_taxons_filter(taxons_dict):
     else:
         return ""
 
-def construct_sql_datetime_filter(self, period_filter, timestamp, parameters, context):
+def construct_sql_datetime_filter(self, period_type_filter, timestamp, parameters, context):
     """
     Construct the sql "where" clause with the datetime filter.
     """
     datetime_where = ""
-    if period_filter == "5 dernières années":
+    if period_type_filter == "5 dernières années":
         end_year = int(timestamp.strftime('%Y'))
         start_year = end_year - 5
         datetime_where += " and (date_an > {} and date_an <= {})".format(start_year, end_year)
-    elif period_filter == "10 dernières années":
+    elif period_type_filter == "10 dernières années":
         end_year = int(timestamp.strftime('%Y'))
         start_year = end_year - 10
         datetime_where += " and (date_an > {} and date_an <= {})".format(start_year, end_year)
-    elif period_filter == "Date de début - Date de fin (à définir ci-dessous)":
+    elif period_type_filter == "Date de début - Date de fin (à définir ci-dessous)":
         # Retrieve the start and end dates
         start_date = self.parameterAsString(parameters, self.START_DATE, context)
         end_date = self.parameterAsString(parameters, self.END_DATE, context)

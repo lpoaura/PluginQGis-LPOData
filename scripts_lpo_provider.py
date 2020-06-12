@@ -33,7 +33,8 @@ from qgis.core import QgsProcessingProvider
 from .extract_data import ExtractData
 from .summary_table_per_species import SummaryTablePerSpecies
 from .summary_table_per_time_interval import SummaryTablePerTimeInterval
-from .histogram import Histogram
+from .state_of_knowledge import StateOfKnowledge
+from .summary_map import SummaryMap
 
 pluginPath = os.path.dirname(__file__)
 
@@ -81,7 +82,7 @@ class ScriptsLPOProvider(QgsProcessingProvider):
         """
         Loads all algorithms belonging to this provider.
         """
-        algorithms = [ExtractData(), SummaryTablePerSpecies(), SummaryTablePerTimeInterval(), Histogram()]
+        algorithms = [ExtractData(), SummaryTablePerSpecies(), SummaryTablePerTimeInterval(), StateOfKnowledge(), SummaryMap()]
         for algo in algorithms:
             self.addAlgorithm(algo)
 

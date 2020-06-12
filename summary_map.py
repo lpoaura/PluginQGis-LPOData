@@ -2,7 +2,7 @@
 
 """
 /***************************************************************************
-        ScriptsLPO : extract_data.py
+        ScriptsLPO : summary_map.py
         -------------------
         Date                 : 2020-04-16
         Copyright            : (C) 2020 by Elsa Guilley (LPO AuRA)
@@ -27,6 +27,7 @@ __copyright__ = '(C) 2020 by Elsa Guilley (LPO AuRA)'
 __revision__ = '$Format:%H$'
 
 import os
+from qgis.utils import iface
 from datetime import datetime
 
 from qgis.PyQt.QtGui import QIcon
@@ -41,13 +42,13 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterFeatureSource,
                        QgsProcessingParameterEnum,
                        QgsProcessingOutputVectorLayer,
+                       QgsProcessingParameterBoolean,
                        QgsProcessingParameterFeatureSink,
                        QgsDataSourceUri,
                        QgsVectorLayer,
-                       QgsProcessingException,
-                       QgsProcessingParameterDefinition) # advanced parameters
+                       QgsProcessingException)
 from processing.tools import postgis
-from .common_functions import check_layer_is_valid, construct_sql_array_polygons, construct_sql_taxons_filter, construct_sql_datetime_filter, load_layer, format_layer_export
+from .common_functions import simplify_name, check_layer_is_valid, construct_sql_array_polygons, construct_sql_taxons_filter, construct_sql_datetime_filter, load_layer, execute_sql_queries, format_layer_export
 
 pluginPath = os.path.dirname(__file__)
 
@@ -68,17 +69,16 @@ class DateTimeWidget(WidgetWrapper):
         date_chosen = self._combo.dateTime()
         return date_chosen.toString(Qt.ISODate)
 
-class ExtractData(QgsProcessingAlgorithm):
+class SummaryMap(QgsProcessingAlgorithm):
     """
     This algorithm takes a connection to a data base and a vector polygons layer and
-    returns an intersected points PostGIS layer.
+    returns a summary non geometric PostGIS layer.
     """
 
     # Constants used to refer to parameters and outputs
     DATABASE = 'DATABASE'
-    #SCHEMA = 'SCHEMA'
-    #TABLENAME = 'TABLENAME'
     STUDY_AREA = 'STUDY_AREA'
+    AREAS_TYPE = 'AREAS_TYPE'
     GROUPE_TAXO = 'GROUPE_TAXO'
     REGNE = 'REGNE'
     PHYLUM = 'PHYLUM'
@@ -93,15 +93,16 @@ class ExtractData(QgsProcessingAlgorithm):
     EXTRA_WHERE = 'EXTRA_WHERE'
     OUTPUT = 'OUTPUT'
     OUTPUT_NAME = 'OUTPUT_NAME'
+    ADD_TABLE = 'ADD_TABLE'
 
     def name(self):
-        return 'ExtractData'
+        return 'SummaryMap'
 
     def displayName(self):
-        return "Extraction de données d'observation"
+        return 'Carte de synthèse'
 
     def icon(self):
-        return QIcon(os.path.join(pluginPath, 'icons', 'extract_data.png'))
+        return QIcon(os.path.join(pluginPath, 'icons', 'map.png'))
 
     def groupId(self):
         return 'test'
@@ -126,48 +127,30 @@ class ExtractData(QgsProcessingAlgorithm):
             defaultValue='gnlpoaura'
         )
         db_param.setMetadata(
-            {'widget_wrapper': {'class': 'processing.gui.wrappers_postgis.ConnectionWidgetWrapper'}}
+            {
+                'widget_wrapper': {'class': 'processing.gui.wrappers_postgis.ConnectionWidgetWrapper'}
+            }
         )
         self.addParameter(db_param)
-
-        # # List of DB schemas
-        # schema_param = QgsProcessingParameterString(
-        #     self.SCHEMA,
-        #     self.tr('Schéma'),
-        #     defaultValue='public'
-        # )
-        # schema_param.setMetadata(
-        #     {
-        #         'widget_wrapper': {
-        #             'class': 'processing.gui.wrappers_postgis.SchemaWidgetWrapper',
-        #             'connection_param': self.DATABASE
-        #         }
-        #     }
-        # )
-        # self.addParameter(schema_param)
-
-        # # List of DB tables
-        # table_param = QgsProcessingParameterString(
-        #     self.TABLENAME,
-        #     self.tr('Table')
-        # )
-        # table_param.setMetadata(
-        #     {
-        #         'widget_wrapper': {
-        #             'class': 'processing.gui.wrappers_postgis.TableWidgetWrapper',
-        #             'schema_param': self.SCHEMA
-        #         }
-        #     }
-        # )
-        # self.addParameter(table_param)
 
         # Input vector layer = study area
         self.addParameter(
             QgsProcessingParameterFeatureSource(
                 self.STUDY_AREA,
                 self.tr("""<b>ZONE D'ÉTUDE</b><br/>
-                    <b>2/</b> Sélectionnez votre zone d'étude, à partir de laquelle seront extraites les données d'observations"""),
+                    <b>2/</b> Sélectionnez votre zone d'étude, à partir de laquelle seront extraites les résultats"""),
                 [QgsProcessing.TypeVectorPolygon]
+            )
+        )
+
+        # Areas type
+        self.addParameter(
+            QgsProcessingParameterEnum(
+                self.AREAS_TYPE,
+                self.tr("""<b>TYPE D'ENTITÉS GÉOGRAPHIQUES</b><br/>
+                    <b>3/</b> Sélectionnez le type d'entités géographiques qui vous intéresse"""),
+                self.db_variables.value("areas_types"),
+                allowMultiple=False
             )
         )
 
@@ -176,7 +159,7 @@ class ExtractData(QgsProcessingAlgorithm):
             QgsProcessingParameterEnum(
                 self.GROUPE_TAXO,
                 self.tr("""<b>FILTRES DE REQUÊTAGE</b><br/>
-                    <b>3/</b> Si nécessaire, sélectionnez un/plusieurs <u>taxon(s)</u> parmi les listes déroulantes (à choix multiples) proposées pour filtrer vos données d'observations<br/>
+                    <b>4/</b> Si nécessaire, sélectionnez un/plusieurs <u>taxon(s)</u> parmi les listes déroulantes (à choix multiples) proposées pour filtrer vos données d'observations<br/>
                     - Groupes taxonomiques :"""),
                 self.db_variables.value("groupe_taxo"),
                 allowMultiple=True,
@@ -257,7 +240,7 @@ class ExtractData(QgsProcessingAlgorithm):
         ### Datetime filter ###
         period_type = QgsProcessingParameterEnum(
             self.PERIOD,
-            self.tr("<b>4/</b> Si nécessaire, sélectionnez une <u>période</u> pour filtrer vos données d'observations"),
+            self.tr("<b>5/</b> Si nécessaire, sélectionnez une <u>période</u> pour filtrer vos données d'observations"),
             self.period_variables,
             allowMultiple=False,
             optional=True
@@ -297,7 +280,7 @@ class ExtractData(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterString(
                 self.EXTRA_WHERE,
-                self.tr("""<b>5/</b> Si nécessaire, ajoutez des <u>conditions "where"</u> supplémentaires dans l'encadré suivant, en langage SQL (commencez par <i>and</i>)"""),
+                self.tr("""<b>6/</b> Si nécessaire, ajoutez des <u>conditions "where"</u> supplémentaires dans l'encadré suivant, en langage SQL (commencez par <i>and</i>)"""),
                 multiLine=True,
                 optional=True
             )
@@ -308,17 +291,26 @@ class ExtractData(QgsProcessingAlgorithm):
             QgsProcessingParameterString(
                 self.OUTPUT_NAME,
                 self.tr("""<b>PARAMÉTRAGE DES RESULTATS EN SORTIE</b><br/>
-                    <b>6/</b> Définissez un nom pour votre nouvelle couche"""),
-                self.tr("Données d'observation")
+                    <b>7/</b> Définissez un nom pour votre nouvelle couche"""),
+                self.tr("Carte synthèse")
             )
         )
 
-        # Output PostGIS layer = biodiversity data
+        # Boolean : True = add the summary table in the DB ; False = don't
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.ADD_TABLE,
+                self.tr("Enregistrer les données en sortie dans une nouvelle table PostgreSQL"),
+                False
+            )
+        )
+
+        # Output PostGIS layer = summary map data
         self.addParameter(
             QgsProcessingParameterFeatureSink(
                 self.OUTPUT,
-                self.tr('<b>7/</b> Si nécessaire, enregistrez votre nouvelle couche (cette étape est <b>optionnelle</b>, vous pouvez aussi <i>Ignorer la sortie</i>)'),
-                QgsProcessing.TypeVectorPoint,
+                self.tr('<b>8/</b> Si nécessaire, enregistrez votre nouvelle couche (cette étape est <b>optionnelle</b>, vous pouvez aussi <i>Ignorer la sortie</i>)'),
+                QgsProcessing.TypeVectorPolygon,
                 optional=True,
                 createByDefault=False
             )
@@ -336,6 +328,8 @@ class ExtractData(QgsProcessingAlgorithm):
         layer_name = self.parameterAsString(parameters, self.OUTPUT_NAME, context)
         ts = datetime.now()
         format_name = "{} {}".format(layer_name, str(ts.strftime('%Y%m%d_%H%M%S')))
+        # Retrieve the areas type
+        areas_type = self.db_variables.value("areas_types")[self.parameterAsEnum(parameters, self.AREAS_TYPE, context)]
         # Retrieve the taxons filters
         groupe_taxo = [self.db_variables.value('groupe_taxo')[i] for i in (self.parameterAsEnums(parameters, self.GROUPE_TAXO, context))]
         regne = [self.db_variables.value('regne')[i] for i in (self.parameterAsEnums(parameters, self.REGNE, context))]
@@ -353,8 +347,10 @@ class ExtractData(QgsProcessingAlgorithm):
         ### CONSTRUCT "WHERE" CLAUSE (SQL) ###
         # Construct the sql array containing the study area's features geometry
         array_polygons = construct_sql_array_polygons(study_area)
-        # Define the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer = biodiversity data
-        where = "is_valid and ST_within(geom, ST_union({}))".format(array_polygons)
+        # Define the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer = map data
+        where = "ST_intersects(la.geom, ST_union({}))".format(array_polygons)
+        # Define the "where" filter for "Nb de données" and "Nb d'espèces"
+        where_filter = "is_valid"
         # Define a dictionnary with the aggregated taxons filters and complete the "where" clause thanks to it
         taxons_filters = {
             "groupe_taxo": groupe_taxo,
@@ -367,14 +363,14 @@ class ExtractData(QgsProcessingAlgorithm):
             "obs.group2_inpn": group2_inpn
         }
         taxons_where = construct_sql_taxons_filter(taxons_filters)
-        where += taxons_where
-        # Complete the "where" clause with the datetime filter
+        where_filter += taxons_where
+        # Complete the "where" filter with the datetime filter
         datetime_where = construct_sql_datetime_filter(self, period_type, ts, parameters, context)
-        where += datetime_where
-        # Complete the "where" clause with the extra conditions
-        where += " " + extra_where
+        where_filter += datetime_where
+        # Complete the "where" filter with the extra conditions
+        where_filter += " " + extra_where
         
-        feedback.pushInfo(where)
+        #feedback.pushInfo(where)
 
         ### EXECUTE THE SQL QUERY ###
         # Retrieve the data base connection name
@@ -382,36 +378,61 @@ class ExtractData(QgsProcessingAlgorithm):
         # URI --> Configures connection to database and the SQL query
         uri = postgis.uri_from_name(connection)
         # Define the SQL query
-        query = """SELECT obs.*
-        FROM src_lpodatas.observations obs
-        LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom=t.cd_nom
-        WHERE {}""".format(where)
-        # Format the URI with the query
-        uri.setDataSource("", "("+query+")", "geom", "", "id_observations")
+        query = """SELECT id_area, area_name AS "Nom", area_code AS "Code", la.geom,
+                COUNT(*) filter (where {}) AS "Nb de données",
+                COUNT(DISTINCT taxref_cdnom) filter (where {}) AS "Nb d'espèces"
+            FROM src_lpodatas.observations obs
+            LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
+            RIGHT JOIN ref_geo.l_areas la ON public.ST_INTERSECTS(obs.geom, la.geom)
+            LEFT JOIN ref_geo.bib_areas_types bib ON la.id_type=bib.id_type
+            WHERE type_name='{}' and {}
+            GROUP BY id_area, area_name, area_code, la.geom
+            ORDER BY area_code""".format(where_filter, where_filter, areas_type, where)
+        feedback.pushInfo(query)
+        # Retrieve the boolean add_table
+        add_table = self.parameterAsBool(parameters, self.ADD_TABLE, context)
+        if add_table:
+            # Define the name of the PostGIS summary table which will be created in the DB
+            table_name = simplify_name(format_name)
+            # Define the SQL queries
+            queries = [
+                "DROP TABLE if exists {}".format(table_name),
+                "CREATE TABLE {} AS ({})".format(table_name, query),
+                "ALTER TABLE {} add primary key (id_area)".format(table_name)
+            ]
+            # Execute the SQL queries
+            execute_sql_queries(context, feedback, connection, queries)
+            # Format the URI
+            uri.setDataSource(None, table_name, "geom", "", "id_area")
+        else:
+            # Format the URI with the query
+            uri.setDataSource("", "("+query+")", "geom", "", "id_area")
 
         ### GET THE OUTPUT LAYER ###
-        # Retrieve the output PostGIS layer = biodiversity data
-        layer_obs = QgsVectorLayer(uri.uri(), format_name, "postgres")
+        # Retrieve the output PostGIS layer = map data
+        layer_map = QgsVectorLayer(uri.uri(), format_name, "postgres")
         # Check if the PostGIS layer is valid
-        check_layer_is_valid(feedback, layer_obs)
-
+        check_layer_is_valid(feedback, layer_map)
+        
         ### MANAGE EXPORT ###
         # Create new valid fields for the sink
-        new_fields = format_layer_export(layer_obs)
+        new_fields = format_layer_export(layer_map)
         # Retrieve the sink for the export
-        (sink, dest_id) = self.parameterAsSink(parameters, self.OUTPUT, context, new_fields, layer_obs.wkbType(), layer_obs.sourceCrs())
+        (sink, dest_id) = self.parameterAsSink(parameters, self.OUTPUT, context, new_fields, layer_map.wkbType(), layer_map.sourceCrs())
         if sink is None:
             # Load the PostGIS layer and return it
-            load_layer(context, layer_obs)
-            return {self.OUTPUT: layer_obs.id()}
+            load_layer(context, layer_map)
+            return {self.OUTPUT: layer_map.id()}
         else:
             # Fill the sink and return it
-            for feature in layer_obs.getFeatures():
+            for feature in layer_map.getFeatures():
                 sink.addFeature(feature)
             return {self.OUTPUT: dest_id}
+        
+        return {self.OUTPUT: layer_map.id()}
 
     def tr(self, string):
         return QCoreApplication.translate('Processing', string)
 
     def createInstance(self):
-        return ExtractData()
+        return SummaryMap()

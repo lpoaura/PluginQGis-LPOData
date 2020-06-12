@@ -2,7 +2,7 @@
 
 """
 /***************************************************************************
-        ScriptsLPO : graph.py
+        ScriptsLPO : state_of_knowledge.py
         -------------------
         Date                 : 2020-04-16
         Copyright            : (C) 2020 by Elsa Guilley (LPO AuRA)
@@ -72,7 +72,7 @@ class DateTimeWidget(WidgetWrapper):
         date_chosen = self._combo.dateTime()
         return date_chosen.toString(Qt.ISODate)
 
-class Histogram(QgsProcessingAlgorithm):
+class StateOfKnowledge(QgsProcessingAlgorithm):
     """
     This algorithm takes a connection to a data base and a vector polygons layer and
     returns a summary non geometric PostGIS layer.
@@ -98,7 +98,7 @@ class Histogram(QgsProcessingAlgorithm):
     ADD_TABLE = 'ADD_TABLE'
 
     def name(self):
-        return 'Histogram'
+        return 'StateOfKnowledge'
 
     def displayName(self):
         return 'Etat des connaissances par groupe taxonomique'
@@ -150,7 +150,7 @@ class Histogram(QgsProcessingAlgorithm):
             QgsProcessingParameterEnum(
                 self.GROUPE_TAXO,
                 self.tr("""<b>FILTRES DE REQUÊTAGE</b><br/>
-                    <b>3/</b> Si nécessaire, choisissez un/plusieurs <u>taxon(s)</u> parmi les listes déroulantes (à choix multiples) proposées pour filtrer vos données d'observations<br/>
+                    <b>3/</b> Si nécessaire, sélectionnez un/plusieurs <u>taxon(s)</u> parmi les listes déroulantes (à choix multiples) proposées pour filtrer vos données d'observations<br/>
                     - Groupes taxonomiques :"""),
                 self.db_variables.value("groupe_taxo"),
                 allowMultiple=True,
@@ -231,7 +231,7 @@ class Histogram(QgsProcessingAlgorithm):
         ### Datetime filter ###
         period = QgsProcessingParameterEnum(
             self.PERIOD,
-            self.tr("<b>4/</b> Si nécessaire, choisissez une <u>période</u> pour filtrer vos données d'observations"),
+            self.tr("<b>4/</b> Si nécessaire, sélectionnez une <u>période</u> pour filtrer vos données d'observations"),
             self.period_variables,
             allowMultiple=False,
             optional=True
@@ -240,7 +240,7 @@ class Histogram(QgsProcessingAlgorithm):
             {
                 'widget_wrapper': {
                     'useCheckBoxes': True,
-                    'columns': 4
+                    'columns': len(self.period_variables)
                 }
             }
         )
@@ -277,7 +277,7 @@ class Histogram(QgsProcessingAlgorithm):
             )
         )
 
-        # Output PostGIS layer = histogram data
+        # Output PostGIS layer = summary table
         self.addOutput(
             QgsProcessingOutputVectorLayer(
                 self.OUTPUT,
@@ -334,7 +334,7 @@ class Histogram(QgsProcessingAlgorithm):
         ### CONSTRUCT "WHERE" CLAUSE (SQL) ###
         # Construct the sql array containing the study area's features geometry
         array_polygons = construct_sql_array_polygons(study_area)
-        # Define the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer = histogram data
+        # Define the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer = summary table
         where = "is_valid and ST_within(geom, ST_union({}))".format(array_polygons)
         # Define a dictionnary with the aggregated taxons filters and complete the "where" clause thanks to it
         taxons_filters = {
@@ -393,18 +393,18 @@ class Histogram(QgsProcessingAlgorithm):
             uri.setDataSource("", "("+query+")", None, "", "id")
 
         ### GET THE OUTPUT LAYER ###
-        # Retrieve the output PostGIS layer = histogram data
-        layer_histo = QgsVectorLayer(uri.uri(), format_name, "postgres")
+        # Retrieve the output PostGIS layer = summary table
+        layer_summary = QgsVectorLayer(uri.uri(), format_name, "postgres")
         # Check if the PostGIS layer is valid
-        check_layer_is_valid(feedback, layer_histo)
+        check_layer_is_valid(feedback, layer_summary)
         # Load the PostGIS layer
-        load_layer(context, layer_histo)
+        load_layer(context, layer_summary)
         # Open the attribute table of the PostGIS layer
-        iface.setActiveLayer(layer_histo)
-        iface.showAttributeTable(layer_histo)
+        iface.setActiveLayer(layer_summary)
+        iface.showAttributeTable(layer_summary)
 
-        # x_var = [feature['groupe_taxo'] for feature in layer_histo.getFeatures()]
-        # y_var = [int(feature['nb_donnees']) for feature in layer_histo.getFeatures()]
+        # x_var = [feature['groupe_taxo'] for feature in layer_summary.getFeatures()]
+        # y_var = [int(feature['nb_donnees']) for feature in layer_summary.getFeatures()]
         # data = [go.Bar(x=x_var, y=y_var)]
         # plt.offline.plot(data, filename="/home/eguilley/Téléchargements/histogram-test.html", auto_open=True)
         # fig = go.Figure(data=data)
@@ -412,11 +412,11 @@ class Histogram(QgsProcessingAlgorithm):
         # fig.write_image("/home/eguilley/Téléchargements/histogram-test.png")
 
         # plt.rcdefaults()
-        # libel = [feature['groupe_taxo'] for feature in layer_histo.getFeatures()]
+        # libel = [feature['groupe_taxo'] for feature in layer_summary.getFeatures()]
         # feedback.pushInfo('Libellés : {}'.format(libel))
         # #X = np.arange(len(libel))
         # #feedback.pushInfo('Valeurs en X : {}'.format(X))
-        # Y = [int(feature['nb_observations']) for feature in layer_histo.getFeatures()]
+        # Y = [int(feature['nb_observations']) for feature in layer_summary.getFeatures()]
         # feedback.pushInfo('Valeurs en Y : {}'.format(Y))
         # fig = plt.figure()
         # ax = fig.add_axes([0, 0, 1, 1])
@@ -428,10 +428,10 @@ class Histogram(QgsProcessingAlgorithm):
         # ax.set_title(u'Etat des connaissances par groupes d\'espèces')
         # plt.show()
         
-        return {self.OUTPUT: layer_histo.id()}
+        return {self.OUTPUT: layer_summary.id()}
 
     def tr(self, string):
         return QCoreApplication.translate('Processing', string)
 
     def createInstance(self):
-        return Histogram()
+        return StateOfKnowledge()
