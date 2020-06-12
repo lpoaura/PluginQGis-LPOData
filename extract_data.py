@@ -330,6 +330,7 @@ class ExtractData(QgsProcessingAlgorithm):
         Here is where the processing itself takes place.
         """
 
+        ### RETRIEVE PARAMETERS ###
         # Retrieve the input vector layer = study area
         study_area = self.parameterAsSource(parameters, self.STUDY_AREA, context)
         # Retrieve the output PostGIS layer name and format it
@@ -350,7 +351,7 @@ class ExtractData(QgsProcessingAlgorithm):
         # Retrieve the extra "where" conditions
         extra_where = self.parameterAsString(parameters, self.EXTRA_WHERE, context)
 
-        ### "WHERE" CLAUSE
+        ### CONSTRUCT "WHERE" CLAUSE (SQL) ###
         # Construct the sql array containing the study area's features geometry
         array_polygons = construct_sql_array_polygons(study_area)
         # Define the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer = biodiversity data
@@ -376,6 +377,7 @@ class ExtractData(QgsProcessingAlgorithm):
         
         feedback.pushInfo(where)
 
+        ### EXECUTE THE SQL QUERY ###
         # Retrieve the data base connection name
         connection = self.parameterAsString(parameters, self.DATABASE, context)
         # URI --> Configures connection to database and the SQL query
@@ -388,11 +390,13 @@ class ExtractData(QgsProcessingAlgorithm):
         # Format the URI with the query
         uri.setDataSource("", "("+query+")", "geom", "", "id_observations")
 
+        ### GET THE OUTPUT LAYER ###
         # Retrieve the output PostGIS layer = biodiversity data
         layer_obs = QgsVectorLayer(uri.uri(), format_name, "postgres")
         # Check if the PostGIS layer is valid
         check_layer_is_valid(feedback, layer_obs)
 
+        ### MANAGE EXPORT ###
         # Create new valid fields for the sink
         new_fields = format_layer_export(layer_obs)
         # Retrieve the sink for the export

@@ -2,7 +2,7 @@
 
 """
 /***************************************************************************
-        ScriptsLPO : summary_table_per_year.py
+        ScriptsLPO : summary_table_per_time_interval.py
         -------------------
         Date                 : 2020-04-16
         Copyright            : (C) 2020 by Elsa Guilley (LPO AuRA)
@@ -69,7 +69,7 @@ class DateTimeWidget(WidgetWrapper):
         date_chosen = self._combo.dateTime()
         return date_chosen.toString(Qt.ISODate)
 
-class SummaryTablePerYear(QgsProcessingAlgorithm):
+class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
     """
     This algorithm takes a connection to a data base and a vector polygons layer and
     returns a summary non geometric PostGIS layer.
@@ -383,6 +383,7 @@ class SummaryTablePerYear(QgsProcessingAlgorithm):
         Here is where the processing itself takes place.
         """
 
+        ### RETRIEVE PARAMETERS ###
         # Retrieve the input vector layer = study area
         study_area = self.parameterAsSource(parameters, self.STUDY_AREA, context)
         # Retrieve the output PostGIS layer name and format it
@@ -413,59 +414,15 @@ class SummaryTablePerYear(QgsProcessingAlgorithm):
         # Retrieve the extra "where" conditions
         extra_where = self.parameterAsString(parameters, self.EXTRA_WHERE, context)
 
-        ### "SELECT" CLAUSE ###
+        ### CONSTRUCT "SELECT" CLAUSE (SQL) ###
         # Select data according to the time interval and the period
         select_data = construct_sql_select_data_per_time_interval(self, time_interval, start_year, end_year, aggregation_type, parameters, context)
-        # select_data = ""
-        # if time_interval == 'Par année':
-        #     add_five_years = self.parameterAsBool(parameters, self.ADD_FIVE_YEARS, context)
-        #     if add_five_years:
-        #         if (end_year-start_year+1)%5 != 0:
-        #             raise QgsProcessingException("Veuillez renseigner une période en année qui soit divisible par 5 ! Ex : 2011 - 2020.")
-        #         else:
-        #             counter = start_year
-        #             step_limit = start_year
-        #             while counter <= end_year:
-        #                 select_data += ", COUNT({}) filter (WHERE date_an={}) AS \"{}\"".format("*" if aggregation_type == 'Nombre de données' else "DISTINCT cd_nom", counter, counter)
-        #                 if counter == step_limit+4:
-        #                     select_data += ", COUNT({}) filter (WHERE date_an>={} and date_an<={}) AS \"{} - {}\"".format("*" if aggregation_type == 'Nombre de données' else "DISTINCT cd_nom", counter-4, counter, counter-4, counter)
-        #                     step_limit += 5
-        #                 counter += 1
-        #     else:
-        #         for year in range(start_year, end_year+1):
-        #             select_data += ", COUNT({}) filter (WHERE date_an={}) AS \"{}\"".format("*" if aggregation_type == 'Nombre de données' else "DISTINCT cd_nom", year, year)
-        # else:
-        #     start_month = self.parameterAsEnum(parameters, self.START_MONTH, context)
-        #     end_month = self.parameterAsEnum(parameters, self.END_MONTH, context)
-        #     months_numbers_variables = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"]
-        #     if start_year == end_year:
-        #         if end_month < start_month:
-        #             raise QgsProcessingException("Veuillez renseigner un mois de fin postérieur ou égal au mois de début !")
-        #         else:
-        #             for month in range(start_month, end_month+1):
-        #                 select_data += ", COUNT({}) filter (WHERE to_char(date, 'YYYY-MM')='{}-{}') AS \"{} {}\"".format("*" if aggregation_type == 'Nombre de données' else "DISTINCT cd_nom", start_year, months_numbers_variables[month], self.months_names_variables[month], start_year)
-        #     elif end_year == start_year+1:
-        #         for month in range(start_month, 12):
-        #             select_data += ", COUNT({}) filter (WHERE to_char(date, 'YYYY-MM')='{}-{}') AS \"{} {}\"".format("*" if aggregation_type == 'Nombre de données' else "DISTINCT cd_nom", start_year, months_numbers_variables[month], self.months_names_variables[month], start_year)
-        #         for month in range(0, end_month+1):
-        #             select_data += ", COUNT({}) filter (WHERE to_char(date, 'YYYY-MM')='{}-{}') AS \"{} {}\"".format("*" if aggregation_type == 'Nombre de données' else "DISTINCT cd_nom", end_year, months_numbers_variables[month], self.months_names_variables[month], end_year)
-        #     else:
-        #         for month in range(start_month, 12):
-        #             select_data += ", COUNT({}) filter (WHERE to_char(date, 'YYYY-MM')='{}-{}') AS \"{} {}\"".format("*" if aggregation_type == 'Nombre de données' else "DISTINCT cd_nom", start_year, months_numbers_variables[month], self.months_names_variables[month], start_year)
-        #         for year in range(start_year+1, end_year):
-        #             for month in range(0, 12):
-        #                 select_data += ", COUNT({}) filter (WHERE to_char(date, 'YYYY-MM')='{}-{}') AS \"{} {}\"".format("*" if aggregation_type == 'Nombre de données' else "DISTINCT cd_nom", year, months_numbers_variables[month], self.months_names_variables[month], year)
-        #         for month in range(0, end_month+1):
-        #             select_data += ", COUNT({}) filter (WHERE to_char(date, 'YYYY-MM')='{}-{}') AS \"{} {}\"".format("*" if aggregation_type == 'Nombre de données' else "DISTINCT cd_nom", end_year, months_numbers_variables[month], self.months_names_variables[month], end_year)
-            
-
         # Select species info (optional)
-        select_species_info = """source_id_sp, taxref_cdnom AS cd_nom, cd_ref, nom_rang as "Rang",
-            nom_sci AS "Nom scientifique", obs.nom_vern AS "Nom vernaculaire", """ if taxonomic_rank == 'Espèces' else ""
-        ### "GROUP BY" CLAUSE ###
-        # Group by species (optional)
-        group_by_species = "source_id_sp, taxref_cdnom, cd_ref, nom_rang, nom_sci, obs.nom_vern, " if taxonomic_rank == 'Espèces' else ""
-        ### "WHERE" CLAUSE ###
+        select_species_info = """source_id_sp, taxref_cdnom AS cd_nom, cd_ref, nom_rang as "Rang", groupe_taxo AS "Groupe taxo",
+            obs.nom_vern AS "Nom vernaculaire", nom_sci AS "Nom scientifique\""""
+        # Select taxonomic groups info (optional)
+        select_taxo_groups_info = 'groupe_taxo AS "Groupe taxo"'
+        ### CONSTRUCT "WHERE" CLAUSE (SQL) ###
         # Construct the sql array containing the study area's features geometry
         array_polygons = construct_sql_array_polygons(study_area)
         # Define the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer = summary table
@@ -485,48 +442,44 @@ class SummaryTablePerYear(QgsProcessingAlgorithm):
         where += taxons_where
         # Complete the "where" clause with the extra conditions
         where += " " + extra_where
+        ### CONSTRUCT "GROUP BY" CLAUSE (SQL) ###
+        # Group by species (optional)
+        group_by_species = "source_id_sp, taxref_cdnom, cd_ref, nom_rang, nom_sci, obs.nom_vern, " if taxonomic_rank == 'Espèces' else ""
 
+        ### EXECUTE THE SQL QUERY ###
         # Retrieve the data base connection name
         connection = self.parameterAsString(parameters, self.DATABASE, context)
         # URI --> Configures connection to database and the SQL query
         uri = postgis.uri_from_name(connection)
+        # Define the SQL query
+        query = """SELECT row_number() OVER () AS id, {}{}
+            FROM src_lpodatas.observations obs
+            LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
+            LEFT JOIN taxonomie.bib_taxref_rangs r ON t.id_rang = r.id_rang
+            WHERE {}
+            GROUP BY {}groupe_taxo
+            ORDER BY groupe_taxo{}""".format(select_species_info if taxonomic_rank == 'Espèces' else select_taxo_groups_info, select_data, where, group_by_species, ", source_id_sp" if taxonomic_rank == 'Espèces' else "")
+        feedback.pushInfo(query)
         # Retrieve the boolean add_table
         add_table = self.parameterAsBool(parameters, self.ADD_TABLE, context)
-
         if add_table:
             # Define the name of the PostGIS summary table which will be created in the DB
             table_name = simplify_name(format_name)
             # Define the SQL queries
             queries = [
                 "DROP TABLE if exists {}".format(table_name),
-                """CREATE TABLE {} AS
-                (SELECT row_number() OVER () AS id, {}groupe_taxo AS "Groupe taxo"{}
-                FROM src_lpodatas.observations obs
-                LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
-                LEFT JOIN taxonomie.bib_taxref_rangs r ON t.id_rang = r.id_rang
-                WHERE {}
-                GROUP BY {}groupe_taxo
-                ORDER BY groupe_taxo{})""".format(table_name, select_species_info if taxonomic_rank == 'Espèces' else "", select_data, where, group_by_species if taxonomic_rank == 'Espèces' else "", ", source_id_sp" if taxonomic_rank == 'Espèces' else ""),
+                """CREATE TABLE {} AS ({})""".format(table_name, query),
                 "ALTER TABLE {} add primary key (id)".format(table_name)
             ]
             # Execute the SQL queries
             execute_sql_queries(context, feedback, connection, queries)
             # Format the URI
             uri.setDataSource(None, table_name, None, "", "id")
-
         else:
-            # Define the SQL query
-            query = """SELECT row_number() OVER () AS id, {}groupe_taxo AS "Groupe taxo"{}
-                FROM src_lpodatas.observations obs
-                LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
-                LEFT JOIN taxonomie.bib_taxref_rangs r ON t.id_rang = r.id_rang
-                WHERE {}
-                GROUP BY {}groupe_taxo
-                ORDER BY groupe_taxo{}""".format(select_species_info, select_data, where, group_by_species, ", source_id_sp" if taxonomic_rank == 'Espèces' else "")
-            feedback.pushInfo("Query : {}".format(query))
             # Format the URI with the query
             uri.setDataSource("", "("+query+")", None, "", "id")
 
+        ### GET THE OUTPUT LAYER ###
         # Retrieve the output PostGIS layer = summary table
         layer_summary = QgsVectorLayer(uri.uri(), format_name, "postgres")
         # Check if the PostGIS layer is valid
@@ -543,4 +496,4 @@ class SummaryTablePerYear(QgsProcessingAlgorithm):
         return QCoreApplication.translate('Processing', string)
 
     def createInstance(self):
-        return SummaryTablePerYear()
+        return SummaryTablePerTimeInterval()

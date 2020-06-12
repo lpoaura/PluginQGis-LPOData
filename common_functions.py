@@ -133,6 +133,9 @@ def construct_sql_datetime_filter(self, period_filter, timestamp, parameters, co
     return datetime_where
 
 def construct_sql_select_data_per_time_interval(self, time_interval_param, start_year_param, end_year_param, aggregation_type_param, parameters, context):
+    """
+    Construct the sql "select" data according to a time interval and a period.
+    """
     select_data = ""
     if time_interval_param == 'Par année':
         add_five_years = self.parameterAsBool(parameters, self.ADD_FIVE_YEARS, context)
@@ -175,7 +178,7 @@ def construct_sql_select_data_per_time_interval(self, time_interval_param, start
                     select_data += ", COUNT({}) filter (WHERE to_char(date, 'YYYY-MM')='{}-{}') AS \"{} {}\"".format("*" if aggregation_type_param == 'Nombre de données' else "DISTINCT cd_nom", year, months_numbers_variables[month], self.months_names_variables[month], year)
             for month in range(0, end_month+1):
                 select_data += ", COUNT({}) filter (WHERE to_char(date, 'YYYY-MM')='{}-{}') AS \"{} {}\"".format("*" if aggregation_type_param == 'Nombre de données' else "DISTINCT cd_nom", end_year_param, months_numbers_variables[month], self.months_names_variables[month], end_year_param)
-        #select_data += ", COUNT({}) filter (WHERE to_char(date, 'YYYY-MM')>='{}-{}' and to_char(date, 'YYYY-MM')<='{}-{}') AS \"TOTAL\"".format("*" if aggregation_type_param == 'Nombre de données' else "DISTINCT cd_nom", months_numbers_variables[start_month], start_year_param, months_numbers_variables[end_month], end_year_param)
+        select_data += ", COUNT({}) filter (WHERE to_char(date, 'YYYY-MM')>='{}-{}' and to_char(date, 'YYYY-MM')<='{}-{}') AS \"TOTAL\"".format("*" if aggregation_type_param == 'Nombre de données' else "DISTINCT cd_nom", start_year_param, months_numbers_variables[start_month], end_year_param, months_numbers_variables[end_month])
     return select_data
 
 def load_layer(context, layer):

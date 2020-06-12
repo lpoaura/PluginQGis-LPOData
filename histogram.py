@@ -310,6 +310,7 @@ class Histogram(QgsProcessingAlgorithm):
         Here is where the processing itself takes place.
         """
 
+        ### RETRIEVE PARAMETERS ###
         # Retrieve the input vector layer = study area
         study_area = self.parameterAsSource(parameters, self.STUDY_AREA, context)
         # Retrieve the output PostGIS layer name and format it
@@ -330,7 +331,7 @@ class Histogram(QgsProcessingAlgorithm):
         # Retrieve the extra "where" conditions
         extra_where = self.parameterAsString(parameters, self.EXTRA_WHERE, context)
 
-        ### "WHERE" CLAUSE
+        ### CONSTRUCT "WHERE" CLAUSE (SQL) ###
         # Construct the sql array containing the study area's features geometry
         array_polygons = construct_sql_array_polygons(study_area)
         # Define the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer = histogram data
@@ -356,51 +357,42 @@ class Histogram(QgsProcessingAlgorithm):
         
         feedback.pushInfo(where)
 
+        ### EXECUTE THE SQL QUERY ###
         # Retrieve the data base connection name
         connection = self.parameterAsString(parameters, self.DATABASE, context)
         # URI --> Configures connection to database and the SQL query
         uri = postgis.uri_from_name(connection)
+        # Define the SQL query
+        query = """SELECT row_number() OVER () AS id,
+                groupe_taxo AS "Groupe taxo", COUNT(*) AS "Nb de données",
+                COUNT(DISTINCT(source_id_sp)) AS "Nb d'espèces",
+                COUNT(DISTINCT(observateur)) AS "Nb d'observateurs", 
+                COUNT(DISTINCT("date")) AS "Nb de dates"
+            FROM src_lpodatas.observations obs
+            LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom=t.cd_nom
+            WHERE {} 
+            GROUP BY groupe_taxo 
+            ORDER BY groupe_taxo""".format(where)
         # Retrieve the boolean add_table
         add_table = self.parameterAsBool(parameters, self.ADD_TABLE, context)
-
         if add_table:
             # Define the name of the PostGIS summary table which will be created in the DB
             table_name = simplify_name(format_name)
             # Define the SQL queries
             queries = [
                 "DROP TABLE if exists {}".format(table_name),
-                """CREATE TABLE {} AS
-                (SELECT row_number() OVER () AS id,
-                    groupe_taxo, COUNT(*) AS nb_donnees,
-                    COUNT(DISTINCT(source_id_sp)) as nb_especes,
-                    COUNT(DISTINCT(observateur)) as nb_observateurs,
-                    COUNT(DISTINCT("date")) as nb_dates
-                FROM src_lpodatas.observations obs
-                LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom=t.cd_nom
-                WHERE {}
-                GROUP BY groupe_taxo
-                ORDER BY groupe_taxo)""".format(table_name, where),
+                "CREATE TABLE {} AS ({})".format(table_name, query),
                 "ALTER TABLE {} add primary key (id)".format(table_name)
             ]
             # Execute the SQL queries
             execute_sql_queries(context, feedback, connection, queries)
             # Format the URI
             uri.setDataSource(None, table_name, None, "", "id")
-
         else:
-        # Define the SQL query
-            query = """SELECT groupe_taxo, COUNT(*) AS nb_donnees,
-                    COUNT(DISTINCT(source_id_sp)) as nb_especes,
-                    COUNT(DISTINCT(observateur)) as nb_observateurs, 
-                    COUNT(DISTINCT("date")) as nb_dates
-                FROM src_lpodatas.observations obs
-                LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom=t.cd_nom
-                WHERE {} 
-                GROUP BY groupe_taxo 
-                ORDER BY groupe_taxo""".format(where)
             # Format the URI with the query
-            uri.setDataSource("", "("+query+")", None, "", "groupe_taxo")
+            uri.setDataSource("", "("+query+")", None, "", "id")
 
+        ### GET THE OUTPUT LAYER ###
         # Retrieve the output PostGIS layer = histogram data
         layer_histo = QgsVectorLayer(uri.uri(), format_name, "postgres")
         # Check if the PostGIS layer is valid
