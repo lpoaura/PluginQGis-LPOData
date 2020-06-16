@@ -243,6 +243,7 @@ class SummaryMap(QgsProcessingAlgorithm):
             self.tr("<b>5/</b> Si nécessaire, sélectionnez une <u>période</u> pour filtrer vos données d'observations"),
             self.period_variables,
             allowMultiple=False,
+            defaultValue="Pas de filtre temporel",
             optional=True
         )
         period_type.setMetadata(
@@ -379,15 +380,18 @@ class SummaryMap(QgsProcessingAlgorithm):
         uri = postgis.uri_from_name(connection)
         # Define the SQL query
         query = """SELECT id_area, area_name AS "Nom", area_code AS "Code", la.geom,
+                ROUND(ST_area(la.geom)::decimal/1000000, 2) AS "Surface (km2)",
                 COUNT(*) filter (where {}) AS "Nb de données",
-                COUNT(DISTINCT taxref_cdnom) filter (where {}) AS "Nb d'espèces"
+                ROUND(COUNT(*)/ROUND(ST_area(la.geom)::decimal/1000000, 2), 2) AS "Densité (Nb de données/km2)",
+                COUNT(DISTINCT t.cd_ref) filter (where {}) AS "Nb d'espèces",
+                COUNT(DISTINCT date) filter (where {}) AS "Nb de dates"
             FROM src_lpodatas.observations obs
             LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
             RIGHT JOIN ref_geo.l_areas la ON public.ST_INTERSECTS(obs.geom, la.geom)
             LEFT JOIN ref_geo.bib_areas_types bib ON la.id_type=bib.id_type
             WHERE type_name='{}' and {}
             GROUP BY id_area, area_name, area_code, la.geom
-            ORDER BY area_code""".format(where_filter, where_filter, areas_type, where)
+            ORDER BY area_code""".format(where_filter, where_filter, where_filter, areas_type, where)
         feedback.pushInfo(query)
         # Retrieve the boolean add_table
         add_table = self.parameterAsBool(parameters, self.ADD_TABLE, context)

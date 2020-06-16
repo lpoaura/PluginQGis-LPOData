@@ -260,6 +260,7 @@ class ExtractData(QgsProcessingAlgorithm):
             self.tr("<b>4/</b> Si nécessaire, sélectionnez une <u>période</u> pour filtrer vos données d'observations"),
             self.period_variables,
             allowMultiple=False,
+            defaultValue="Pas de filtre temporel",
             optional=True
         )
         period_type.setMetadata(

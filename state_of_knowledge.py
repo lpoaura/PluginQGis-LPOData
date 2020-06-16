@@ -81,6 +81,7 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
     # Constants used to refer to parameters and outputs
     DATABASE = 'DATABASE'
     STUDY_AREA = 'STUDY_AREA'
+    TAXONOMIC_RANK = 'TAXONOMIC_RANK'
     GROUPE_TAXO = 'GROUPE_TAXO'
     REGNE = 'REGNE'
     PHYLUM = 'PHYLUM'
@@ -119,6 +120,7 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
         """
 
         self.db_variables = QgsSettings()
+        taxonomic_ranks_variables = ["Groupes taxonomiques", "Règnes", "Phylum", "Classes", "Ordres", "Familles", "Groupes 1 INPN", "Groupes 2 INPN"]
         self.period_variables = ["Pas de filtre temporel", "5 dernières années", "10 dernières années", "Date de début - Date de fin (à définir ci-dessous)"]
 
         # Data base connection
@@ -144,6 +146,24 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
                 [QgsProcessing.TypeVectorPolygon]
             )
         )
+
+        # Taxonomic rank
+        taxonomic_rank = QgsProcessingParameterEnum(
+            self.TAXONOMIC_RANK,
+            self.tr("""<b>RANG TAXONOMIQUE</b><br/>
+                <b>5/</b> Sélectionnez le rang taxonomique qui vous intéresse"""),
+            taxonomic_ranks_variables,
+            allowMultiple=False
+        )
+        taxonomic_rank.setMetadata(
+            {
+                'widget_wrapper': {
+                    'useCheckBoxes': True,
+                    'columns': len(taxonomic_ranks_variables)
+                }
+            }
+        )
+        self.addParameter(taxonomic_rank)
 
         ### Taxons filters ###
         self.addParameter(
@@ -234,6 +254,7 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
             self.tr("<b>4/</b> Si nécessaire, sélectionnez une <u>période</u> pour filtrer vos données d'observations"),
             self.period_variables,
             allowMultiple=False,
+            defaultValue="Pas de filtre temporel",
             optional=True
         )
         period.setMetadata(
@@ -317,6 +338,12 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
         layer_name = self.parameterAsString(parameters, self.OUTPUT_NAME, context)
         ts = datetime.now()
         format_name = "{} {}".format(layer_name, str(ts.strftime('%Y%m%d_%H%M%S')))
+        # Retrieve the taxonomic rank
+        taxonomic_ranks_labels = ["Groupe taxo", "Règne", "Phylum", "Classe", "Ordre", "Famille", "Groupe 1 INPN", "Groupe 2 INPN"]
+        taxonomic_ranks_db = ["groupe_taxo", "regne", "phylum", "classe", "ordre", "famille", "obs.group1_inpn", "group2_inpn"]
+        taxonomic_rank_label = taxonomic_ranks_labels[self.parameterAsEnum(parameters, self.TAXONOMIC_RANK, context)]
+        taxonomic_rank_db = taxonomic_ranks_db[self.parameterAsEnum(parameters, self.TAXONOMIC_RANK, context)]
+        feedback.pushInfo("Rang taxo : {}".format(taxonomic_rank_label))
         # Retrieve the taxons filters
         groupe_taxo = [self.db_variables.value('groupe_taxo')[i] for i in (self.parameterAsEnums(parameters, self.GROUPE_TAXO, context))]
         regne = [self.db_variables.value('regne')[i] for i in (self.parameterAsEnums(parameters, self.REGNE, context))]
@@ -335,7 +362,7 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
         # Construct the sql array containing the study area's features geometry
         array_polygons = construct_sql_array_polygons(study_area)
         # Define the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer = summary table
-        where = "is_valid and ST_within(geom, ST_union({}))".format(array_polygons)
+        where = "is_valid and ST_within(obs.geom, ST_union({}))".format(array_polygons)
         # Define a dictionnary with the aggregated taxons filters and complete the "where" clause thanks to it
         taxons_filters = {
             "groupe_taxo": groupe_taxo,
@@ -363,16 +390,30 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
         # URI --> Configures connection to database and the SQL query
         uri = postgis.uri_from_name(connection)
         # Define the SQL query
-        query = """SELECT row_number() OVER () AS id,
-                groupe_taxo AS "Groupe taxo", COUNT(*) AS "Nb de données",
-                COUNT(DISTINCT(source_id_sp)) AS "Nb d'espèces",
-                COUNT(DISTINCT(observateur)) AS "Nb d'observateurs", 
-                COUNT(DISTINCT("date")) AS "Nb de dates"
+        query = """WITH total_count AS
+            (SELECT COUNT(*) AS total_count
             FROM src_lpodatas.observations obs
             LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom=t.cd_nom
-            WHERE {} 
-            GROUP BY groupe_taxo 
-            ORDER BY groupe_taxo""".format(where)
+            WHERE {})
+            SELECT row_number() OVER () AS id, {} AS "{}", {}
+                COUNT(*) AS "Nb de données", total_count,
+                ROUND(COUNT(*)::decimal/total_count, 4)*100 AS "Nb données / Nb données TOTAL (%)",
+                COUNT(DISTINCT t.cd_ref) AS "Nb d'espèces",
+                COUNT(DISTINCT observateur) AS "Nb d'observateurs", 
+                COUNT(DISTINCT date) AS "Nb de dates",
+                SUM(CASE WHEN mortalite THEN 1 ELSE 0 END) AS "Nb de données de mortalite",
+                max(nombre_total) AS "Nb d'individus max",
+                min (date_an) AS "Année première obs", max(date_an) AS "Année dernière obs",
+                string_agg(DISTINCT la.area_name,', ') AS "Communes",
+                string_agg(DISTINCT obs.source,', ') AS "Sources"
+            FROM total_count, src_lpodatas.observations obs
+            LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom=t.cd_nom
+            LEFT JOIN ref_geo.l_areas la ON public.ST_INTERSECTS(obs.geom, la.geom)
+            LEFT JOIN ref_geo.bib_areas_types bib ON la.id_type=bib.id_type
+            WHERE bib.type_name='Communes' and {} 
+            GROUP BY {}{}, total_count 
+            ORDER BY {}{}""".format(where, taxonomic_rank_db, taxonomic_rank_label, 'groupe_taxo AS "Groupe taxo", ' if taxonomic_rank_label in ['Ordre', 'Famille'] else "", where, "groupe_taxo, " if taxonomic_rank_label in ['Ordre', 'Famille'] else "", taxonomic_rank_db, "groupe_taxo, " if taxonomic_rank_label in ['Ordre', 'Famille'] else "", taxonomic_rank_db)
+        feedback.pushInfo(query)
         # Retrieve the boolean add_table
         add_table = self.parameterAsBool(parameters, self.ADD_TABLE, context)
         if add_table:

@@ -230,6 +230,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
             self.tr("<b>4/</b> Si nécessaire, sélectionnez une <u>période</u> pour filtrer vos données d'observations"),
             self.period_variables,
             allowMultiple=False,
+            defaultValue="Pas de filtre temporel",
             optional=True
         )
         period_type.setMetadata(
@@ -367,14 +368,14 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
             data AS
             (SELECT source_id_sp, taxref_cdnom AS cd_nom, cd_ref, 
                 nom_rang, groupe_taxo, obs.nom_vern, nom_sci, 
-                COUNT(*)::decimal AS nb_donnees,
-                COUNT(DISTINCT(observateur)) AS nb_observateurs,
-                COUNT(DISTINCT("date")) as nb_dates,
-                COALESCE(SUM(CASE WHEN mortalite THEN 1 ELSE 0 END),0) AS nb_mortalite,
+                COUNT(*) AS nb_donnees,
+                COUNT(DISTINCT observateur) AS nb_observateurs,
+                COUNT(DISTINCT date) AS nb_dates,
+                SUM(CASE WHEN mortalite THEN 1 ELSE 0 END) AS nb_mortalite,
                 max(sn.code_nidif) AS max_atlas_code, max(nombre_total) AS nb_individus_max,
-                min (date_an) as premiere_observation, max(date_an) as derniere_observation,
-                string_agg(distinct obs.source,', ') as sources,
-                string_agg(distinct la.area_name,', ') as communes
+                min (date_an) AS premiere_observation, max(date_an) AS derniere_observation,
+                string_agg(DISTINCT la.area_name,', ') AS communes,
+                string_agg(DISTINCT obs.source,', ') AS sources
             FROM src_lpodatas.observations obs
             LEFT JOIN referentiel.statut_nidif sn ON obs.oiso_code_nidif = sn.code_repro
             LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
@@ -386,11 +387,12 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
             synthese AS
             (SELECT DISTINCT source_id_sp, cd_nom, cd_ref, nom_rang AS "Rang", groupe_taxo AS "Groupe taxo",
                 nom_vern AS "Nom vernaculaire", nom_sci AS "Nom scientifique", 
-                nb_donnees AS "Nb de données", ROUND(nb_donnees/total_count, 4)*100 as "Nb données / Nb données TOTAL (%)",
+                nb_donnees AS "Nb de données",
+                ROUND(nb_donnees::decimal/total_count, 4)*100 AS "Nb données / Nb données TOTAL (%)",
                 nb_observateurs AS "Nb d'observateurs", nb_dates AS "Nb de dates",
                 nb_mortalite AS "Nb de données de mortalité", sn2.statut_nidif AS "Statut nidif",
                 nb_individus_max AS "Nb d'individus max",
-                premiere_observation AS "Date première obs", derniere_observation AS "Date dernière obs",
+                premiere_observation AS "Année première obs", derniere_observation AS "Année dernière obs",
                 communes AS "Liste de communes", sources AS "Sources"
             FROM total_count, data d 
             LEFT JOIN referentiel.statut_nidif sn2 ON d.max_atlas_code = sn2.code_nidif

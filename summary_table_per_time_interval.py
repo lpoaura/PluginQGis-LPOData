@@ -53,21 +53,21 @@ from .common_functions import simplify_name, check_layer_is_valid, construct_sql
 pluginPath = os.path.dirname(__file__)
 
 
-class DateTimeWidget(WidgetWrapper):
-    """
-    QDateTimeEdit widget with calendar pop up
-    """
+# class DateTimeWidget(WidgetWrapper):
+#     """
+#     QDateTimeEdit widget with calendar pop up
+#     """
 
-    def createWidget(self):
-        self._combo = QDateEdit()
-        self._combo.setCalendarPopup(True)
-        today = QDate.currentDate()
-        self._combo.setDate(today)
-        return self._combo
+#     def createWidget(self):
+#         self._combo = QDateEdit()
+#         self._combo.setCalendarPopup(True)
+#         today = QDate.currentDate()
+#         self._combo.setDate(today)
+#         return self._combo
 
-    def value(self):
-        date_chosen = self._combo.dateTime()
-        return date_chosen.toString(Qt.ISODate)
+#     def value(self):
+#         date_chosen = self._combo.dateTime()
+#         return date_chosen.toString(Qt.ISODate)
 
 class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
     """
@@ -100,10 +100,10 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
     ADD_TABLE = 'ADD_TABLE'
 
     def name(self):
-        return 'SummaryTablePerYear'
+        return 'SummaryTablePerTime Interval'
 
     def displayName(self):
-        return 'Tableau de synthèse par année'
+        return 'Tableau de synthèse par intervalle de temps'
 
     def icon(self):
         return QIcon(os.path.join(pluginPath, 'icons', 'table.png'))
