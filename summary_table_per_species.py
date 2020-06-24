@@ -43,6 +43,7 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterEnum,
                        QgsProcessingOutputVectorLayer,
                        QgsProcessingParameterBoolean,
+                       QgsProcessingParameterDefinition,
                        QgsDataSourceUri,
                        QgsVectorLayer,
                        QgsProcessingException)
@@ -120,8 +121,8 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
         # Data base connection
         db_param = QgsProcessingParameterString(
             self.DATABASE,
-            self.tr("""<b>CONNEXION À LA BASE DE DONNÉES</b><br/>
-                <b>1/</b> Sélectionnez votre connexion à la base de données LPO AuRA (<i>gnlpoaura</i>)"""),
+            self.tr("""<b style="color:#0a84db">CONNEXION À LA BASE DE DONNÉES</b><br/>
+                <b>*1/</b> Sélectionnez votre <u>connexion</u> à la base de données LPO AuRA (<i>gnlpoaura</i>)"""),
             defaultValue='gnlpoaura'
         )
         db_param.setMetadata(
@@ -135,8 +136,8 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterFeatureSource(
                 self.STUDY_AREA,
-                self.tr("""<b>ZONE D'ÉTUDE</b><br/>
-                    <b>2/</b> Sélectionnez votre zone d'étude, à partir de laquelle seront extraites les résultats"""),
+                self.tr("""<b style="color:#0a84db">ZONE D'ÉTUDE</b><br/>
+                    <b>*2/</b> Sélectionnez votre <u>zone d'étude</u>, à partir de laquelle seront extraites les résultats"""),
                 [QgsProcessing.TypeVectorPolygon]
             )
         )
@@ -145,8 +146,9 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterEnum(
                 self.GROUPE_TAXO,
-                self.tr("""<b>FILTRES DE REQUÊTAGE</b><br/>
-                    <b>3/</b> Si nécessaire, sélectionnez un/plusieurs <u>taxon(s)</u> parmi les listes déroulantes (à choix multiples) proposées pour filtrer vos données d'observations<br/>
+                self.tr("""<b style="color:#0a84db">FILTRES DE REQUÊTAGE</b><br/>
+                    <b>3/</b> Si cela vous intéresse, vous pouvez sélectionner un/plusieurs <u>taxon(s)</u> dans la liste déroulante suivante (à choix multiples) pour filtrer vos données d'observations. <u>Sinon</u>, vous pouvez ignorer cette étape.<br/>
+                    <i style="color:#952132"><b>N.B.</b> : D'autres filtres taxonomiques sont disponibles dans les paramètres avancés (tout en bas).</i><br/>
                     - Groupes taxonomiques :"""),
                 self.db_variables.value("groupe_taxo"),
                 allowMultiple=True,
@@ -161,7 +163,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
             allowMultiple=True,
             optional=True
         )
-        #regne.setFlags(regne.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        regne.setFlags(regne.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(regne)
 
         phylum = QgsProcessingParameterEnum(
@@ -171,7 +173,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
             allowMultiple=True,
             optional=True
         )
-        #phylum.setFlags(phylum.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        phylum.setFlags(phylum.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(phylum)
 
         classe = QgsProcessingParameterEnum(
@@ -181,7 +183,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
             allowMultiple=True,
             optional=True
         )
-        #classe.setFlags(classe.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        classe.setFlags(classe.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(classe)
 
         ordre = QgsProcessingParameterEnum(
@@ -191,7 +193,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
             allowMultiple=True,
             optional=True
         )
-        #ordre.setFlags(ordre.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        ordre.setFlags(ordre.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(ordre)
 
         famille = QgsProcessingParameterEnum(
@@ -201,7 +203,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
             allowMultiple=True,
             optional=True
         )
-        #famille.setFlags(famille.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        famille.setFlags(famille.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(famille)
 
         group1_inpn = QgsProcessingParameterEnum(
@@ -211,7 +213,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
             allowMultiple=True,
             optional=True
         )
-        #group1_inpn.setFlags(group1_inpn.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        group1_inpn.setFlags(group1_inpn.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(group1_inpn)
 
         group2_inpn = QgsProcessingParameterEnum(
@@ -221,17 +223,16 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
             allowMultiple=True,
             optional=True
         )
-        #group2_inpn.setFlags(group2_inpn.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        group2_inpn.setFlags(group2_inpn.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(group2_inpn)
 
         ### Datetime filter ###
         period_type = QgsProcessingParameterEnum(
             self.PERIOD,
-            self.tr("<b>4/</b> Si nécessaire, sélectionnez une <u>période</u> pour filtrer vos données d'observations"),
+            self.tr("<b>*4/</b> Sélectionnez une <u>période</u> pour filtrer vos données d'observations"),
             self.period_variables,
             allowMultiple=False,
-            defaultValue="Pas de filtre temporel",
-            optional=True
+            optional=False
         )
         period_type.setMetadata(
             {
@@ -245,7 +246,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
 
         start_date = QgsProcessingParameterString(
             self.START_DATE,
-            '- Date de début :',
+            """- Date de début <i style="color:#952132">(nécessaire seulement si vous avez sélectionné l'option <b>Date de début - Date de fin</b>)</i> :""",
             defaultValue="",
             optional=True
         )
@@ -256,7 +257,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
 
         end_date = QgsProcessingParameterString(
             self.END_DATE,
-            '- Date de fin :',
+            """- Date de fin <i style="color:#952132">(nécessaire seulement si vous avez sélectionné l'option <b>Date de début - Date de fin</b>)</i> :""",
             optional=True
         )
         end_date.setMetadata(
@@ -265,14 +266,14 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
         self.addParameter(end_date)
 
         # Extra "where" conditions
-        self.addParameter(
-            QgsProcessingParameterString(
-                self.EXTRA_WHERE,
-                self.tr("""<b>5/</b> Si nécessaire, ajoutez des <u>conditions "where"</u> supplémentaires dans l'encadré suivant, en langage SQL (commencez par <i>and</i>)"""),
-                multiLine=True,
-                optional=True
-            )
+        extra_where = QgsProcessingParameterString(
+            self.EXTRA_WHERE,
+            self.tr("""Vous pouvez ajouter des <u>conditions "where"</u> supplémentaires dans l'encadré suivant, en langage SQL (commencez par <i>and</i>)"""),
+            multiLine=True,
+            optional=True
         )
+        extra_where.setFlags(extra_where.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        self.addParameter(extra_where)
 
         # Output PostGIS layer = summary table
         self.addOutput(
@@ -287,8 +288,8 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterString(
                 self.OUTPUT_NAME,
-                self.tr("""<b>PARAMÉTRAGE DES RESULTATS EN SORTIE</b><br/>
-                    <b>6/</b> Définissez un nom pour votre nouvelle couche"""),
+                self.tr("""<b style="color:#0a84db">PARAMÉTRAGE DES RESULTATS EN SORTIE</b><br/>
+                    <b>*5/</b> Définissez un <u>nom</u> pour votre nouvelle couche"""),
                 self.tr("Tableau synthèse espèces")
             )
         )

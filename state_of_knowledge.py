@@ -29,10 +29,7 @@ __revision__ = '$Format:%H$'
 import os
 from qgis.utils import iface
 from datetime import datetime
-
-# import plotly as plt
-# import plotly.graph_objs as go
-# import numpy as np
+import matplotlib.pyplot as plt
 
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtCore import Qt, QCoreApplication, QDate
@@ -47,6 +44,8 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterEnum,
                        QgsProcessingOutputVectorLayer,
                        QgsProcessingParameterBoolean,
+                       QgsProcessingParameterFileDestination,
+                       QgsProcessingParameterDefinition,
                        QgsDataSourceUri,
                        QgsVectorLayer,
                        QgsProcessingException)
@@ -97,6 +96,8 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
     OUTPUT = 'OUTPUT'
     OUTPUT_NAME = 'OUTPUT_NAME'
     ADD_TABLE = 'ADD_TABLE'
+    OUTPUT_HISTOGRAM = 'OUTPUT_HISTOGRAM'
+    HISTOGRAM_OPTIONS = 'HISTOGRAM_OPTIONS'
 
     def name(self):
         return 'StateOfKnowledge'
@@ -120,14 +121,15 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
         """
 
         self.db_variables = QgsSettings()
-        taxonomic_ranks_variables = ["Groupes taxonomiques", "Règnes", "Phylum", "Classes", "Ordres", "Familles", "Groupes 1 INPN", "Groupes 2 INPN"]
+        self.taxonomic_ranks_variables = ["Groupes taxonomiques", "Règnes", "Phylum", "Classes", "Ordres", "Familles", "Groupes 1 INPN", "Groupes 2 INPN"]
         self.period_variables = ["Pas de filtre temporel", "5 dernières années", "10 dernières années", "Date de début - Date de fin (à définir ci-dessous)"]
+        histogram_variables = ["Pas d'histogramme", "Histogramme du nombre de données", "Histogramme du nombre d'espèces", "Histogramme du nombre d'observateurs", "Histogramme du nombre de dates", "Histogramme du nombre de données de mortalité"]
 
         # Data base connection
         db_param = QgsProcessingParameterString(
             self.DATABASE,
-            self.tr("""<b>CONNEXION À LA BASE DE DONNÉES</b><br/>
-                <b>1/</b> Sélectionnez votre connexion à la base de données LPO AuRA (<i>gnlpoaura</i>)"""),
+            self.tr("""<b style="color:#0a84db">CONNEXION À LA BASE DE DONNÉES</b><br/>
+                <b>*1/</b> Sélectionnez votre <u>connexion</u> à la base de données LPO AuRA (<i>gnlpoaura</i>)"""),
             defaultValue='gnlpoaura'
         )
         db_param.setMetadata(
@@ -141,8 +143,8 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterFeatureSource(
                 self.STUDY_AREA,
-                self.tr("""<b>ZONE D'ÉTUDE</b><br/>
-                    <b>2/</b> Sélectionnez votre zone d'étude, à partir de laquelle seront extraites les résultats"""),
+                self.tr("""<b style="color:#0a84db">ZONE D'ÉTUDE</b><br/>
+                    <b>*2/</b> Sélectionnez votre <u>zone d'étude</u>, à partir de laquelle seront extraites les résultats"""),
                 [QgsProcessing.TypeVectorPolygon]
             )
         )
@@ -150,16 +152,16 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
         # Taxonomic rank
         taxonomic_rank = QgsProcessingParameterEnum(
             self.TAXONOMIC_RANK,
-            self.tr("""<b>RANG TAXONOMIQUE</b><br/>
-                <b>5/</b> Sélectionnez le rang taxonomique qui vous intéresse"""),
-            taxonomic_ranks_variables,
+            self.tr("""<b style="color:#0a84db">RANG TAXONOMIQUE</b><br/>
+                <b>*3/</b> Sélectionnez le <u>rang taxonomique</u> qui vous intéresse"""),
+            self.taxonomic_ranks_variables,
             allowMultiple=False
         )
         taxonomic_rank.setMetadata(
             {
                 'widget_wrapper': {
                     'useCheckBoxes': True,
-                    'columns': len(taxonomic_ranks_variables)
+                    'columns': len(self.taxonomic_ranks_variables)
                 }
             }
         )
@@ -169,8 +171,9 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterEnum(
                 self.GROUPE_TAXO,
-                self.tr("""<b>FILTRES DE REQUÊTAGE</b><br/>
-                    <b>3/</b> Si nécessaire, sélectionnez un/plusieurs <u>taxon(s)</u> parmi les listes déroulantes (à choix multiples) proposées pour filtrer vos données d'observations<br/>
+                self.tr("""<b style="color:#0a84db">FILTRES DE REQUÊTAGE</b><br/>
+                    <b>4/</b> Si cela vous intéresse, vous pouvez sélectionner un/plusieurs <u>taxon(s)</u> dans la liste déroulante suivante (à choix multiples) pour filtrer vos données d'observations. <u>Sinon</u>, vous pouvez ignorer cette étape.<br/>
+                    <i style="color:#952132"><b>N.B.</b> : D'autres filtres taxonomiques sont disponibles dans les paramètres avancés (plus bas, juste avant l'enregistrement des résultats).</i><br/>
                     - Groupes taxonomiques :"""),
                 self.db_variables.value("groupe_taxo"),
                 allowMultiple=True,
@@ -185,7 +188,7 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
             allowMultiple=True,
             optional=True
         )
-        #regne.setFlags(regne.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        regne.setFlags(regne.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(regne)
 
         phylum = QgsProcessingParameterEnum(
@@ -195,7 +198,7 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
             allowMultiple=True,
             optional=True
         )
-        #phylum.setFlags(phylum.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        phylum.setFlags(phylum.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(phylum)
 
         classe = QgsProcessingParameterEnum(
@@ -205,7 +208,7 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
             allowMultiple=True,
             optional=True
         )
-        #classe.setFlags(classe.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        classe.setFlags(classe.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(classe)
 
         ordre = QgsProcessingParameterEnum(
@@ -215,7 +218,7 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
             allowMultiple=True,
             optional=True
         )
-        #ordre.setFlags(ordre.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        ordre.setFlags(ordre.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(ordre)
 
         famille = QgsProcessingParameterEnum(
@@ -225,7 +228,7 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
             allowMultiple=True,
             optional=True
         )
-        #famille.setFlags(famille.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        famille.setFlags(famille.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(famille)
 
         group1_inpn = QgsProcessingParameterEnum(
@@ -235,7 +238,7 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
             allowMultiple=True,
             optional=True
         )
-        #group1_inpn.setFlags(group1_inpn.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        group1_inpn.setFlags(group1_inpn.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(group1_inpn)
 
         group2_inpn = QgsProcessingParameterEnum(
@@ -245,17 +248,16 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
             allowMultiple=True,
             optional=True
         )
-        #group2_inpn.setFlags(group2_inpn.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        group2_inpn.setFlags(group2_inpn.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(group2_inpn)
 
         ### Datetime filter ###
         period = QgsProcessingParameterEnum(
             self.PERIOD,
-            self.tr("<b>4/</b> Si nécessaire, sélectionnez une <u>période</u> pour filtrer vos données d'observations"),
+            self.tr("<b>*5/</b> Sélectionnez une <u>période</u> pour filtrer vos données d'observations"),
             self.period_variables,
             allowMultiple=False,
-            defaultValue="Pas de filtre temporel",
-            optional=True
+            optional=False
         )
         period.setMetadata(
             {
@@ -269,7 +271,7 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
 
         start_date = QgsProcessingParameterString(
             self.START_DATE,
-            '- Date de début :',
+            """- Date de début <i style="color:#952132">(nécessaire seulement si vous avez sélectionné l'option <b>Date de début - Date de fin</b>)</i> :""",
             defaultValue="",
             optional=True
         )
@@ -280,7 +282,7 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
 
         end_date = QgsProcessingParameterString(
             self.END_DATE,
-            '- Date de fin :',
+            """- Date de fin <i style="color:#952132">(nécessaire seulement si vous avez sélectionné l'option <b>Date de début - Date de fin</b>)</i> :""",
             optional=True
         )
         end_date.setMetadata(
@@ -289,14 +291,14 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
         self.addParameter(end_date)
 
         # Extra "where" conditions
-        self.addParameter(
-            QgsProcessingParameterString(
-                self.EXTRA_WHERE,
-                self.tr("""<b>5/</b> Si nécessaire, ajoutez des <u>conditions "where"</u> supplémentaires dans l'encadré suivant, en langage SQL (commencez par <i>and</i>)"""),
-                multiLine=True,
-                optional=True
-            )
+        extra_where = QgsProcessingParameterString(
+            self.EXTRA_WHERE,
+            self.tr("""Vous pouvez ajouter des <u>conditions "where"</u> supplémentaires dans l'encadré suivant, en langage SQL (commencez par <i>and</i>)"""),
+            multiLine=True,
+            optional=True
         )
+        extra_where.setFlags(extra_where.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        self.addParameter(extra_where)
 
         # Output PostGIS layer = summary table
         self.addOutput(
@@ -311,8 +313,8 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterString(
                 self.OUTPUT_NAME,
-                self.tr("""<b>PARAMÉTRAGE DES RESULTATS EN SORTIE</b><br/>
-                    <b>6/</b> Définissez un nom pour votre nouvelle couche"""),
+                self.tr("""<b style="color:#0a84db">PARAMÉTRAGE DES RESULTATS EN SORTIE</b><br/>
+                    <b>*6/</b> Définissez un <u>nom</u> pour votre nouvelle couche"""),
                 self.tr("Etat des connaissances")
             )
         )
@@ -322,9 +324,38 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
             QgsProcessingParameterBoolean(
                 self.ADD_TABLE,
                 self.tr("Enregistrer les données en sortie dans une nouvelle table PostgreSQL"),
-                False
+                defaultValue=False
             )
         )
+
+        ### Histogram ###
+        self.addParameter(
+            QgsProcessingParameterFileDestination(
+                self.OUTPUT_HISTOGRAM,
+                self.tr("""<b style="color:#0a84db">ENREGISTREMENT DES RESULTATS</b><br/>
+                <b>8/</b> <u>Si (et seulement si !)</u> vous avez sélectionné un type d'<u>histogramme</u>, veuillez renseigner un emplacement pour l'enregistrer sur votre ordinateur (au format image). <u>Dans le cas contraire</u>, vous pouvez ignorer cette étape.<br/>
+                <font style='color:#06497a'><u>Aide</u> : Cliquez sur le bouton [...] puis sur 'Enregistrer vers un fichier...'</font>"""),
+                self.tr('image PNG (*.png)'),
+                optional=True,
+                createByDefault=False
+            )
+        )
+
+        histogram_options = QgsProcessingParameterEnum(
+            self.HISTOGRAM_OPTIONS,
+            self.tr("<b>7/</b> Si cela vous intéresse, vous pouvez <u>exporter</u> les résultats sous forme d'<u>histogramme</u>. Dans ce cas, sélectionnez le type d'histogramme qui vous convient. <u>Sinon</u>, vous pouvez ignorer cette étape."),
+            histogram_variables,
+            defaultValue="Pas d'histogramme"
+        )
+        histogram_options.setMetadata(
+            {
+                'widget_wrapper': {
+                    'useCheckBoxes': True,
+                    'columns': len(histogram_variables)/2
+                }
+            }
+        )
+        self.addParameter(histogram_options)
 
     def processAlgorithm(self, parameters, context, feedback):
         """
@@ -340,10 +371,9 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
         format_name = "{} {}".format(layer_name, str(ts.strftime('%Y%m%d_%H%M%S')))
         # Retrieve the taxonomic rank
         taxonomic_ranks_labels = ["Groupe taxo", "Règne", "Phylum", "Classe", "Ordre", "Famille", "Groupe 1 INPN", "Groupe 2 INPN"]
-        taxonomic_ranks_db = ["groupe_taxo", "regne", "phylum", "classe", "ordre", "famille", "obs.group1_inpn", "group2_inpn"]
+        taxonomic_ranks_db = ["groupe_taxo", "regne", "phylum", "classe", "ordre", "famille", "obs.group1_inpn", "obs.group2_inpn"]
         taxonomic_rank_label = taxonomic_ranks_labels[self.parameterAsEnum(parameters, self.TAXONOMIC_RANK, context)]
         taxonomic_rank_db = taxonomic_ranks_db[self.parameterAsEnum(parameters, self.TAXONOMIC_RANK, context)]
-        feedback.pushInfo("Rang taxo : {}".format(taxonomic_rank_label))
         # Retrieve the taxons filters
         groupe_taxo = [self.db_variables.value('groupe_taxo')[i] for i in (self.parameterAsEnums(parameters, self.GROUPE_TAXO, context))]
         regne = [self.db_variables.value('regne')[i] for i in (self.parameterAsEnums(parameters, self.REGNE, context))]
@@ -357,6 +387,13 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
         period = self.period_variables[self.parameterAsEnum(parameters, self.PERIOD, context)]
         # Retrieve the extra "where" conditions
         extra_where = self.parameterAsString(parameters, self.EXTRA_WHERE, context)
+        # Retrieve the histogram parameter
+        histogram_variables = ["Pas d'histogramme", "Nb de données", "Nb d'espèces", "Nb d'observateurs", "Nb de dates", "Nb de données de mortalité"]
+        histogram_option = histogram_variables[self.parameterAsEnum(parameters, self.HISTOGRAM_OPTIONS, context)]
+        if histogram_option != "Pas d'histogramme":
+            output_histogram = self.parameterAsFileOutput(parameters, self.OUTPUT_HISTOGRAM, context)
+            if output_histogram == "":
+                raise QgsProcessingException("Veuillez renseigner un emplacement pour enregistrer votre histogramme !")
 
         ### CONSTRUCT "WHERE" CLAUSE (SQL) ###
         # Construct the sql array containing the study area's features geometry
@@ -381,8 +418,6 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
         where += datetime_where
         # Complete the "where" clause with the extra conditions
         where += " " + extra_where
-        
-        feedback.pushInfo(where)
 
         ### EXECUTE THE SQL QUERY ###
         # Retrieve the data base connection name
@@ -396,7 +431,7 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
             LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom=t.cd_nom
             WHERE {})
             SELECT row_number() OVER () AS id, {} AS "{}", {}
-                COUNT(*) AS "Nb de données", total_count,
+                COUNT(*) AS "Nb de données",
                 ROUND(COUNT(*)::decimal/total_count, 4)*100 AS "Nb données / Nb données TOTAL (%)",
                 COUNT(DISTINCT t.cd_ref) AS "Nb d'espèces",
                 COUNT(DISTINCT observateur) AS "Nb d'observateurs", 
@@ -444,30 +479,21 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
         iface.setActiveLayer(layer_summary)
         iface.showAttributeTable(layer_summary)
 
-        # x_var = [feature['groupe_taxo'] for feature in layer_summary.getFeatures()]
-        # y_var = [int(feature['nb_donnees']) for feature in layer_summary.getFeatures()]
-        # data = [go.Bar(x=x_var, y=y_var)]
-        # plt.offline.plot(data, filename="/home/eguilley/Téléchargements/histogram-test.html", auto_open=True)
-        # fig = go.Figure(data=data)
-        # fig.show()
-        # fig.write_image("/home/eguilley/Téléchargements/histogram-test.png")
-
-        # plt.rcdefaults()
-        # libel = [feature['groupe_taxo'] for feature in layer_summary.getFeatures()]
-        # feedback.pushInfo('Libellés : {}'.format(libel))
-        # #X = np.arange(len(libel))
-        # #feedback.pushInfo('Valeurs en X : {}'.format(X))
-        # Y = [int(feature['nb_observations']) for feature in layer_summary.getFeatures()]
-        # feedback.pushInfo('Valeurs en Y : {}'.format(Y))
-        # fig = plt.figure()
-        # ax = fig.add_axes([0, 0, 1, 1])
-        # # fig, ax = plt.subplots()
-        # ax.bar(libel, Y)
-        # # ax.set_xticks(X)
-        # ax.set_xticklabels(libel)
-        # ax.set_ylabel(u'Nombre d\'observations')
-        # ax.set_title(u'Etat des connaissances par groupes d\'espèces')
-        # plt.show()
+        ### CONSTRUCT THE HISTOGRAM ###
+        if histogram_option != "Pas d'histogramme":
+            plt.close()
+            x_var = [feature[taxonomic_rank_label] for feature in layer_summary.getFeatures()]
+            y_var = [int(feature[histogram_option]) for feature in layer_summary.getFeatures()]
+            plt.bar(x_var, y_var)
+            plt.xticks(rotation='vertical')
+            plt.subplots_adjust(bottom=0.4)
+            plt.xlabel(self.taxonomic_ranks_variables[self.parameterAsEnum(parameters, self.TAXONOMIC_RANK, context)])
+            plt.ylabel(histogram_option.replace("Nb", "Nombre"))
+            plt.title('{} par {}'.format(histogram_option.replace("Nb", "Nombre"), taxonomic_rank_label.lower().replace("taxo", "taxonomique")))
+            if output_histogram[-4:] != ".png":
+                output_histogram += ".png"
+            plt.savefig(output_histogram)
+            #plt.show()
         
         return {self.OUTPUT: layer_summary.id()}
 

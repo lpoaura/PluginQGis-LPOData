@@ -132,16 +132,16 @@ def construct_sql_datetime_filter(self, period_type_filter, timestamp, parameter
             datetime_where += " and (date >= '{}'::date and date <= '{}'::date)".format(start_date, end_date)
     return datetime_where
 
-def construct_sql_select_data_per_time_interval(self, time_interval_param, start_year_param, end_year_param, aggregation_type_param, parameters, context):
+def construct_sql_select_data_per_time_interval(self, time_interval_param, start_year_param, end_year_param, aggregation_type_param, parameters, context, feedback):
     """
     Construct the sql "select" data according to a time interval and a period.
     """
     select_data = ""
     if time_interval_param == 'Par année':
-        add_five_years = self.parameterAsBool(parameters, self.ADD_FIVE_YEARS, context)
-        if add_five_years:
+        add_five_years = self.parameterAsEnums(parameters, self.ADD_FIVE_YEARS, context)
+        if len(add_five_years)>0 :
             if (end_year_param-start_year_param+1)%5 != 0:
-                raise QgsProcessingException("Veuillez renseigner une période en année qui soit divisible par 5 ! Ex : 2011 - 2020.")
+                raise QgsProcessingException("Veuillez renseigner une période en année qui soit divisible par 5 ! Exemple : 2011 - 2020.")
             else:
                 counter = start_year_param
                 step_limit = start_year_param
