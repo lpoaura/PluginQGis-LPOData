@@ -48,7 +48,7 @@ from qgis.core import (QgsProcessing,
                        QgsVectorLayer,
                        QgsProcessingException)
 from processing.tools import postgis
-from .common_functions import simplify_name, check_layer_is_valid, construct_sql_array_polygons, construct_sql_taxons_filter, construct_sql_datetime_filter, load_layer, execute_sql_queries
+from .common_functions import simplify_name, check_layer_is_valid, construct_sql_array_polygons, construct_queries_list, construct_sql_taxons_filter, construct_sql_datetime_filter, load_layer, execute_sql_queries
 
 pluginPath = os.path.dirname(__file__)
 
@@ -104,10 +104,29 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
         return QIcon(os.path.join(pluginPath, 'icons', 'table.png'))
 
     def groupId(self):
-        return 'test'
+        return 'summary_tables'
 
     def group(self):
-        return 'Test'
+        return 'Tableaux de synthèse'
+
+    def shortDescription(self):
+        return self.tr("""Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données <i>gnlpoaura</i>,  d'obtenir un <b>tableau de synthèse</b> concernant une <b>zone d'étude présente dans votre projet QGis</b> (couche de type polygones).<br/><br/>
+            <b>Pour chaque espèce</b> observée dans la zone d'étude considérée, le tableau fournit les informations suivantes :
+            <ul><li>Identifiant unique</li>
+            <li>Identifiant de l'espèce dans la base de données</li>
+            <li>Nom scientifique de l'espèce</li>
+            <li>Nom français de l'espèce</li>
+            <li>Groupe taxonomique auquel elle appartient</li>
+            <li>Nombre de données</li>
+            <li>Nombre d'observateurs</li>
+            <li>Nombre de dates</li>
+            <li>Nombre de données de mortalité</li>
+            <li>Statut nicheur (pour les oiseaux)</li>
+            <li>Nombre d'individus maximum recensé pour une observation</li>
+            <li>Année de la première observation</li>
+            <li>Année de la dernière observation</li>
+            <li>Liste des sources VisioNature</li></ul><br/>
+            <u>IMPORTANT</u> : Les <b>étapes indispensables</b> sont marquées d'une <b>étoile *</b> avant leur numéro.""")
 
     def initAlgorithm(self, config=None):
         """
@@ -137,7 +156,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
             QgsProcessingParameterFeatureSource(
                 self.STUDY_AREA,
                 self.tr("""<b style="color:#0a84db">ZONE D'ÉTUDE</b><br/>
-                    <b>*2/</b> Sélectionnez votre <u>zone d'étude</u>, à partir de laquelle seront extraites les résultats"""),
+                    <b>*2/</b> Sélectionnez votre <u>zone d'étude</u>, à partir de laquelle seront extraits les résultats"""),
                 [QgsProcessing.TypeVectorPolygon]
             )
         )
@@ -147,7 +166,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
             QgsProcessingParameterEnum(
                 self.GROUPE_TAXO,
                 self.tr("""<b style="color:#0a84db">FILTRES DE REQUÊTAGE</b><br/>
-                    <b>3/</b> Si cela vous intéresse, vous pouvez sélectionner un/plusieurs <u>taxon(s)</u> dans la liste déroulante suivante (à choix multiples) pour filtrer vos données d'observations. <u>Sinon</u>, vous pouvez ignorer cette étape.<br/>
+                    <b>3/</b> Si cela vous intéresse, vous pouvez sélectionner un/plusieurs <u>taxon(s)</u> dans la liste déroulante suivante (à choix multiples)<br/> pour filtrer vos données d'observations. <u>Sinon</u>, vous pouvez ignorer cette étape.<br/>
                     <i style="color:#952132"><b>N.B.</b> : D'autres filtres taxonomiques sont disponibles dans les paramètres avancés (tout en bas).</i><br/>
                     - Groupes taxonomiques :"""),
                 self.db_variables.value("groupe_taxo"),
@@ -238,7 +257,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
             {
                 'widget_wrapper': {
                     'useCheckBoxes': True,
-                    'columns': len(self.period_variables)
+                    'columns': len(self.period_variables)/2
                 }
             }
         )
@@ -352,8 +371,6 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
         where += datetime_where
         # Complete the "where" clause with the extra conditions
         where += " " + extra_where
-        
-        feedback.pushInfo(where)
 
         ### EXECUTE THE SQL QUERY ###
         # Retrieve the data base connection name
@@ -373,8 +390,9 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                 COUNT(DISTINCT observateur) AS nb_observateurs,
                 COUNT(DISTINCT date) AS nb_dates,
                 SUM(CASE WHEN mortalite THEN 1 ELSE 0 END) AS nb_mortalite,
+                lr_france, lrra, lrauv, dir_hab, dir_ois, protection_nat,
                 max(sn.code_nidif) AS max_atlas_code, max(nombre_total) AS nb_individus_max,
-                min (date_an) AS premiere_observation, max(date_an) AS derniere_observation,
+                min(date_an) AS premiere_observation, max(date_an) AS derniere_observation,
                 string_agg(DISTINCT la.area_name,', ') AS communes,
                 string_agg(DISTINCT obs.source,', ') AS sources
             FROM src_lpodatas.observations obs
@@ -383,34 +401,36 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
             LEFT JOIN taxonomie.bib_taxref_rangs r ON t.id_rang = r.id_rang
             LEFT JOIN ref_geo.l_areas la ON public.ST_INTERSECTS(obs.geom, la.geom)
             LEFT JOIN ref_geo.bib_areas_types bib ON la.id_type=bib.id_type
+            LEFT JOIN taxonomie.vm_statut_lr lr on obs.taxref_cdnom=lr.cd_nom 
+            LEFT JOIN taxonomie.vm_statut_protection p on obs.taxref_cdnom=p.cd_nom 
             WHERE bib.type_name='Communes' and {}
-            GROUP BY source_id_sp, taxref_cdnom, cd_ref, nom_rang, nom_sci, obs.nom_vern, groupe_taxo),
+            GROUP BY source_id_sp, taxref_cdnom, cd_ref, nom_rang, nom_sci, obs.nom_vern, groupe_taxo, lr_france, lrra, lrauv, dir_hab, dir_ois, protection_nat),
             synthese AS
             (SELECT DISTINCT source_id_sp, cd_nom, cd_ref, nom_rang AS "Rang", groupe_taxo AS "Groupe taxo",
                 nom_vern AS "Nom vernaculaire", nom_sci AS "Nom scientifique", 
                 nb_donnees AS "Nb de données",
                 ROUND(nb_donnees::decimal/total_count, 4)*100 AS "Nb données / Nb données TOTAL (%)",
                 nb_observateurs AS "Nb d'observateurs", nb_dates AS "Nb de dates",
-                nb_mortalite AS "Nb de données de mortalité", sn2.statut_nidif AS "Statut nidif",
+                nb_mortalite AS "Nb de données de mortalité",
+                lr_france AS "LR France", lrra AS "LR Rhône-Alpes", lrauv AS "LR Auvergne",
+                dir_hab AS "Directive Habitats", dir_ois AS "Directive Oiseaux", protection_nat AS "Protection nationale",
+                sn2.statut_nidif AS "Statut nidif",
                 nb_individus_max AS "Nb d'individus max",
                 premiere_observation AS "Année première obs", derniere_observation AS "Année dernière obs",
                 communes AS "Liste de communes", sources AS "Sources"
             FROM total_count, data d 
             LEFT JOIN referentiel.statut_nidif sn2 ON d.max_atlas_code = sn2.code_nidif
-            ORDER BY groupe_taxo, source_id_sp)
+            ORDER BY groupe_taxo, nom_vern)
             SELECT row_number() OVER () AS id, *
             FROM synthese""".format(where, where)
+        feedback.pushInfo(query)
         # Retrieve the boolean add_table
         add_table = self.parameterAsBool(parameters, self.ADD_TABLE, context)
         if add_table:
             # Define the name of the PostGIS summary table which will be created in the DB
             table_name = simplify_name(format_name)
             # Define the SQL queries
-            queries = [
-                "DROP TABLE if exists {}".format(table_name),
-                "CREATE TABLE {} AS ({})".format(table_name, query),
-                "ALTER TABLE {} add primary key (id)".format(table_name)
-            ]
+            queries = construct_queries_list(table_name, query)
             # Execute the SQL queries
             execute_sql_queries(context, feedback, connection, queries)
             # Format the URI

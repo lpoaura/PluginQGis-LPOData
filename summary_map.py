@@ -49,7 +49,7 @@ from qgis.core import (QgsProcessing,
                        QgsVectorLayer,
                        QgsProcessingException)
 from processing.tools import postgis
-from .common_functions import simplify_name, check_layer_is_valid, construct_sql_array_polygons, construct_sql_taxons_filter, construct_sql_datetime_filter, load_layer, execute_sql_queries, format_layer_export
+from .common_functions import simplify_name, check_layer_is_valid, construct_sql_array_polygons, construct_queries_list, construct_sql_taxons_filter, construct_sql_datetime_filter, load_layer, execute_sql_queries, format_layer_export
 
 pluginPath = os.path.dirname(__file__)
 
@@ -106,10 +106,13 @@ class SummaryMap(QgsProcessingAlgorithm):
         return QIcon(os.path.join(pluginPath, 'icons', 'map.png'))
 
     def groupId(self):
-        return 'test'
+        return 'maps'
 
     def group(self):
-        return 'Test'
+        return 'Cartes'
+
+    def shortDescription(self):
+        return self.tr('Description à faire')
 
     def initAlgorithm(self, config=None):
         """
@@ -118,6 +121,7 @@ class SummaryMap(QgsProcessingAlgorithm):
         """
 
         self.db_variables = QgsSettings()
+        self.areas_variables = ["Mailles0.5*0.5", "Mailles1*1", "Mailles5*5", "Mailles10*10", "Communes"]
         self.period_variables = ["Pas de filtre temporel", "5 dernières années", "10 dernières années", "Date de début - Date de fin (à définir ci-dessous)"]
 
         # Data base connection
@@ -139,7 +143,7 @@ class SummaryMap(QgsProcessingAlgorithm):
             QgsProcessingParameterFeatureSource(
                 self.STUDY_AREA,
                 self.tr("""<b style="color:#0a84db">ZONE D'ÉTUDE</b><br/>
-                    <b>*2/</b> Sélectionnez votre <u>zone d'étude</u>, à partir de laquelle seront extraites les résultats"""),
+                    <b>*2/</b> Sélectionnez votre <u>zone d'étude</u>, à partir de laquelle seront extraits les résultats"""),
                 [QgsProcessing.TypeVectorPolygon]
             )
         )
@@ -149,8 +153,8 @@ class SummaryMap(QgsProcessingAlgorithm):
             QgsProcessingParameterEnum(
                 self.AREAS_TYPE,
                 self.tr("""<b style="color:#0a84db">TYPE D'ENTITÉS GÉOGRAPHIQUES</b><br/>
-                    <b>*3/</b> Sélectionnez le type d'entités géographiques qui vous intéresse"""),
-                self.db_variables.value("areas_types"),
+                    <b>*3/</b> Sélectionnez le <u>type d'entités géographiques</u> qui vous intéresse"""),
+                self.areas_variables,
                 allowMultiple=False
             )
         )
@@ -160,7 +164,7 @@ class SummaryMap(QgsProcessingAlgorithm):
             QgsProcessingParameterEnum(
                 self.GROUPE_TAXO,
                 self.tr("""<b style="color:#0a84db">FILTRES DE REQUÊTAGE</b><br/>
-                    <b>4/</b> Si cela vous intéresse, vous pouvez sélectionner un/plusieurs <u>taxon(s)</u> dans la liste déroulante suivante (à choix multiples) pour filtrer vos données d'observations. <u>Sinon</u>, vous pouvez ignorer cette étape.<br/>
+                    <b>4/</b> Si cela vous intéresse, vous pouvez sélectionner un/plusieurs <u>taxon(s)</u> dans la liste déroulante suivante (à choix multiples)<br/> pour filtrer vos données d'observations. <u>Sinon</u>, vous pouvez ignorer cette étape.<br/>
                     <i style="color:#952132"><b>N.B.</b> : D'autres filtres taxonomiques sont disponibles dans les paramètres avancés (plus bas, juste avant l'enregistrement des résultats).</i><br/>
                     - Groupes taxonomiques :"""),
                 self.db_variables.value("groupe_taxo"),
@@ -251,7 +255,7 @@ class SummaryMap(QgsProcessingAlgorithm):
             {
                 'widget_wrapper': {
                     'useCheckBoxes': True,
-                    'columns': len(self.period_variables)
+                    'columns': len(self.period_variables)/2
                 }
             }
         )
@@ -333,7 +337,7 @@ class SummaryMap(QgsProcessingAlgorithm):
         ts = datetime.now()
         format_name = "{} {}".format(layer_name, str(ts.strftime('%Y%m%d_%H%M%S')))
         # Retrieve the areas type
-        areas_type = self.db_variables.value("areas_types")[self.parameterAsEnum(parameters, self.AREAS_TYPE, context)]
+        areas_type = self.areas_variables[self.parameterAsEnum(parameters, self.AREAS_TYPE, context)]
         # Retrieve the taxons filters
         groupe_taxo = [self.db_variables.value('groupe_taxo')[i] for i in (self.parameterAsEnums(parameters, self.GROUPE_TAXO, context))]
         regne = [self.db_variables.value('regne')[i] for i in (self.parameterAsEnums(parameters, self.REGNE, context))]
@@ -382,18 +386,21 @@ class SummaryMap(QgsProcessingAlgorithm):
         # URI --> Configures connection to database and the SQL query
         uri = postgis.uri_from_name(connection)
         # Define the SQL query
-        query = """SELECT id_area, area_name AS "Nom", area_code AS "Code", la.geom,
+        query = """SELECT row_number() OVER () AS id, area_name AS "Nom", area_code AS "Code", la.geom,
                 ROUND(ST_area(la.geom)::decimal/1000000, 2) AS "Surface (km2)",
                 COUNT(*) filter (where {}) AS "Nb de données",
                 ROUND(COUNT(*)/ROUND(ST_area(la.geom)::decimal/1000000, 2), 2) AS "Densité (Nb de données/km2)",
                 COUNT(DISTINCT t.cd_ref) filter (where {}) AS "Nb d'espèces",
-                COUNT(DISTINCT date) filter (where {}) AS "Nb de dates"
+                COUNT(DISTINCT observateur) AS "Nb d'observateurs",
+                COUNT(DISTINCT date) filter (where {}) AS "Nb de dates",
+                SUM(CASE WHEN mortalite THEN 1 ELSE 0 END) AS "Nb de données de mortalité",
+                string_agg(DISTINCT obs.nom_vern,', ') AS "Liste des espèces observées"
             FROM src_lpodatas.observations obs
             LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
             RIGHT JOIN ref_geo.l_areas la ON public.ST_INTERSECTS(obs.geom, la.geom)
             LEFT JOIN ref_geo.bib_areas_types bib ON la.id_type=bib.id_type
             WHERE type_name='{}' and {}
-            GROUP BY id_area, area_name, area_code, la.geom
+            GROUP BY area_name, area_code, la.geom
             ORDER BY area_code""".format(where_filter, where_filter, where_filter, areas_type, where)
         feedback.pushInfo(query)
         # Retrieve the boolean add_table
@@ -402,24 +409,25 @@ class SummaryMap(QgsProcessingAlgorithm):
             # Define the name of the PostGIS summary table which will be created in the DB
             table_name = simplify_name(format_name)
             # Define the SQL queries
-            queries = [
-                "DROP TABLE if exists {}".format(table_name),
-                "CREATE TABLE {} AS ({})".format(table_name, query),
-                "ALTER TABLE {} add primary key (id_area)".format(table_name)
-            ]
+            queries = construct_queries_list(table_name, query)
             # Execute the SQL queries
             execute_sql_queries(context, feedback, connection, queries)
             # Format the URI
-            uri.setDataSource(None, table_name, "geom", "", "id_area")
+            uri.setDataSource(None, table_name, "geom", "", "id")
         else:
             # Format the URI with the query
-            uri.setDataSource("", "("+query+")", "geom", "", "id_area")
+            uri.setDataSource("", "("+query+")", "geom", "", "id")
 
         ### GET THE OUTPUT LAYER ###
         # Retrieve the output PostGIS layer = map data
         layer_map = QgsVectorLayer(uri.uri(), format_name, "postgres")
         # Check if the PostGIS layer is valid
         check_layer_is_valid(feedback, layer_map)
+        # Load the PostGIS layer
+        load_layer(context, layer_map)
+        # Open the attribute table of the PostGIS layer
+        iface.setActiveLayer(layer_map)
+        iface.showAttributeTable(layer_map)
         
         ### MANAGE EXPORT ###
         # Create new valid fields for the sink
@@ -427,8 +435,7 @@ class SummaryMap(QgsProcessingAlgorithm):
         # Retrieve the sink for the export
         (sink, dest_id) = self.parameterAsSink(parameters, self.OUTPUT, context, new_fields, layer_map.wkbType(), layer_map.sourceCrs())
         if sink is None:
-            # Load the PostGIS layer and return it
-            load_layer(context, layer_map)
+            # Return the PostGIS layer
             return {self.OUTPUT: layer_map.id()}
         else:
             # Fill the sink and return it

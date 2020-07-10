@@ -104,10 +104,14 @@ class ExtractData(QgsProcessingAlgorithm):
         return QIcon(os.path.join(pluginPath, 'icons', 'extract_data.png'))
 
     def groupId(self):
-        return 'test'
+        return 'raw_data'
 
     def group(self):
-        return 'Test'
+        return 'Données brutes'
+
+    def shortDescription(self):
+        return self.tr("""Cet algorithme vous permet d'<b>extraire des données d'observation</b> contenues dans la base de données <i>gnlpoaura</i> (couche de type points) à partir d'une <b>zone d'étude présente dans votre projet QGis</b> (couche de type polygones).<br/><br/>
+            <u>IMPORTANT</u> : Les <b>étapes indispensables</b> sont marquées d'une <b>étoile *</b> avant leur numéro.""")
 
     def initAlgorithm(self, config=None):
         """
@@ -176,7 +180,7 @@ class ExtractData(QgsProcessingAlgorithm):
             QgsProcessingParameterEnum(
                 self.GROUPE_TAXO,
                 self.tr("""<b style="color:#0a84db">FILTRES DE REQUÊTAGE</b><br/>
-                    <b>3/</b> Si cela vous intéresse, vous pouvez sélectionner un/plusieurs <u>taxon(s)</u> dans la liste déroulante suivante (à choix multiples) pour filtrer vos données d'observations. <u>Sinon</u>, vous pouvez ignorer cette étape.<br/>
+                    <b>3/</b> Si cela vous intéresse, vous pouvez sélectionner un/plusieurs <u>taxon(s)</u> dans la liste déroulante suivante (à choix multiples)<br/> pour filtrer vos données d'observations. <u>Sinon</u>, vous pouvez ignorer cette étape.<br/>
                     <i style="color:#952132"><b>N.B.</b> : D'autres filtres taxonomiques sont disponibles dans les paramètres avancés (plus bas, juste avant l'enregistrement des résultats).</i><br/>
                     - Groupes taxonomiques :"""),
                 self.db_variables.value("groupe_taxo"),
@@ -267,7 +271,7 @@ class ExtractData(QgsProcessingAlgorithm):
             {
                 'widget_wrapper': {
                     'useCheckBoxes': True,
-                    'columns': len(self.period_variables)
+                    'columns': len(self.period_variables)/2
                 }
             }
         )
@@ -397,6 +401,8 @@ class ExtractData(QgsProcessingAlgorithm):
         layer_obs = QgsVectorLayer(uri.uri(), format_name, "postgres")
         # Check if the PostGIS layer is valid
         check_layer_is_valid(feedback, layer_obs)
+        # Load the PostGIS layer
+        load_layer(context, layer_obs)
 
         ### MANAGE EXPORT ###
         # Create new valid fields for the sink
@@ -404,8 +410,7 @@ class ExtractData(QgsProcessingAlgorithm):
         # Retrieve the sink for the export
         (sink, dest_id) = self.parameterAsSink(parameters, self.OUTPUT, context, new_fields, layer_obs.wkbType(), layer_obs.sourceCrs())
         if sink is None:
-            # Load the PostGIS layer and return it
-            load_layer(context, layer_obs)
+            # Return the PostGIS layer
             return {self.OUTPUT: layer_obs.id()}
         else:
             # Fill the sink and return it

@@ -50,7 +50,7 @@ from qgis.core import (QgsProcessing,
                        QgsVectorLayer,
                        QgsProcessingException)
 from processing.tools import postgis
-from .common_functions import simplify_name, check_layer_is_valid, construct_sql_array_polygons, construct_sql_taxons_filter, construct_sql_datetime_filter, load_layer, execute_sql_queries
+from .common_functions import simplify_name, check_layer_is_valid, construct_sql_array_polygons, construct_queries_list, construct_sql_taxons_filter, construct_sql_datetime_filter, load_layer, execute_sql_queries
 
 pluginPath = os.path.dirname(__file__)
 
@@ -103,16 +103,25 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
         return 'StateOfKnowledge'
 
     def displayName(self):
-        return 'Etat des connaissances par groupe taxonomique'
+        return 'État des connaissances'
 
     def icon(self):
         return QIcon(os.path.join(pluginPath, 'icons', 'table.png'))
 
     def groupId(self):
-        return 'test'
+        return 'summary_tables'
 
     def group(self):
-        return 'Test'
+        return 'Tableaux de synthèse'
+
+    def shortDescription(self):
+        return self.tr("""Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données <i>gnlpoaura</i>,  d'obtenir un <b>état des connaissances par groupe taxonomique</b> concernant une <b>zone d'étude présente dans votre projet QGis</b> (couche de type polygones).<br/><br/>
+            Cet état des connaissances correspond en fait à un <b>tableau</b>, qui, pour chaque groupe taxonomique observé dans la zone d'étude considérée, fournit les informations suivantes :
+            <ul><li>Nombre de données</li>
+            <li>Nombre d'espèces</li>
+            <li>Nombre d'observateurs</li>
+            <li>Nombre de dates</li></ul><br/>
+            <u>IMPORTANT</u> : Les <b>étapes indispensables</b> sont marquées d'une <b>étoile *</b> avant leur numéro.""")
 
     def initAlgorithm(self, config=None):
         """
@@ -123,7 +132,7 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
         self.db_variables = QgsSettings()
         self.taxonomic_ranks_variables = ["Groupes taxonomiques", "Règnes", "Phylum", "Classes", "Ordres", "Familles", "Groupes 1 INPN", "Groupes 2 INPN"]
         self.period_variables = ["Pas de filtre temporel", "5 dernières années", "10 dernières années", "Date de début - Date de fin (à définir ci-dessous)"]
-        histogram_variables = ["Pas d'histogramme", "Histogramme du nombre de données", "Histogramme du nombre d'espèces", "Histogramme du nombre d'observateurs", "Histogramme du nombre de dates", "Histogramme du nombre de données de mortalité"]
+        histogram_variables = ["Pas d'histogramme", "Histogramme du nombre de données par taxon", "Histogramme du nombre d'espèces par taxon", "Histogramme du nombre d'observateurs par taxon", "Histogramme du nombre de dates par taxon", "Histogramme du nombre de données de mortalité par taxon"]
 
         # Data base connection
         db_param = QgsProcessingParameterString(
@@ -144,7 +153,7 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
             QgsProcessingParameterFeatureSource(
                 self.STUDY_AREA,
                 self.tr("""<b style="color:#0a84db">ZONE D'ÉTUDE</b><br/>
-                    <b>*2/</b> Sélectionnez votre <u>zone d'étude</u>, à partir de laquelle seront extraites les résultats"""),
+                    <b>*2/</b> Sélectionnez votre <u>zone d'étude</u>, à partir de laquelle seront extraits les résultats"""),
                 [QgsProcessing.TypeVectorPolygon]
             )
         )
@@ -161,7 +170,7 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
             {
                 'widget_wrapper': {
                     'useCheckBoxes': True,
-                    'columns': len(self.taxonomic_ranks_variables)
+                    'columns': len(self.taxonomic_ranks_variables)/2
                 }
             }
         )
@@ -172,7 +181,7 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
             QgsProcessingParameterEnum(
                 self.GROUPE_TAXO,
                 self.tr("""<b style="color:#0a84db">FILTRES DE REQUÊTAGE</b><br/>
-                    <b>4/</b> Si cela vous intéresse, vous pouvez sélectionner un/plusieurs <u>taxon(s)</u> dans la liste déroulante suivante (à choix multiples) pour filtrer vos données d'observations. <u>Sinon</u>, vous pouvez ignorer cette étape.<br/>
+                    <b>4/</b> Si cela vous intéresse, vous pouvez sélectionner un/plusieurs <u>taxon(s)</u> dans la liste déroulante suivante (à choix multiples)<br/> pour filtrer vos données d'observations. <u>Sinon</u>, vous pouvez ignorer cette étape.<br/>
                     <i style="color:#952132"><b>N.B.</b> : D'autres filtres taxonomiques sont disponibles dans les paramètres avancés (plus bas, juste avant l'enregistrement des résultats).</i><br/>
                     - Groupes taxonomiques :"""),
                 self.db_variables.value("groupe_taxo"),
@@ -263,7 +272,7 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
             {
                 'widget_wrapper': {
                     'useCheckBoxes': True,
-                    'columns': len(self.period_variables)
+                    'columns': len(self.period_variables)/2
                 }
             }
         )
@@ -315,7 +324,7 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
                 self.OUTPUT_NAME,
                 self.tr("""<b style="color:#0a84db">PARAMÉTRAGE DES RESULTATS EN SORTIE</b><br/>
                     <b>*6/</b> Définissez un <u>nom</u> pour votre nouvelle couche"""),
-                self.tr("Etat des connaissances")
+                self.tr("État des connaissances")
             )
         )
 
@@ -329,21 +338,9 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
         )
 
         ### Histogram ###
-        self.addParameter(
-            QgsProcessingParameterFileDestination(
-                self.OUTPUT_HISTOGRAM,
-                self.tr("""<b style="color:#0a84db">ENREGISTREMENT DES RESULTATS</b><br/>
-                <b>8/</b> <u>Si (et seulement si !)</u> vous avez sélectionné un type d'<u>histogramme</u>, veuillez renseigner un emplacement pour l'enregistrer sur votre ordinateur (au format image). <u>Dans le cas contraire</u>, vous pouvez ignorer cette étape.<br/>
-                <font style='color:#06497a'><u>Aide</u> : Cliquez sur le bouton [...] puis sur 'Enregistrer vers un fichier...'</font>"""),
-                self.tr('image PNG (*.png)'),
-                optional=True,
-                createByDefault=False
-            )
-        )
-
         histogram_options = QgsProcessingParameterEnum(
             self.HISTOGRAM_OPTIONS,
-            self.tr("<b>7/</b> Si cela vous intéresse, vous pouvez <u>exporter</u> les résultats sous forme d'<u>histogramme</u>. Dans ce cas, sélectionnez le type d'histogramme qui vous convient. <u>Sinon</u>, vous pouvez ignorer cette étape."),
+            self.tr("<b>7/</b> Si cela vous intéresse, vous pouvez <u>exporter</u> les résultats sous forme d'<u>histogramme</u>. Dans ce cas, sélectionnez le type<br/> d'histogramme qui vous convient. <u>Sinon</u>, vous pouvez ignorer cette étape."),
             histogram_variables,
             defaultValue="Pas d'histogramme"
         )
@@ -351,11 +348,23 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
             {
                 'widget_wrapper': {
                     'useCheckBoxes': True,
-                    'columns': len(histogram_variables)/2
+                    'columns': len(histogram_variables)/3
                 }
             }
         )
         self.addParameter(histogram_options)
+
+        self.addParameter(
+            QgsProcessingParameterFileDestination(
+                self.OUTPUT_HISTOGRAM,
+                self.tr("""<b style="color:#0a84db">ENREGISTREMENT DES RESULTATS</b><br/>
+                <b>8/</b> <u>Si (et seulement si !)</u> vous avez sélectionné un type d'<u>histogramme</u>, veuillez renseigner un emplacement pour l'enregistrer<br/> sur votre ordinateur (au format image). <u>Dans le cas contraire</u>, vous pouvez ignorer cette étape.<br/>
+                <font style='color:#06497a'><u>Aide</u> : Cliquez sur le bouton [...] puis sur 'Enregistrer vers un fichier...'</font>"""),
+                self.tr('image PNG (*.png)'),
+                optional=True,
+                createByDefault=False
+            )
+        )
 
     def processAlgorithm(self, parameters, context, feedback):
         """
@@ -436,9 +445,10 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
                 COUNT(DISTINCT t.cd_ref) AS "Nb d'espèces",
                 COUNT(DISTINCT observateur) AS "Nb d'observateurs", 
                 COUNT(DISTINCT date) AS "Nb de dates",
-                SUM(CASE WHEN mortalite THEN 1 ELSE 0 END) AS "Nb de données de mortalite",
+                SUM(CASE WHEN mortalite THEN 1 ELSE 0 END) AS "Nb de données de mortalité",
                 max(nombre_total) AS "Nb d'individus max",
                 min (date_an) AS "Année première obs", max(date_an) AS "Année dernière obs",
+                string_agg(DISTINCT obs.nom_vern,', ') AS "Liste des espèces observées",
                 string_agg(DISTINCT la.area_name,', ') AS "Communes",
                 string_agg(DISTINCT obs.source,', ') AS "Sources"
             FROM total_count, src_lpodatas.observations obs
@@ -455,11 +465,7 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
             # Define the name of the PostGIS summary table which will be created in the DB
             table_name = simplify_name(format_name)
             # Define the SQL queries
-            queries = [
-                "DROP TABLE if exists {}".format(table_name),
-                "CREATE TABLE {} AS ({})".format(table_name, query),
-                "ALTER TABLE {} add primary key (id)".format(table_name)
-            ]
+            queries = construct_queries_list(table_name, query)
             # Execute the SQL queries
             execute_sql_queries(context, feedback, connection, queries)
             # Format the URI
@@ -484,12 +490,16 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
             plt.close()
             x_var = [feature[taxonomic_rank_label] for feature in layer_summary.getFeatures()]
             y_var = [int(feature[histogram_option]) for feature in layer_summary.getFeatures()]
+            if len(x_var) > 20:
+                plt.figure(figsize=(20, 8))
+                plt.subplots_adjust(bottom=0.3)
+            else:
+                plt.subplots_adjust(bottom=0.4)
             plt.bar(x_var, y_var)
             plt.xticks(rotation='vertical')
-            plt.subplots_adjust(bottom=0.4)
             plt.xlabel(self.taxonomic_ranks_variables[self.parameterAsEnum(parameters, self.TAXONOMIC_RANK, context)])
             plt.ylabel(histogram_option.replace("Nb", "Nombre"))
-            plt.title('{} par {}'.format(histogram_option.replace("Nb", "Nombre"), taxonomic_rank_label.lower().replace("taxo", "taxonomique")))
+            plt.title('{} par {}'.format(histogram_option.replace("Nb", "Nombre"), taxonomic_rank_label[0].lower() + taxonomic_rank_label[1:].replace("taxo", "taxonomique")))
             if output_histogram[-4:] != ".png":
                 output_histogram += ".png"
             plt.savefig(output_histogram)
