@@ -382,7 +382,7 @@ class ExtractData(QgsProcessingAlgorithm):
         # Complete the "where" clause with the extra conditions
         where += " " + extra_where
         
-        feedback.pushInfo(where)
+        #feedback.pushInfo(where)
 
         ### EXECUTE THE SQL QUERY ###
         # Retrieve the data base connection name

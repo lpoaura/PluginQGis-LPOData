@@ -5,20 +5,20 @@
 ### Mandatory items:
 
 [general]
-name=Scripts LPO
+name=Traitements de la LPO AuRA
 qgisMinimumVersion=3.4
 
 description=Scripts processing for LPO
 about=Provide a brief description of the plugin and its purpose.
 
-version=0.1
+version=0.0.2
 author=Elsa Guilley (LPO AuRA)
 email=lpo-aura@lpo.fr
 
 # URL for the source code repository
-repository=https://github.com/lpoaura/PluginQGis-LPOAuRA
+repository=https://github.com/lpoaura/PluginQGis-LPOData
 # URL for tickets and bug reports
-tracker=https://github.com/lpoaura/PluginQGis-LPOAuRA/issues
+tracker=https://github.com/lpoaura/PluginQGis-LPOData/issues
 
 ### End of mandatory metadata
 
@@ -39,10 +39,10 @@ experimental=True
 deprecated=False
 
 # Tags are comma separated with spaces allowed
-tags=python
+tags=LPO AuRA, données, analyse, traitements, Python, PostGIS
 
-homepage=https://github.com/lpoaura/PluginQGis-LPOAuRA
-icon=icon.png
+homepage=https://github.com/lpoaura/PluginQGis-LPOData
+icon=icons/logo_LPO.png
 
 # Since QGIS 3.8, a comma separated list of plugins to be installed
 # (or upgraded) can be specified.

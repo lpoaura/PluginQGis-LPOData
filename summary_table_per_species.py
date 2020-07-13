@@ -110,7 +110,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
         return 'Tableaux de synthèse'
 
     def shortDescription(self):
-        return self.tr("""Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données <i>gnlpoaura</i>,  d'obtenir un <b>tableau de synthèse</b> par espèce (couche PostGIS) basé sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones).<br/><br/>
+        return self.tr("""Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données <i>gnlpoaura</i>,  d'obtenir un <b>tableau de synthèse</b> par espèce (couche PostGIS non spatiale) basé sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones).<br/><br/>
             <b>Pour chaque espèce</b> observée dans la zone d'étude considérée, le tableau fournit les informations suivantes :
             <ul><li>Identifiant VisioNature de l'espèce</li>
             <li>cd_nom et cd_ref</li>
@@ -431,7 +431,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
             ORDER BY groupe_taxo, nom_vern)
             SELECT row_number() OVER () AS id, *
             FROM synthese""".format(where, where)
-        feedback.pushInfo(query)
+        #feedback.pushInfo(query)
         # Retrieve the boolean add_table
         add_table = self.parameterAsBool(parameters, self.ADD_TABLE, context)
         if add_table:

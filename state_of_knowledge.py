@@ -115,7 +115,7 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
         return 'Tableaux de synthèse'
 
     def shortDescription(self):
-        return self.tr("""Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données <i>gnlpoaura</i>,  d'obtenir un <b>état des connaissances</b> par taxon (couche PostGIS), basé sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones) et selon le rang taxonomique de votre choix, à savoir :
+        return self.tr("""Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données <i>gnlpoaura</i>,  d'obtenir un <b>état des connaissances</b> par taxon (couche PostGIS non spatiale), basé sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones) et selon le rang taxonomique de votre choix, à savoir :
             <ul><li>Groupes taxonomiques</li>
             <li>Règnes</li>
             <li>Phylum</li>
@@ -374,7 +374,7 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
             QgsProcessingParameterFileDestination(
                 self.OUTPUT_HISTOGRAM,
                 self.tr("""<b style="color:#0a84db">ENREGISTREMENT DES RESULTATS</b><br/>
-                <b>8/</b> <u>Si (et seulement si !)</u> vous avez sélectionné un type d'<u>histogramme</u>, veuillez renseigner un emplacement pour l'enregistrer<br/> sur votre ordinateur (au format image). <u>Dans le cas contraire</u>, vous pouvez ignorer cette étape.<br/>
+                <b>8/</b> <u style="color:#952132">Si (et seulement si !)</u> vous avez sélectionné un type d'<u>histogramme</u>, veuillez renseigner un emplacement pour l'enregistrer<br/> sur votre ordinateur (au format image). <u>Dans le cas contraire</u>, vous pouvez ignorer cette étape.<br/>
                 <font style='color:#06497a'><u>Aide</u> : Cliquez sur le bouton [...] puis sur 'Enregistrer vers un fichier...'</font>"""),
                 self.tr('image PNG (*.png)'),
                 optional=True,
@@ -474,7 +474,7 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
             WHERE bib.type_name='Communes' and {} 
             GROUP BY {}{}, total_count 
             ORDER BY {}{}""".format(where, taxonomic_rank_db, taxonomic_rank_label, 'groupe_taxo AS "Groupe taxo", ' if taxonomic_rank_label in ['Ordre', 'Famille'] else "", where, "groupe_taxo, " if taxonomic_rank_label in ['Ordre', 'Famille'] else "", taxonomic_rank_db, "groupe_taxo, " if taxonomic_rank_label in ['Ordre', 'Famille'] else "", taxonomic_rank_db)
-        feedback.pushInfo(query)
+        #feedback.pushInfo(query)
         # Retrieve the boolean add_table
         add_table = self.parameterAsBool(parameters, self.ADD_TABLE, context)
         if add_table:

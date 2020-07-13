@@ -502,7 +502,7 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
             WHERE {}
             GROUP BY {}groupe_taxo
             ORDER BY groupe_taxo{}""".format(select_species_info if taxonomic_rank == 'Espèces' else select_taxo_groups_info, select_data, where, group_by_species, ", obs.nom_vern" if taxonomic_rank == 'Espèces' else "")
-        feedback.pushInfo(query)
+        #feedback.pushInfo(query)
         # Retrieve the boolean add_table
         add_table = self.parameterAsBool(parameters, self.ADD_TABLE, context)
         if add_table:

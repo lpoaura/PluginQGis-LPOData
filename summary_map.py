@@ -112,7 +112,7 @@ class SummaryMap(QgsProcessingAlgorithm):
         return 'Cartes'
 
     def shortDescription(self):
-        return self.tr("""Cet algorithme vous permet de générer une <b>carte de synthèse</b> (couche PostGIS) par maille ou par commune (au choix) basée sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones). Pour chaque entité géographique, la table attributaire de la nouvelle couche fournit les informations suivantes :
+        return self.tr("""Cet algorithme vous permet de générer une <b>carte de synthèse</b> (couche PostGIS de type polygones) par maille ou par commune (au choix) basée sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones). Pour chaque entité géographique, la table attributaire de la nouvelle couche fournit les informations suivantes :
             <ul><li>Code de l'entité</li>
             <li>Surface (en km<sup>2</sup>)</li>
             <li>Nombre de données</li>
@@ -160,15 +160,22 @@ class SummaryMap(QgsProcessingAlgorithm):
         )
 
         # Areas type
-        self.addParameter(
-            QgsProcessingParameterEnum(
-                self.AREAS_TYPE,
-                self.tr("""<b style="color:#0a84db">TYPE D'ENTITÉS GÉOGRAPHIQUES</b><br/>
-                    <b>*3/</b> Sélectionnez le <u>type d'entités géographiques</u> qui vous intéresse"""),
-                self.areas_variables,
-                allowMultiple=False
-            )
+        areas_types=QgsProcessingParameterEnum(
+            self.AREAS_TYPE,
+            self.tr("""<b style="color:#0a84db">TYPE D'ENTITÉS GÉOGRAPHIQUES</b><br/>
+                <b>*3/</b> Sélectionnez le <u>type d'entités géographiques</u> qui vous intéresse"""),
+            self.areas_variables,
+            allowMultiple=False
         )
+        areas_types.setMetadata(
+            {
+                'widget_wrapper': {
+                    'useCheckBoxes': True,
+                    'columns': 3
+                }
+            }
+        )
+        self.addParameter(areas_types)
 
         ### Taxons filters ###
         self.addParameter(
@@ -389,8 +396,6 @@ class SummaryMap(QgsProcessingAlgorithm):
         where_filter += datetime_where
         # Complete the "where" filter with the extra conditions
         where_filter += " " + extra_where
-        
-        #feedback.pushInfo(where)
 
         ### EXECUTE THE SQL QUERY ###
         # Retrieve the data base connection name
@@ -414,7 +419,7 @@ class SummaryMap(QgsProcessingAlgorithm):
             WHERE type_name='{}' and {}
             GROUP BY area_name, area_code, la.geom
             ORDER BY area_code""".format(where_filter, where_filter, where_filter, areas_type, where)
-        feedback.pushInfo(query)
+        #feedback.pushInfo(query)
         # Retrieve the boolean add_table
         add_table = self.parameterAsBool(parameters, self.ADD_TABLE, context)
         if add_table:
