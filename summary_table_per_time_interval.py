@@ -103,7 +103,11 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
         return 'Tableaux de synthèse'
 
     def shortDescription(self):
-        return self.tr('Description à faire')
+        return self.tr("""Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données <i>gnlpoaura</i>,  d'obtenir un <b>tableau bilan</b> (couche PostGIS)...
+            <ul><li>par année <u>ou</u> par mois (au choix)</li>
+            <li>et par espèce <u>ou</u> par groupe taxonomique (au choix)</li></ul>
+            ... basé sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones) et selon une période de votre choix.<br/><br/>
+            <font style='color:#0a84db'><u>IMPORTANT</u> : Les <b>étapes indispensables</b> sont marquées d'une <b>étoile *</b> avant leur numéro. Prenez le temps de lire <u>attentivement</U> les instructions pour chaque étape, et particulièrement les</font> <font style ='color:#952132'>informations en rouge</font> <font style='color:#0a84db'>!</font>""")
 
     def initAlgorithm(self, config=None):
         """
@@ -367,7 +371,7 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
             QgsProcessingParameterString(
                 self.OUTPUT_NAME,
                 self.tr("""<b style="color:#0a84db">PARAMÉTRAGE DES RESULTATS EN SORTIE</b><br/>
-                    <b>*9/</b> Définissez un <u>nom</u> pour votre couche en sortie"""),
+                    <b>*9/</b> Définissez un <u>nom</u> pour votre couche PostGIS"""),
                 self.tr("Tableau synthèse temps")
             )
         )
@@ -376,7 +380,7 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterBoolean(
                 self.ADD_TABLE,
-                self.tr("Enregistrer les données en sortie dans une nouvelle table PostgreSQL"),
+                self.tr("Enregistrer les résultats en sortie dans une nouvelle table PostgreSQL"),
                 False
             )
         )

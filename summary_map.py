@@ -112,7 +112,18 @@ class SummaryMap(QgsProcessingAlgorithm):
         return 'Cartes'
 
     def shortDescription(self):
-        return self.tr('Description à faire')
+        return self.tr("""Cet algorithme vous permet de générer une <b>carte de synthèse</b> (couche PostGIS) par maille ou par commune (au choix) basée sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones). Pour chaque entité géographique, la table attributaire de la nouvelle couche fournit les informations suivantes :
+            <ul><li>Code de l'entité</li>
+            <li>Surface (en km<sup>2</sup>)</li>
+            <li>Nombre de données</li>
+            <li>Nombre de données / Nombre de données TOTAL</li>
+            <li>Nombre d'espèces</li>
+            <li>Nombre d'observateurs</li>
+            <li>Nombre de dates</li>
+            <li>Nombre de données de mortalité</li>
+            <li>Liste des espèces observées</li></ul>
+            Vous pouvez ensuite modifier la <b>symbologie</b> de la couche comme bon vous semble, en fonction du critère de votre choix.<br/><br/>
+            <font style='color:#0a84db'><u>IMPORTANT</u> : Les <b>étapes indispensables</b> sont marquées d'une <b>étoile *</b> avant leur numéro. Prenez le temps de lire <u>attentivement</u> les instructions pour chaque étape, et particulièrement les</font> <font style ='color:#952132'>informations en rouge</font> <font style='color:#0a84db'>!</font>""")
 
     def initAlgorithm(self, config=None):
         """
@@ -297,7 +308,7 @@ class SummaryMap(QgsProcessingAlgorithm):
             QgsProcessingParameterString(
                 self.OUTPUT_NAME,
                 self.tr("""<b style="color:#0a84db">PARAMÉTRAGE DES RESULTATS EN SORTIE</b><br/>
-                    <b>*6/</b> Définissez un <u>nom</u> pour votre nouvelle couche"""),
+                    <b>*6/</b> Définissez un <u>nom</u> pour votre nouvelle couche PostGIS"""),
                 self.tr("Carte synthèse")
             )
         )
@@ -306,7 +317,7 @@ class SummaryMap(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterBoolean(
                 self.ADD_TABLE,
-                self.tr("Enregistrer les données en sortie dans une nouvelle table PostgreSQL"),
+                self.tr("Enregistrer les résultats en sortie dans une nouvelle table PostgreSQL"),
                 False
             )
         )
@@ -317,6 +328,7 @@ class SummaryMap(QgsProcessingAlgorithm):
                 self.OUTPUT,
                 self.tr("""<b style="color:#0a84db">ENREGISTREMENT DES RESULTATS</b><br/>
                     <b>7/</b> Si cela vous intéresse, vous pouvez <u>exporter</u> votre nouvelle couche sur votre ordinateur. <u>Sinon</u>, vous pouvez ignorer cette étape.<br/>
+                    <u>Précisions</u> : La couche exportée est une couche figée qui n'est pas rafraîchie à chaque réouverture de QGis, contrairement à la couche PostGIS.<br/>
                     <font style='color:#06497a'><u>Aide</u> : Cliquez sur le bouton [...] puis sur le type d'export qui vous convient</font>"""),
                 QgsProcessing.TypeVectorPolygon,
                 optional=True,

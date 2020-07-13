@@ -110,8 +110,8 @@ class ExtractData(QgsProcessingAlgorithm):
         return 'Données brutes'
 
     def shortDescription(self):
-        return self.tr("""Cet algorithme vous permet d'<b>extraire des données d'observation</b> contenues dans la base de données <i>gnlpoaura</i> (couche de type points) à partir d'une <b>zone d'étude présente dans votre projet QGis</b> (couche de type polygones).<br/><br/>
-            <u>IMPORTANT</u> : Les <b>étapes indispensables</b> sont marquées d'une <b>étoile *</b> avant leur numéro.""")
+        return self.tr("""Cet algorithme vous permet d'<b>extraire des données d'observation</b> contenues dans la base de données <i>gnlpoaura</i> (couche PostGIS de type points) à partir d'une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones).<br/><br/>
+            <font style='color:#0a84db'><u>IMPORTANT</u> : Les <b>étapes indispensables</b> sont marquées d'une <b>étoile *</b> avant leur numéro. Prenez le temps de lire <u>attentivement</U> les instructions pour chaque étape, et particulièrement les</font> <font style ='color:#952132'>informations en rouge</font> <font style='color:#0a84db'>!</font>""")
 
     def initAlgorithm(self, config=None):
         """
@@ -313,7 +313,7 @@ class ExtractData(QgsProcessingAlgorithm):
             QgsProcessingParameterString(
                 self.OUTPUT_NAME,
                 self.tr("""<b style="color:#0a84db">PARAMÉTRAGE DES RESULTATS EN SORTIE</b><br/>
-                    <b>*5/</b> Définissez un <u>nom</u> pour votre nouvelle couche"""),
+                    <b>*5/</b> Définissez un <u>nom</u> pour votre nouvelle couche PostGIS"""),
                 self.tr("Données d'observation")
             )
         )
@@ -324,6 +324,7 @@ class ExtractData(QgsProcessingAlgorithm):
                 self.OUTPUT,
                 self.tr("""<b style="color:#0a84db">ENREGISTREMENT DES RESULTATS</b><br/>
                     <b>6/</b> Si cela vous intéresse, vous pouvez <u>exporter</u> votre nouvelle couche sur votre ordinateur. <u>Sinon</u>, vous pouvez ignorer cette étape.<br/>
+                    <u>Précisions</u> : La couche exportée est une couche figée qui n'est pas rafraîchie à chaque réouverture de QGis, contrairement à la couche PostGIS.<br/>
                     <font style='color:#06497a'><u>Aide</u> : Cliquez sur le bouton [...] puis sur le type d'export qui vous convient</font>"""),
                 QgsProcessing.TypeVectorPoint,
                 optional=True,

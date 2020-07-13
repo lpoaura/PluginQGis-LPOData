@@ -115,13 +115,29 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
         return 'Tableaux de synthèse'
 
     def shortDescription(self):
-        return self.tr("""Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données <i>gnlpoaura</i>,  d'obtenir un <b>état des connaissances par groupe taxonomique</b> concernant une <b>zone d'étude présente dans votre projet QGis</b> (couche de type polygones).<br/><br/>
-            Cet état des connaissances correspond en fait à un <b>tableau</b>, qui, pour chaque groupe taxonomique observé dans la zone d'étude considérée, fournit les informations suivantes :
+        return self.tr("""Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données <i>gnlpoaura</i>,  d'obtenir un <b>état des connaissances</b> par taxon (couche PostGIS), basé sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones) et selon le rang taxonomique de votre choix, à savoir :
+            <ul><li>Groupes taxonomiques</li>
+            <li>Règnes</li>
+            <li>Phylum</li>
+            <li>Classes</li>
+            <li>Ordres</li>
+            <li>Familles</li>
+            <li>Groupes 1 INPN</li>
+            <li>Groupes 2 INPN</li></ul>
+            Cet état des connaissances correspond en fait à un <b>tableau</b>, qui, pour chaque taxon observé dans la zone d'étude considérée, fournit les informations suivantes :
             <ul><li>Nombre de données</li>
+            <li>Nombre de données / Nombre de données TOTAL</li>
             <li>Nombre d'espèces</li>
             <li>Nombre d'observateurs</li>
-            <li>Nombre de dates</li></ul><br/>
-            <u>IMPORTANT</u> : Les <b>étapes indispensables</b> sont marquées d'une <b>étoile *</b> avant leur numéro.""")
+            <li>Nombre de dates</li>
+            <li>Nombre de données de mortalité</li>
+            <li>Nombre d'individus maximum recensé pour une observation</li>
+            <li>Année de la première observation</li>
+            <li>Année de la dernière observation</li>
+            <li>Liste des espèces impliquées</li>
+            <li>Liste des communes</li>
+            <li>Liste des sources VisioNature</li></ul><br/>
+            <font style='color:#0a84db'><u>IMPORTANT</u> : Les <b>étapes indispensables</b> sont marquées d'une <b>étoile *</b> avant leur numéro. Prenez le temps de lire <u>attentivement</U> les instructions pour chaque étape, et particulièrement les</font> <font style ='color:#952132'>informations en rouge</font> <font style='color:#0a84db'>!</font>""")
 
     def initAlgorithm(self, config=None):
         """
@@ -323,7 +339,7 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
             QgsProcessingParameterString(
                 self.OUTPUT_NAME,
                 self.tr("""<b style="color:#0a84db">PARAMÉTRAGE DES RESULTATS EN SORTIE</b><br/>
-                    <b>*6/</b> Définissez un <u>nom</u> pour votre nouvelle couche"""),
+                    <b>*6/</b> Définissez un <u>nom</u> pour votre nouvelle couche PostGIS"""),
                 self.tr("État des connaissances")
             )
         )
@@ -332,7 +348,7 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterBoolean(
                 self.ADD_TABLE,
-                self.tr("Enregistrer les données en sortie dans une nouvelle table PostgreSQL"),
+                self.tr("Enregistrer les résultats en sortie dans une nouvelle table PostgreSQL"),
                 defaultValue=False
             )
         )
@@ -448,7 +464,7 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
                 SUM(CASE WHEN mortalite THEN 1 ELSE 0 END) AS "Nb de données de mortalité",
                 max(nombre_total) AS "Nb d'individus max",
                 min (date_an) AS "Année première obs", max(date_an) AS "Année dernière obs",
-                string_agg(DISTINCT obs.nom_vern,', ') AS "Liste des espèces observées",
+                string_agg(DISTINCT obs.nom_vern,', ') AS "Liste des espèces",
                 string_agg(DISTINCT la.area_name,', ') AS "Communes",
                 string_agg(DISTINCT obs.source,', ') AS "Sources"
             FROM total_count, src_lpodatas.observations obs

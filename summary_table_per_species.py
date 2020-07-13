@@ -110,23 +110,31 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
         return 'Tableaux de synthèse'
 
     def shortDescription(self):
-        return self.tr("""Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données <i>gnlpoaura</i>,  d'obtenir un <b>tableau de synthèse</b> concernant une <b>zone d'étude présente dans votre projet QGis</b> (couche de type polygones).<br/><br/>
+        return self.tr("""Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données <i>gnlpoaura</i>,  d'obtenir un <b>tableau de synthèse</b> par espèce (couche PostGIS) basé sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones).<br/><br/>
             <b>Pour chaque espèce</b> observée dans la zone d'étude considérée, le tableau fournit les informations suivantes :
-            <ul><li>Identifiant unique</li>
-            <li>Identifiant de l'espèce dans la base de données</li>
-            <li>Nom scientifique de l'espèce</li>
-            <li>Nom français de l'espèce</li>
+            <ul><li>Identifiant VisioNature de l'espèce</li>
+            <li>cd_nom et cd_ref</li>
             <li>Groupe taxonomique auquel elle appartient</li>
+            <li>Nom français de l'espèce</li>
+            <li>Nom scientifique de l'espèce</li>
             <li>Nombre de données</li>
+            <li>Nombre de données / Nombre de données TOTAL</li>
             <li>Nombre d'observateurs</li>
             <li>Nombre de dates</li>
             <li>Nombre de données de mortalité</li>
+            <li>LR France</li>
+            <li>LR Rhône-Alpes</li>
+            <li>LR Auvergne</li>
+            <li>Directive Habitats</li>
+            <li>Directive Oiseaux</li>
+            <li>Protection nationale</li>
             <li>Statut nicheur (pour les oiseaux)</li>
             <li>Nombre d'individus maximum recensé pour une observation</li>
             <li>Année de la première observation</li>
             <li>Année de la dernière observation</li>
+            <li>Liste des communes</li>
             <li>Liste des sources VisioNature</li></ul><br/>
-            <u>IMPORTANT</u> : Les <b>étapes indispensables</b> sont marquées d'une <b>étoile *</b> avant leur numéro.""")
+            <font style='color:#0a84db'><u>IMPORTANT</u> : Les <b>étapes indispensables</b> sont marquées d'une <b>étoile *</b> avant leur numéro. Prenez le temps de lire <u>attentivement</U> les instructions pour chaque étape, et particulièrement les</font> <font style ='color:#952132'>informations en rouge</font> <font style='color:#0a84db'>!</font>""")
 
     def initAlgorithm(self, config=None):
         """
@@ -308,7 +316,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
             QgsProcessingParameterString(
                 self.OUTPUT_NAME,
                 self.tr("""<b style="color:#0a84db">PARAMÉTRAGE DES RESULTATS EN SORTIE</b><br/>
-                    <b>*5/</b> Définissez un <u>nom</u> pour votre nouvelle couche"""),
+                    <b>*5/</b> Définissez un <u>nom</u> pour votre nouvelle couche PostGIS"""),
                 self.tr("Tableau synthèse espèces")
             )
         )
@@ -317,7 +325,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterBoolean(
                 self.ADD_TABLE,
-                self.tr("Enregistrer les données en sortie dans une nouvelle table PostgreSQL"),
+                self.tr("Enregistrer les résultats en sortie dans une nouvelle table PostgreSQL"),
                 False
             )
         )
