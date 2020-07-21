@@ -455,7 +455,7 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
             FROM src_lpodatas.observations obs
             LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom=t.cd_nom
             WHERE {})
-            SELECT row_number() OVER () AS id, {} AS "{}", {}
+            SELECT row_number() OVER () AS id, COALESCE({}, 'Pas de correspondance taxref') AS "{}", {}
                 COUNT(*) AS "Nb de données",
                 ROUND(COUNT(*)::decimal/total_count, 4)*100 AS "Nb données / Nb données TOTAL (%)",
                 COUNT(DISTINCT t.cd_ref) AS "Nb d'espèces",

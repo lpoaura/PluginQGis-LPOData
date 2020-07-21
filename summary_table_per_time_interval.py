@@ -103,7 +103,7 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
         return 'Tableaux de synthèse'
 
     def shortDescription(self):
-        return self.tr("""Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données <i>gnlpoaura</i>,  d'obtenir un <b>tableau bilan</b> (couche PostGIS)...
+        return self.tr("""Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données <i>gnlpoaura</i>,  d'obtenir un <b>tableau bilan</b> (couche PostGIS non spatiale)...
             <ul><li>par année <u>ou</u> par mois (au choix)</li>
             <li>et par espèce <u>ou</u> par groupe taxonomique (au choix)</li></ul>
             ... basé sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones) et selon une période de votre choix.<br/><br/>
@@ -166,7 +166,7 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
 
         add_five_years = QgsProcessingParameterEnum(
             self.ADD_FIVE_YEARS,
-            self.tr("""<b>4/</b> <u>Si (et seulement si !)</u> vous avez sélectionné l'<u>agrégation <b>Par année</b></u> :<br/> cochez la case ci-dessous si vous souhaitez ajouter des colonnes dîtes "bilan" par intervalle de 5 ans.<br/>
+            self.tr("""<b>4/</b> <u style="color:#952132">Si (et seulement si !)</u> vous avez sélectionné l'<u>agrégation <b>Par année</b></u> :<br/> cochez la case ci-dessous si vous souhaitez ajouter des colonnes dîtes "bilan" par intervalle de 5 ans.<br/>
             <i style="color:#952132"><b>N.B.</b> : En cochant cette case, vous devez vous assurer de renseigner une période en années (cf. <b>*5/</b>) qui soit <b>divisible par 5</b>.<br/> Exemple : 2011 - 2020.</i>"""),
             ['Oui, je souhaite ajouter des colonnes dîtes "bilan" par intervalle de 5 ans'],
             allowMultiple=True,
@@ -185,7 +185,7 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterEnum(
                 self.START_MONTH,
-                self.tr("""<b>*5/</b> Sélectionnez la période qui vous intéresse<br/>
+                self.tr("""<b>*5/</b> Sélectionnez la <u>période</u> qui vous intéresse<br/>
                     - Mois de début <i style="color:#952132">(nécessaire seulement si vous avez sélectionné l'agrégation <b>Par mois</b>)</i> :"""),
                 self.months_names_variables,
                 allowMultiple=False,
@@ -407,7 +407,7 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
             QgsProcessingParameterFileDestination(
                 self.OUTPUT_HISTOGRAM,
                 self.tr("""<b style="color:#0a84db">ENREGISTREMENT DES RESULTATS</b><br/>
-                <b>11/</b> <u>Si (et seulement si !)</u> vous avez sélectionné l'export sous forme d'<u>histogramme</u>, veuillez renseigner un emplacement<br/> pour l'enregistrer sur votre ordinateur (au format image). <u>Dans le cas contraire</u>, vous pouvez ignorer cette étape.<br/>
+                <b>11/</b> <u style="color:#952132">Si (et seulement si !)</u> vous avez sélectionné l'export sous forme d'<u>histogramme</u>, veuillez renseigner un emplacement<br/> pour l'enregistrer sur votre ordinateur (au format image). <u>Dans le cas contraire</u>, vous pouvez ignorer cette étape.<br/>
                 <font style='color:#06497a'><u>Aide</u> : Cliquez sur le bouton [...] puis sur 'Enregistrer vers un fichier...'</font>"""),
                 self.tr('image PNG (*.png)'),
                 optional=True,
