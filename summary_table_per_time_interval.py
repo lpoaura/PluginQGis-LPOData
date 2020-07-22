@@ -538,11 +538,14 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
                 for feature in layer_summary.getFeatures():
                     y += feature[x]
                 y_var.append(y)
-            if len(x_var) > 20:
-                plt.figure(figsize=(20, 8))
-                plt.subplots_adjust(bottom=0.3)
-            else:
+            if len(x_var) <= 20:
                 plt.subplots_adjust(bottom=0.4)
+            elif len(x_var) <= 80:
+                plt.figure(figsize=(20, 8))
+                plt.subplots_adjust(bottom=0.3, left=0.05, right=0.95)
+            else:
+                plt.figure(figsize=(40, 16))
+                plt.subplots_adjust(bottom=0.2, left=0.03, right=0.97)
             plt.bar(range(len(x_var)), y_var, tick_label=x_var)
             plt.xticks(rotation='vertical')
             x_label = time_interval.split(' ')[1].title()
