@@ -504,14 +504,14 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
         ### CONSTRUCT THE HISTOGRAM ###
         if histogram_option != "Pas d'histogramme":
             plt.close()
-            x_var = [feature[taxonomic_rank_label] for feature in layer_summary.getFeatures()]
+            x_var = [(feature[taxonomic_rank_label] if feature[taxonomic_rank_label] != 'Pas de correspondance taxref' else 'Aucune correspondance') for feature in layer_summary.getFeatures()]
             y_var = [int(feature[histogram_option]) for feature in layer_summary.getFeatures()]
             if len(x_var) > 20:
                 plt.figure(figsize=(20, 8))
                 plt.subplots_adjust(bottom=0.3)
             else:
-                plt.subplots_adjust(bottom=0.4)
-            plt.bar(x_var, y_var)
+                plt.subplots_adjust(bottom=0.5)
+            plt.bar(range(len(x_var)), y_var, tick_label=x_var)
             plt.xticks(rotation='vertical')
             plt.xlabel(self.taxonomic_ranks_variables[self.parameterAsEnum(parameters, self.TAXONOMIC_RANK, context)])
             plt.ylabel(histogram_option.replace("Nb", "Nombre"))
