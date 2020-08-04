@@ -398,7 +398,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                 COUNT(DISTINCT observateur) AS nb_observateurs,
                 COUNT(DISTINCT date) AS nb_dates,
                 SUM(CASE WHEN mortalite THEN 1 ELSE 0 END) AS nb_mortalite,
-                lr_france, lrra, lrauv, dir_hab, dir_ois, protection_nat,
+                lr_france, lrra, lrauv, dir_hab, dir_ois, protection_nat, conv_berne, conv_bonn,
                 max(sn.code_nidif) AS max_atlas_code, max(nombre_total) AS nb_individus_max,
                 min(date_an) AS premiere_observation, max(date_an) AS derniere_observation,
                 string_agg(DISTINCT la.area_name,', ') AS communes,
@@ -409,10 +409,10 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
             LEFT JOIN taxonomie.bib_taxref_rangs r ON t.id_rang = r.id_rang
             LEFT JOIN ref_geo.l_areas la ON public.ST_INTERSECTS(obs.geom, la.geom)
             LEFT JOIN ref_geo.bib_areas_types bib ON la.id_type=bib.id_type
-            LEFT JOIN taxonomie.vm_statut_lr lr on obs.taxref_cdnom=lr.cd_nom 
-            LEFT JOIN taxonomie.vm_statut_protection p on obs.taxref_cdnom=p.cd_nom 
+            LEFT JOIN taxonomie.vm_statut_lr lr on (obs.taxref_cdnom, obs.source_id_sp) = (lr.cd_nom, lr.vn_id) 
+            LEFT JOIN taxonomie.vm_statut_protection p on (obs.taxref_cdnom, obs.source_id_sp) = (p.cd_nom, p.vn_id) 
             WHERE bib.type_name='Communes' and {}
-            GROUP BY source_id_sp, taxref_cdnom, cd_ref, nom_rang, nom_sci, obs.nom_vern, groupe_taxo, lr_france, lrra, lrauv, dir_hab, dir_ois, protection_nat),
+            GROUP BY source_id_sp, taxref_cdnom, cd_ref, nom_rang, nom_sci, obs.nom_vern, groupe_taxo, lr_france, lrra, lrauv, dir_hab, dir_ois, protection_nat, conv_berne, conv_bonn),
             synthese AS
             (SELECT DISTINCT source_id_sp, cd_nom, cd_ref, nom_rang AS "Rang", groupe_taxo AS "Groupe taxo",
                 nom_vern AS "Nom vernaculaire", nom_sci AS "Nom scientifique", 
@@ -422,6 +422,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                 nb_mortalite AS "Nb de données de mortalité",
                 lr_france AS "LR France", lrra AS "LR Rhône-Alpes", lrauv AS "LR Auvergne",
                 dir_hab AS "Directive Habitats", dir_ois AS "Directive Oiseaux", protection_nat AS "Protection nationale",
+                conv_berne AS "Convention de Berne", conv_bonn AS "Convention de Bonn",
                 sn2.statut_nidif AS "Statut nidif",
                 nb_individus_max AS "Nb d'individus max",
                 premiere_observation AS "Année première obs", derniere_observation AS "Année dernière obs",
@@ -431,7 +432,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
             ORDER BY groupe_taxo, nom_vern)
             SELECT row_number() OVER () AS id, *
             FROM synthese""".format(where, where)
-        #feedback.pushInfo(query)
+        feedback.pushInfo(query)
         # Retrieve the boolean add_table
         add_table = self.parameterAsBool(parameters, self.ADD_TABLE, context)
         if add_table:
