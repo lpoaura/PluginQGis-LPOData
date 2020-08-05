@@ -295,7 +295,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
         # Extra "where" conditions
         extra_where = QgsProcessingParameterString(
             self.EXTRA_WHERE,
-            self.tr("""Vous pouvez ajouter des <u>conditions "where"</u> supplémentaires dans l'encadré suivant, en langage SQL (commencez par <i>and</i>)"""),
+            self.tr("""Vous pouvez ajouter des <u>conditions "where"</u> supplémentaires dans l'encadré suivant, en langage SQL <b style="color:#952132">(commencez par <i>and</i>)</b>"""),
             multiLine=True,
             optional=True
         )
@@ -432,7 +432,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
             ORDER BY groupe_taxo, nom_vern)
             SELECT row_number() OVER () AS id, *
             FROM synthese""".format(where, where)
-        feedback.pushInfo(query)
+        #feedback.pushInfo(query)
         # Retrieve the boolean add_table
         add_table = self.parameterAsBool(parameters, self.ADD_TABLE, context)
         if add_table:
@@ -456,8 +456,8 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
         # Load the PostGIS layer
         load_layer(context, layer_summary)
         # Open the attribute table of the PostGIS layer
-        iface.setActiveLayer(layer_summary)
         iface.showAttributeTable(layer_summary)
+        iface.setActiveLayer(layer_summary)
 
         return {self.OUTPUT: layer_summary.id()}
 

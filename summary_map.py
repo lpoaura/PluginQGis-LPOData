@@ -303,7 +303,7 @@ class SummaryMap(QgsProcessingAlgorithm):
         # Extra "where" conditions
         extra_where = QgsProcessingParameterString(
             self.EXTRA_WHERE,
-            self.tr("""Vous pouvez ajouter des <u>conditions "where"</u> supplémentaires dans l'encadré suivant, en langage SQL (commencez par <i>and</i>)"""),
+            self.tr("""Vous pouvez ajouter des <u>conditions "where"</u> supplémentaires dans l'encadré suivant, en langage SQL <b style="color:#952132">(commencez par <i>and</i>)</b>"""),
             multiLine=True,
             optional=True
         )
@@ -443,8 +443,8 @@ class SummaryMap(QgsProcessingAlgorithm):
         # Load the PostGIS layer
         load_layer(context, layer_map)
         # Open the attribute table of the PostGIS layer
-        iface.setActiveLayer(layer_map)
         iface.showAttributeTable(layer_map)
+        iface.setActiveLayer(layer_map)
         
         ### MANAGE EXPORT ###
         # Create new valid fields for the sink

@@ -350,7 +350,7 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
         # Extra "where" conditions
         extra_where = QgsProcessingParameterString(
             self.EXTRA_WHERE,
-            self.tr("""Vous pouvez ajouter des <u>conditions "where"</u> supplémentaires dans l'encadré suivant, en langage SQL (commencez par <i>and</i>)"""),
+            self.tr("""Vous pouvez ajouter des <u>conditions "where"</u> supplémentaires dans l'encadré suivant, en langage SQL <b style="color:#952132">(commencez par <i>and</i>)</b>"""),
             multiLine=True,
             optional=True
         )
@@ -526,8 +526,8 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
         # Load the PostGIS layer
         load_layer(context, layer_summary)
         # Open the attribute table of the PostGIS layer
-        iface.setActiveLayer(layer_summary)
         iface.showAttributeTable(layer_summary)
+        iface.setActiveLayer(layer_summary)
 
         ### CONSTRUCT THE HISTOGRAM ###
         if len(add_histogram) > 0:
