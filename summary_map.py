@@ -333,10 +333,10 @@ class SummaryMap(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterFeatureSink(
                 self.OUTPUT,
-                self.tr("""<b style="color:#0a84db">ENREGISTREMENT DES RESULTATS</b><br/>
+                self.tr("""<b style="color:#DF7401">EXPORT DES RESULTATS</b><br/>
                     <b>7/</b> Si cela vous intéresse, vous pouvez <u>exporter</u> votre nouvelle couche sur votre ordinateur. <u>Sinon</u>, vous pouvez ignorer cette étape.<br/>
                     <u>Précisions</u> : La couche exportée est une couche figée qui n'est pas rafraîchie à chaque réouverture de QGis, contrairement à la couche PostGIS.<br/>
-                    <font style='color:#06497a'><u>Aide</u> : Cliquez sur le bouton [...] puis sur le type d'export qui vous convient</font>"""),
+                    <font style='color:#DF7401'><u>Aide</u> : Cliquez sur le bouton [...] puis sur le type d'export qui vous convient</font>"""),
                 QgsProcessing.TypeVectorPolygon,
                 optional=True,
                 createByDefault=False

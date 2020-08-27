@@ -322,10 +322,10 @@ class ExtractData(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterFeatureSink(
                 self.OUTPUT,
-                self.tr("""<b style="color:#0a84db">ENREGISTREMENT DES RESULTATS</b><br/>
+                self.tr("""<b style="color:#DF7401">EXPORT DES RESULTATS</b><br/>
                     <b>6/</b> Si cela vous intéresse, vous pouvez <u>exporter</u> votre nouvelle couche sur votre ordinateur. <u>Sinon</u>, vous pouvez ignorer cette étape.<br/>
                     <u>Précisions</u> : La couche exportée est une couche figée qui n'est pas rafraîchie à chaque réouverture de QGis, contrairement à la couche PostGIS.<br/>
-                    <font style='color:#06497a'><u>Aide</u> : Cliquez sur le bouton [...] puis sur le type d'export qui vous convient</font>"""),
+                    <font style='color:#DF7401'><u>Aide</u> : Cliquez sur le bouton [...] puis sur le type d'export qui vous convient</font>"""),
                 QgsProcessing.TypeVectorPoint,
                 optional=True,
                 createByDefault=False
@@ -391,11 +391,11 @@ class ExtractData(QgsProcessingAlgorithm):
         uri = postgis.uri_from_name(connection)
         # Define the SQL query
         query = """SELECT obs.*
-        FROM src_lpodatas.observations obs
+        FROM src_lpodatas.v_c_observations obs
         LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom=t.cd_nom
         WHERE {}""".format(where)
         # Format the URI with the query
-        uri.setDataSource("", "("+query+")", "geom", "", "id_observations")
+        uri.setDataSource("", "("+query+")", "geom", "", "id_synthese")
 
         ### GET THE OUTPUT LAYER ###
         # Retrieve the output PostGIS layer = biodiversity data
