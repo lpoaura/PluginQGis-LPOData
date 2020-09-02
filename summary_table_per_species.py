@@ -110,10 +110,11 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
         return 'Tableaux de synthèse'
 
     def shortDescription(self):
-        return self.tr("""Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données <i>gnlpoaura</i>,  d'obtenir un <b>tableau de synthèse</b> par espèce (couche PostGIS non spatiale) basé sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones).<br/><br/>
-            <b>Pour chaque espèce</b> observée dans la zone d'étude considérée, le tableau fournit les informations suivantes :
+        return self.tr("""Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données <i>gnlpoaura</i>,  d'obtenir un <b>tableau de synthèse</b> par espèce (couche PostgreSQL) basé sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones).<br/><br/>
+            <b>Pour chaque espèce <u>ou</u> groupe d'espèces</b> observée dans la zone d'étude considérée, le tableau fournit les informations suivantes :
             <ul><li>Identifiant VisioNature de l'espèce</li>
             <li>cd_nom et cd_ref</li>
+            <li>Rang</li>
             <li>Groupe taxonomique auquel elle appartient</li>
             <li>Nom français de l'espèce</li>
             <li>Nom scientifique de l'espèce</li>
@@ -360,7 +361,8 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
         # Construct the sql array containing the study area's features geometry
         array_polygons = construct_sql_array_polygons(study_area)
         # Define the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer = summary table
-        where = "is_valid and ST_within(obs.geom, ST_union({}))".format(array_polygons)
+        where = """is_valid
+            and ST_within(obs.geom, ST_union({}))""".format(array_polygons)
         # Define a dictionnary with the aggregated taxons filters and complete the "where" clause thanks to it
         taxons_filters = {
             "groupe_taxo": groupe_taxo,
@@ -386,76 +388,56 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
         # URI --> Configures connection to database and the SQL query
         uri = postgis.uri_from_name(connection)
         # Define the SQL query
-        query = """WITH
-                    obs AS (
+        query = """WITH obs AS (
+                        SELECT obs.*
+                        FROM src_lpodatas.v_c_observations obs
+                        LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
+                        WHERE {}),
+                    communes AS (
+                        SELECT DISTINCT obs.id_synthese, la.area_name
+                        FROM obs
+                        LEFT JOIN gn_synthese.cor_area_synthese cor ON obs.id_synthese = cor.id_synthese
+                        JOIN ref_geo.l_areas la ON cor.id_area = la.id_area
+                        WHERE la.id_type = (SELECT id_type FROM ref_geo.bib_areas_types WHERE type_code = 'COM')),
+                    total_count AS (
+                        SELECT COUNT(*) AS total_count
+                        FROM obs),
+                    data AS (
                         SELECT
-                            obs.*
-                            FROM
-                                src_lpodatas.v_c_observations obs
-                                    LEFT JOIN taxonomie.taxref t ON
-                                    obs.taxref_cdnom = t.cd_nom
-                            WHERE {})
-                , com AS (
-                    SELECT DISTINCT
-                        obs.id_synthese
-                    , la.area_name
-                        FROM
-                            obs
-                                LEFT JOIN gn_synthese.cor_area_synthese cor ON
-                                obs.id_synthese = cor.id_synthese
-                                JOIN ref_geo.l_areas la ON
-                                cor.id_area = la.id_area
-                        WHERE
-                                la.id_type = (SELECT id_type FROM ref_geo.bib_areas_types WHERE type_code = 'COM')
-                )
-                , total_count AS (
-                    SELECT
-                        COUNT(*) AS total_count
-                        FROM
-                            obs)
-                , data AS (
-                    SELECT
                         obs.source_id_sp
-                    , obs.taxref_cdnom                                                                  AS cd_nom
-                    , t.cd_ref
-                    , r.nom_rang
-                    , obs.groupe_taxo
-                    , obs.nom_vern
-                    , obs.nom_sci
-                    , COUNT(*)                                                                          AS nb_donnees
-                    , COUNT(DISTINCT obs.observateur)                                                   AS nb_observateurs
-                    , COUNT(DISTINCT obs.date)                                                          AS nb_dates
-                    , SUM(CASE WHEN mortalite THEN 1 ELSE 0 END)                                        AS nb_mortalite
-                    , lr.lr_france
-                    , lr.lrra
-                    , lr.lrauv
-                    , p.dir_hab
-                    , p.dir_ois
-                    , p.protection_nat
-                    , p.conv_berne
-                    , p.conv_bonn
-                    , max(sn.code_nidif)                                                                AS max_atlas_code
-                    , max(obs.nombre_total)                                                             AS nb_individus_max
-                    , min(obs.date_an)                                                                  AS premiere_observation
-                    , max(obs.date_an)                                                                  AS derniere_observation
-                    , string_agg(DISTINCT com.area_name, ', ') /*FILTER (WHERE bib.type_code = 'COM')*/ AS communes
-                    , string_agg(DISTINCT obs.source, ', ')                                             AS sources
-
-                        FROM
-                            obs
-                                LEFT JOIN referentiel.statut_nidif sn ON
-                                obs.oiso_code_nidif = sn.code_repro
-                                LEFT JOIN taxonomie.taxref t ON
-                                obs.taxref_cdnom = t.cd_nom
-                                LEFT JOIN taxonomie.bib_taxref_rangs r ON
-                                t.id_rang = r.id_rang
-                                LEFT JOIN com ON obs.id_synthese = com.id_synthese
-                                LEFT JOIN taxonomie.vm_statut_lr lr ON
-                                (obs.taxref_cdnom, obs.source_id_sp) = (lr.cd_nom, lr.vn_id)
-                                LEFT JOIN taxonomie.vm_statut_protection p ON
-                                (obs.taxref_cdnom, obs.source_id_sp) = (p.cd_nom, p.vn_id)
+                        , obs.taxref_cdnom                                                                  AS cd_nom
+                        , t.cd_ref
+                        , r.nom_rang
+                        , obs.groupe_taxo
+                        , obs.nom_vern
+                        , obs.nom_sci
+                        , COUNT(*)                                                                          AS nb_donnees
+                        , COUNT(DISTINCT obs.observateur)                                                   AS nb_observateurs
+                        , COUNT(DISTINCT obs.date)                                                          AS nb_dates
+                        , SUM(CASE WHEN mortalite THEN 1 ELSE 0 END)                                        AS nb_mortalite
+                        , lr.lr_france
+                        , lr.lrra
+                        , lr.lrauv
+                        , p.dir_hab
+                        , p.dir_ois
+                        , p.protection_nat
+                        , p.conv_berne
+                        , p.conv_bonn
+                        , max(sn.code_nidif)                                                                AS max_atlas_code
+                        , max(obs.nombre_total)                                                             AS nb_individus_max
+                        , min(obs.date_an)                                                                  AS premiere_observation
+                        , max(obs.date_an)                                                                  AS derniere_observation
+                        , string_agg(DISTINCT com.area_name, ', ') /*FILTER (WHERE bib.type_code = 'COM')*/ AS communes
+                        , string_agg(DISTINCT obs.source, ', ')                                             AS sources
+                        FROM obs
+                        LEFT JOIN referentiel.statut_nidif sn ON obs.oiso_code_nidif = sn.code_repro
+                        LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
+                        LEFT JOIN taxonomie.bib_taxref_rangs r ON t.id_rang = r.id_rang
+                        LEFT JOIN communes com ON obs.id_synthese = com.id_synthese
+                        LEFT JOIN taxonomie.vm_statut_lr lr ON (obs.taxref_cdnom, obs.source_id_sp) = (lr.cd_nom, lr.vn_id)
+                        LEFT JOIN taxonomie.vm_statut_protection p ON (obs.taxref_cdnom, obs.source_id_sp) = (p.cd_nom, p.vn_id)
                         GROUP BY
-                            obs.source_id_sp
+                        obs.source_id_sp
                         , obs.taxref_cdnom
                         , obs.groupe_taxo
                         , obs.nom_vern
@@ -469,54 +451,41 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         , p.dir_ois
                         , p.protection_nat
                         , p.conv_berne
-                        , p.conv_bonn
-                )
-                , synthese AS (
-                    SELECT DISTINCT
+                        , p.conv_bonn),
+                    synthese AS (
+                        SELECT DISTINCT
                         source_id_sp
-                    , cd_nom
-                    , cd_ref
-                    , nom_rang                                          AS rang
-                    , groupe_taxo                                       AS "groupe taxo"
-                    , nom_vern                                          AS "nom vernaculaire"
-                    , nom_sci                                           AS "nom scientifique"
-                    , nb_donnees                                        AS "nb de données"
-                    , ROUND(nb_donnees::DECIMAL / total_count, 4) * 100 AS "nb données / nb données total (%)"
-                    , nb_observateurs                                   AS "nb d'observateurs"
-                    , nb_dates                                          AS "nb de dates"
-                    , nb_mortalite                                      AS "nb de données de mortalité"
-                    , lr_france                                         AS "lr france"
-                    , lrra                                              AS "lr rhône-alpes"
-                    , lrauv                                             AS "lr auvergne"
-                    , dir_hab                                           AS "directive habitats"
-                    , dir_ois                                           AS "directive oiseaux"
-                    , protection_nat                                    AS "protection nationale"
-                    , conv_berne                                        AS "convention de berne"
-                    , conv_bonn                                         AS "convention de bonn"
-                    , sn2.statut_nidif                                  AS "statut nidif"
-                    , nb_individus_max                                  AS "nb d'individus max"
-                    , premiere_observation                              AS "année première obs"
-                    , derniere_observation                              AS "année dernière obs"
-                    , communes                                          AS "liste de communes"
-                    , sources                                           AS sources
-                        FROM
-                            total_count
-                        , data d
-                                LEFT JOIN referentiel.statut_nidif sn2 ON
-                                d.max_atlas_code = sn2.code_nidif
-                        ORDER BY
-                            groupe_taxo, nom_vern)
-
-                SELECT
-                    row_number() OVER () AS id
-                , *
-                    FROM
-                        synthese
-                """.format(where)
+                        , cd_nom
+                        , cd_ref
+                        , nom_rang                                          AS "Rang"
+                        , groupe_taxo                                       AS "Groupe taxo"
+                        , nom_vern                                          AS "Nom vernaculaire"
+                        , nom_sci                                           AS "Nom scientifique"
+                        , nb_donnees                                        AS "Nb de données"
+                        , ROUND(nb_donnees::DECIMAL / total_count, 4) * 100 AS "Nb données / nb données total (%)"
+                        , nb_observateurs                                   AS "Nb d'observateurs"
+                        , nb_dates                                          AS "Nb de dates"
+                        , nb_mortalite                                      AS "Nb de données de mortalité"
+                        , lr_france                                         AS "LR France"
+                        , lrra                                              AS "LR Rhône-Alpes"
+                        , lrauv                                             AS "LR Auvergne"
+                        , dir_hab                                           AS "Directive Habitats"
+                        , dir_ois                                           AS "Directive Oiseaux"
+                        , protection_nat                                    AS "Protection nationale"
+                        , conv_berne                                        AS "Convention de Berne"
+                        , conv_bonn                                         AS "Convention de Bonn"
+                        , sn2.statut_nidif                                  AS "Statut nidif"
+                        , nb_individus_max                                  AS "Nb d'individus max"
+                        , premiere_observation                              AS "Année première obs"
+                        , derniere_observation                              AS "Année dernière obs"
+                        , communes                                          AS "Liste de communes"
+                        , sources                                           AS "Sources"
+                        FROM total_count, data d
+                        LEFT JOIN referentiel.statut_nidif sn2 ON d.max_atlas_code = sn2.code_nidif
+                        ORDER BY groupe_taxo, nom_vern)
+                    SELECT row_number() OVER () AS id, *
+                    FROM synthese""".format(where)
         feedback.pushInfo(query)
-        #LEFT JOIN ref_geo.l_areas la ON public.ST_INTERSECTS(obs.geom, la.geom)
-        #left join gn_synthese.cor_area_synthese cor on obs.id_synthese = cor.id_synthese 
-        #LEFT JOIN ref_geo.l_areas la ON cor.id_area = la.id_area 
         # Retrieve the boolean add_table
         add_table = self.parameterAsBool(parameters, self.ADD_TABLE, context)
         if add_table:
