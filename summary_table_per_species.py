@@ -485,7 +485,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         ORDER BY groupe_taxo, nom_vern)
                     SELECT row_number() OVER () AS id, *
                     FROM synthese""".format(where)
-        feedback.pushInfo(query)
+        #feedback.pushInfo(query)
         # Retrieve the boolean add_table
         add_table = self.parameterAsBool(parameters, self.ADD_TABLE, context)
         if add_table:

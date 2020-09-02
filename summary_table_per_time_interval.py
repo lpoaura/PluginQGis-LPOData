@@ -496,7 +496,7 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
         uri = postgis.uri_from_name(connection)
         # Define the SQL query
         query = """SELECT row_number() OVER () AS id, {}{}
-            FROM src_lpodatas.observations obs
+            FROM src_lpodatas.v_c_observations obs
             LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
             LEFT JOIN taxonomie.bib_taxref_rangs r ON t.id_rang = r.id_rang
             WHERE {}
