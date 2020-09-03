@@ -63,7 +63,8 @@ def check_layer_is_valid(feedback, layer):
     """
     if not layer.isValid():
         raise QgsProcessingException(""""La couche PostGIS chargée n'est pas valide !
-            Checkez les logs de PostGIS pour visualiser les messages d'erreur.""")
+            Checkez les logs de PostGIS pour visualiser les messages d'erreur.
+            Pour cela, rendez-vous dans l'onglet Vue > Panneaux > Journal des messages, puis onglet PostGIS.""")
     else:
         #iface.messageBar().pushMessage("Info", "La couche PostGIS demandée est valide, la requête SQL a été exécutée avec succès !", level=Qgis.Info, duration=10)
         feedback.pushInfo("La couche PostGIS demandée est valide, la requête SQL a été exécutée avec succès !")
@@ -76,7 +77,13 @@ def construct_sql_array_polygons(layer):
     # Initialization of the sql array containing the study area's features geometry
     array_polygons = "array["
     # Retrieve the CRS of the layer
-    crs = layer.sourceCrs().authid().split(':')[1]
+    crs = layer.sourceCrs().authid()
+    if crs.split(':')[0] != 'EPSG':
+        raise QgsProcessingException("""Le SCR (système de coordonnées de référence) de votre couche zone d'étude n'est pas de type 'EPSG'.
+            Veuillez choisir un SCR adéquat.
+            NB : 'EPSG:2154' pour Lambert 93 !""")
+    else:
+        crs = crs.split(':')[1]
     # For each entity in the study area...
     for feature in layer.getFeatures():
         # Retrieve the geometry
