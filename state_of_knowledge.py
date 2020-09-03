@@ -137,6 +137,7 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
             <li>Liste des espèces impliquées</li>
             <li>Liste des communes</li>
             <li>Liste des sources VisioNature</li></ul><br/>
+            <b style='color:#952132'>Les données d'absence sont exclues de ce traitement.</b><br/><br/>
             <font style='color:#0a84db'><u>IMPORTANT</u> : Les <b>étapes indispensables</b> sont marquées d'une <b>étoile *</b> avant leur numéro. Prenez le temps de lire <u>attentivement</U> les instructions pour chaque étape, et particulièrement les</font> <font style ='color:#952132'>informations en rouge</font> <font style='color:#0a84db'>!</font>""")
 
     def initAlgorithm(self, config=None):
@@ -424,7 +425,7 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
         # Construct the sql array containing the study area's features geometry
         array_polygons = construct_sql_array_polygons(study_area)
         # Define the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer = summary table
-        where = "is_valid and ST_within(obs.geom, ST_union({}))".format(array_polygons)
+        where = "is_valid and is_present and ST_within(obs.geom, ST_union({}))".format(array_polygons)
         # Define a dictionnary with the aggregated taxons filters and complete the "where" clause thanks to it
         taxons_filters = {
             "groupe_taxo": groupe_taxo,

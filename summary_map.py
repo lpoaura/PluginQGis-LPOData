@@ -121,7 +121,8 @@ class SummaryMap(QgsProcessingAlgorithm):
             <li>Nombre d'observateurs</li>
             <li>Nombre de dates</li>
             <li>Nombre de données de mortalité</li>
-            <li>Liste des espèces observées</li></ul>
+            <li>Liste des espèces observées</li></ul><br/>
+            <b style='color:#952132'>Les données d'absence sont exclues de ce traitement.</b><br/><br/>
             Vous pouvez ensuite modifier la <b>symbologie</b> de la couche comme bon vous semble, en fonction du critère de votre choix.<br/><br/>
             <font style='color:#0a84db'><u>IMPORTANT</u> : Les <b>étapes indispensables</b> sont marquées d'une <b>étoile *</b> avant leur numéro. Prenez le temps de lire <u>attentivement</u> les instructions pour chaque étape, et particulièrement les</font> <font style ='color:#952132'>informations en rouge</font> <font style='color:#0a84db'>!</font>""")
 
@@ -376,8 +377,8 @@ class SummaryMap(QgsProcessingAlgorithm):
         array_polygons = construct_sql_array_polygons(study_area)
         # Define the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer = map data
         where = "ST_intersects(la.geom, ST_union({}))".format(array_polygons)
-        # Define the "where" filter for "Nb de données" and "Nb d'espèces"
-        where_filter = "is_valid"
+        # Define the "where" filter for selected data
+        where_filter = "is_valid and is_present"
         # Define a dictionnary with the aggregated taxons filters and complete the "where" clause thanks to it
         taxons_filters = {
             "groupe_taxo": groupe_taxo,
@@ -412,9 +413,9 @@ class SummaryMap(QgsProcessingAlgorithm):
                 COUNT(DISTINCT date) filter (where {}) AS "Nb de dates",
                 SUM(CASE WHEN mortalite THEN 1 ELSE 0 END) filter (where {}) AS "Nb de données de mortalité",
                 string_agg(DISTINCT obs.nom_vern,', ') filter (where {}) AS "Liste des espèces observées"
-            from ref_geo.l_areas la
-            left join gn_synthese.cor_area_synthese cor on la.id_area=cor.id_area
-            left join src_lpodatas.v_c_observations obs on cor.id_synthese=obs.id_synthese
+            FROM ref_geo.l_areas la
+            LEFT JOIN gn_synthese.cor_area_synthese cor on la.id_area=cor.id_area
+            LEFT JOIN src_lpodatas.v_c_observations obs on cor.id_synthese=obs.id_synthese
             LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
             WHERE la.id_type=(SELECT id_type FROM ref_geo.bib_areas_types WHERE type_name = '{}') and {}
             GROUP BY area_name, area_code, la.geom

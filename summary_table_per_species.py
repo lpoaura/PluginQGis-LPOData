@@ -110,7 +110,8 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
         return 'Tableaux de synthèse'
 
     def shortDescription(self):
-        return self.tr("""Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données <i>gnlpoaura</i>,  d'obtenir un <b>tableau de synthèse</b> par espèce (couche PostgreSQL) basé sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones).<br/><br/>
+        return self.tr("""Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données <i>gnlpoaura</i>,  d'obtenir un <b>tableau de synthèse</b> par espèce (couche PostgreSQL) basé sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones).
+            <b style='color:#952132'>Les données d'absence sont exclues de ce traitement.</b><br/><br/>
             <b>Pour chaque espèce <u>ou</u> groupe d'espèces</b> observée dans la zone d'étude considérée, le tableau fournit les informations suivantes :
             <ul><li>Identifiant VisioNature de l'espèce</li>
             <li>cd_nom et cd_ref</li>
@@ -361,8 +362,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
         # Construct the sql array containing the study area's features geometry
         array_polygons = construct_sql_array_polygons(study_area)
         # Define the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer = summary table
-        where = """is_valid
-            and ST_within(obs.geom, ST_union({}))""".format(array_polygons)
+        where = """is_valid and is_present and ST_within(obs.geom, ST_union({}))""".format(array_polygons)
         # Define a dictionnary with the aggregated taxons filters and complete the "where" clause thanks to it
         taxons_filters = {
             "groupe_taxo": groupe_taxo,
