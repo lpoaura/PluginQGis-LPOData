@@ -241,7 +241,7 @@ class ExtractData(QgsProcessingAlgorithm):
 
         group1_inpn = QgsProcessingParameterEnum(
             self.GROUP1_INPN,
-            self.tr("- Groupe 1 INPN :"),
+            self.tr("- Groupe 1 INPN (regroupement vernaculaire du référentiel national - niveau 1) :"),
             self.db_variables.value("group1_inpn"),
             allowMultiple=True,
             optional=True
@@ -251,7 +251,7 @@ class ExtractData(QgsProcessingAlgorithm):
 
         group2_inpn = QgsProcessingParameterEnum(
             self.GROUP2_INPN,
-            self.tr("- Groupe 2 INPN :"),
+            self.tr("- Groupe 2 INPN (regroupement vernaculaire du référentiel national - niveau 2) :"),
             self.db_variables.value("group2_inpn"),
             allowMultiple=True,
             optional=True
