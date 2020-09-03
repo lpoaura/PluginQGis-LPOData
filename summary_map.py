@@ -408,11 +408,11 @@ class SummaryMap(QgsProcessingAlgorithm):
                 ROUND(ST_area(la.geom)::decimal/1000000, 2) AS "Surface (km2)",
                 COUNT(*) filter (where {}) AS "Nb de données",
                 ROUND((COUNT(*) filter (where {})) / ROUND(ST_area(la.geom)::decimal/1000000, 2), 2) AS "Densité (Nb de données/km2)",
-                COUNT(DISTINCT t.cd_ref) filter (where {}) AS "Nb d'espèces",
+                COUNT(DISTINCT t.cd_ref) filter (where t.id_rang='ES' and {}) AS "Nb d'espèces",
                 COUNT(DISTINCT observateur) filter (where {}) AS "Nb d'observateurs",
                 COUNT(DISTINCT date) filter (where {}) AS "Nb de dates",
                 SUM(CASE WHEN mortalite THEN 1 ELSE 0 END) filter (where {}) AS "Nb de données de mortalité",
-                string_agg(DISTINCT obs.nom_vern,', ') filter (where {}) AS "Liste des espèces observées"
+                string_agg(DISTINCT obs.nom_vern,', ') filter (where t.id_rang='ES' and {}) AS "Liste des espèces observées"
             FROM ref_geo.l_areas la
             LEFT JOIN gn_synthese.cor_area_synthese cor on la.id_area=cor.id_area
             LEFT JOIN src_lpodatas.v_c_observations obs on cor.id_synthese=obs.id_synthese

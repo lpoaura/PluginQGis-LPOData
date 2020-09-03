@@ -468,13 +468,13 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
         SELECT row_number() OVER () AS id, COALESCE({}, 'Pas de correspondance taxref') AS "{}", {}
             COUNT(*) AS "Nb de données",
             ROUND(COUNT(*)::decimal/total_count, 4)*100 AS "Nb données / Nb données TOTAL (%)",
-            COUNT(DISTINCT t.cd_ref) AS "Nb d'espèces",
+            COUNT(DISTINCT t.cd_ref) filter (where t.id_rang='ES') AS "Nb d'espèces",
             COUNT(DISTINCT observateur) AS "Nb d'observateurs", 
             COUNT(DISTINCT date) AS "Nb de dates",
             SUM(CASE WHEN mortalite THEN 1 ELSE 0 END) AS "Nb de données de mortalité",
             max(nombre_total) AS "Nb d'individus max",
             min (date_an) AS "Année première obs", max(date_an) AS "Année dernière obs",
-            string_agg(DISTINCT obs.nom_vern,', ') AS "Liste des espèces",
+            string_agg(DISTINCT obs.nom_vern,', ') filter (where t.id_rang='ES') AS "Liste des espèces",
             string_agg(DISTINCT com.area_name,', ') AS "Communes",
             string_agg(DISTINCT obs.source,', ') AS "Sources"
         FROM total_count, obs
