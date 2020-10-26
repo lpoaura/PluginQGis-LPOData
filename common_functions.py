@@ -64,7 +64,7 @@ def check_layer_is_valid(feedback, layer):
     if not layer.isValid():
         raise QgsProcessingException(""""La couche PostGIS chargée n'est pas valide !
             Checkez les logs de PostGIS pour visualiser les messages d'erreur.
-            Pour cela, rendez-vous dans l'onglet Vue > Panneaux > Journal des messages, puis onglet PostGIS.""")
+            Pour cela, rendez-vous dans l'onglet "Vue > Panneaux > Journal des messages" de QGis, puis l'onglet "PostGIS".""")
     else:
         #iface.messageBar().pushMessage("Info", "La couche PostGIS demandée est valide, la requête SQL a été exécutée avec succès !", level=Qgis.Info, duration=10)
         feedback.pushInfo("La couche PostGIS demandée est valide, la requête SQL a été exécutée avec succès !")

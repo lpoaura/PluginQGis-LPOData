@@ -381,8 +381,6 @@ class ExtractData(QgsProcessingAlgorithm):
         where += datetime_where
         # Complete the "where" clause with the extra conditions
         where += " " + extra_where
-        
-        #feedback.pushInfo(where)
 
         ### EXECUTE THE SQL QUERY ###
         # Retrieve the data base connection name
@@ -394,6 +392,7 @@ class ExtractData(QgsProcessingAlgorithm):
         FROM src_lpodatas.v_c_observations obs
         LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom=t.cd_nom
         WHERE {}""".format(where)
+        #feedback.pushInfo(query)
         # Format the URI with the query
         uri.setDataSource("", "("+query+")", "geom", "", "id_synthese")
 
