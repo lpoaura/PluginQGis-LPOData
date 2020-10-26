@@ -404,8 +404,8 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         FROM obs),
                     data AS (
                         SELECT
-                        obs.source_id_sp
-                        , obs.taxref_cdnom                                                                  AS cd_nom
+                        /*obs.source_id_sp
+                        , */obs.taxref_cdnom                                                                  AS cd_nom
                         , t.cd_ref
                         , r.nom_rang
                         , obs.groupe_taxo
@@ -434,11 +434,11 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
                         LEFT JOIN taxonomie.bib_taxref_rangs r ON t.id_rang = r.id_rang
                         LEFT JOIN communes com ON obs.id_synthese = com.id_synthese
-                        LEFT JOIN taxonomie.vm_statut_lr lr ON (obs.taxref_cdnom, obs.source_id_sp) = (lr.cd_nom, lr.vn_id)
-                        LEFT JOIN taxonomie.vm_statut_protection p ON (obs.taxref_cdnom, obs.source_id_sp) = (p.cd_nom, p.vn_id)
+                        LEFT JOIN taxonomie.vm_statut_lr lr ON (obs.taxref_cdnom/*, obs.source_id_sp*/) = (lr.cd_nom/*, lr.vn_id*/)
+                        LEFT JOIN taxonomie.vm_statut_protection p ON (obs.taxref_cdnom/*, obs.source_id_sp*/) = (p.cd_nom/*, p.vn_id*/)
                         GROUP BY
-                        obs.source_id_sp
-                        , obs.taxref_cdnom
+                        /*obs.source_id_sp
+                        , */obs.taxref_cdnom
                         , obs.groupe_taxo
                         , obs.nom_vern
                         , obs.nom_sci
@@ -454,8 +454,8 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         , p.conv_bonn),
                     synthese AS (
                         SELECT DISTINCT
-                        source_id_sp
-                        , cd_nom
+                        /*source_id_sp
+                        ,*/ cd_nom
                         , cd_ref
                         , nom_rang                                          AS "Rang"
                         , groupe_taxo                                       AS "Groupe taxo"
