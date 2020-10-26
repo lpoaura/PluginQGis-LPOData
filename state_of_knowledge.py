@@ -2,7 +2,7 @@
 
 """
 /***************************************************************************
-        ScriptsLPO : extract_data.py
+        ScriptsLPO : state_of_knowledge.py
         -------------------
         Date                 : 2020-04-16
         Copyright            : (C) 2020 by Elsa Guilley (LPO AuRA)
@@ -27,7 +27,9 @@ __copyright__ = '(C) 2020 by Elsa Guilley (LPO AuRA)'
 __revision__ = '$Format:%H$'
 
 import os
+from qgis.utils import iface
 from datetime import datetime
+import matplotlib.pyplot as plt
 
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtCore import Qt, QCoreApplication, QDate
@@ -41,13 +43,14 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterFeatureSource,
                        QgsProcessingParameterEnum,
                        QgsProcessingOutputVectorLayer,
-                       QgsProcessingParameterFeatureSink,
+                       QgsProcessingParameterBoolean,
+                       QgsProcessingParameterFileDestination,
                        QgsProcessingParameterDefinition,
                        QgsDataSourceUri,
                        QgsVectorLayer,
-                       QgsProcessingException,)
+                       QgsProcessingException)
 from processing.tools import postgis
-from .common_functions import check_layer_is_valid, construct_sql_array_polygons, construct_sql_taxons_filter, construct_sql_datetime_filter, load_layer, format_layer_export
+from .common_functions import simplify_name, check_layer_is_valid, construct_sql_array_polygons, construct_queries_list, construct_sql_taxons_filter, construct_sql_datetime_filter, load_layer, execute_sql_queries
 
 pluginPath = os.path.dirname(__file__)
 
@@ -68,17 +71,16 @@ class DateTimeWidget(WidgetWrapper):
         date_chosen = self._combo.dateTime()
         return date_chosen.toString(Qt.ISODate)
 
-class ExtractData(QgsProcessingAlgorithm):
+class StateOfKnowledge(QgsProcessingAlgorithm):
     """
     This algorithm takes a connection to a data base and a vector polygons layer and
-    returns an intersected points PostGIS layer.
+    returns a summary non geometric PostGIS layer.
     """
 
     # Constants used to refer to parameters and outputs
     DATABASE = 'DATABASE'
-    #SCHEMA = 'SCHEMA'
-    #TABLENAME = 'TABLENAME'
     STUDY_AREA = 'STUDY_AREA'
+    TAXONOMIC_RANK = 'TAXONOMIC_RANK'
     GROUPE_TAXO = 'GROUPE_TAXO'
     REGNE = 'REGNE'
     PHYLUM = 'PHYLUM'
@@ -93,24 +95,49 @@ class ExtractData(QgsProcessingAlgorithm):
     EXTRA_WHERE = 'EXTRA_WHERE'
     OUTPUT = 'OUTPUT'
     OUTPUT_NAME = 'OUTPUT_NAME'
+    ADD_TABLE = 'ADD_TABLE'
+    OUTPUT_HISTOGRAM = 'OUTPUT_HISTOGRAM'
+    HISTOGRAM_OPTIONS = 'HISTOGRAM_OPTIONS'
 
     def name(self):
-        return 'ExtractData'
+        return 'StateOfKnowledge'
 
     def displayName(self):
-        return "Extraction de données d'observation"
+        return 'État des connaissances'
 
     def icon(self):
-        return QIcon(os.path.join(pluginPath, 'icons', 'extract_data.png'))
+        return QIcon(os.path.join(pluginPath, 'icons', 'table.png'))
 
     def groupId(self):
-        return 'raw_data'
+        return 'summary_tables'
 
     def group(self):
-        return 'Données brutes'
+        return 'Tableaux de synthèse'
 
     def shortDescription(self):
-        return self.tr("""Cet algorithme vous permet d'<b>extraire des données d'observation</b> contenues dans la base de données <i>gnlpoaura</i> (couche PostGIS de type points) à partir d'une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones).<br/><br/>
+        return self.tr("""Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données <i>gnlpoaura</i>,  d'obtenir un <b>état des connaissances</b> par taxon (couche PostgreSQL), basé sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones) et selon le rang taxonomique de votre choix, à savoir :
+            <ul><li>Groupes taxonomiques</li>
+            <li>Règnes</li>
+            <li>Phylum</li>
+            <li>Classes</li>
+            <li>Ordres</li>
+            <li>Familles</li>
+            <li>Groupes 1 INPN</li>
+            <li>Groupes 2 INPN</li></ul>
+            Cet état des connaissances correspond en fait à un <b>tableau</b>, qui, pour chaque taxon observé dans la zone d'étude considérée, fournit les informations suivantes :
+            <ul><li>Nombre de données</li>
+            <li>Nombre de données / Nombre de données TOTAL</li>
+            <li>Nombre d'espèces</li>
+            <li>Nombre d'observateurs</li>
+            <li>Nombre de dates</li>
+            <li>Nombre de données de mortalité</li>
+            <li>Nombre d'individus maximum recensé pour une observation</li>
+            <li>Année de la première observation</li>
+            <li>Année de la dernière observation</li>
+            <li>Liste des espèces impliquées</li>
+            <li>Liste des communes</li>
+            <li>Liste des sources VisioNature</li></ul><br/>
+            <b style='color:#952132'>Les données d'absence sont exclues de ce traitement.</b><br/><br/>
             <font style='color:#0a84db'><u>IMPORTANT</u> : Les <b>étapes indispensables</b> sont marquées d'une <b>étoile *</b> avant leur numéro. Prenez le temps de lire <u>attentivement</U> les instructions pour chaque étape, et particulièrement les</font> <font style ='color:#952132'>informations en rouge</font> <font style='color:#0a84db'>!</font>""")
 
     def initAlgorithm(self, config=None):
@@ -120,7 +147,9 @@ class ExtractData(QgsProcessingAlgorithm):
         """
 
         self.db_variables = QgsSettings()
+        self.taxonomic_ranks_variables = ["Groupes taxonomiques", "Règnes", "Phylum", "Classes", "Ordres", "Familles", "Groupes 1 INPN (regroupement vernaculaire du référentiel national - niveau 1)", "Groupes 2 INPN (regroupement vernaculaire du référentiel national - niveau 2)"]
         self.period_variables = ["Pas de filtre temporel", "5 dernières années", "10 dernières années", "Date de début - Date de fin (à définir ci-dessous)"]
+        histogram_variables = ["Pas d'histogramme", "Histogramme du nombre de données par taxon", "Histogramme du nombre d'espèces par taxon", "Histogramme du nombre d'observateurs par taxon", "Histogramme du nombre de dates par taxon", "Histogramme du nombre de données de mortalité par taxon"]
 
         # Data base connection
         db_param = QgsProcessingParameterString(
@@ -130,57 +159,46 @@ class ExtractData(QgsProcessingAlgorithm):
             defaultValue='gnlpoaura'
         )
         db_param.setMetadata(
-            {'widget_wrapper': {'class': 'processing.gui.wrappers_postgis.ConnectionWidgetWrapper'}}
+            {
+                'widget_wrapper': {'class': 'processing.gui.wrappers_postgis.ConnectionWidgetWrapper'}
+            }
         )
         self.addParameter(db_param)
-
-        # # List of DB schemas
-        # schema_param = QgsProcessingParameterString(
-        #     self.SCHEMA,
-        #     self.tr('Schéma'),
-        #     defaultValue='public'
-        # )
-        # schema_param.setMetadata(
-        #     {
-        #         'widget_wrapper': {
-        #             'class': 'processing.gui.wrappers_postgis.SchemaWidgetWrapper',
-        #             'connection_param': self.DATABASE
-        #         }
-        #     }
-        # )
-        # self.addParameter(schema_param)
-
-        # # List of DB tables
-        # table_param = QgsProcessingParameterString(
-        #     self.TABLENAME,
-        #     self.tr('Table')
-        # )
-        # table_param.setMetadata(
-        #     {
-        #         'widget_wrapper': {
-        #             'class': 'processing.gui.wrappers_postgis.TableWidgetWrapper',
-        #             'schema_param': self.SCHEMA
-        #         }
-        #     }
-        # )
-        # self.addParameter(table_param)
 
         # Input vector layer = study area
         self.addParameter(
             QgsProcessingParameterFeatureSource(
                 self.STUDY_AREA,
                 self.tr("""<b style="color:#0a84db">ZONE D'ÉTUDE</b><br/>
-                    <b>*2/</b> Sélectionnez votre <u>zone d'étude</u>, à partir de laquelle seront extraites les données d'observations"""),
+                    <b>*2/</b> Sélectionnez votre <u>zone d'étude</u>, à partir de laquelle seront extraits les résultats"""),
                 [QgsProcessing.TypeVectorPolygon]
             )
         )
+
+        # Taxonomic rank
+        taxonomic_rank = QgsProcessingParameterEnum(
+            self.TAXONOMIC_RANK,
+            self.tr("""<b style="color:#0a84db">RANG TAXONOMIQUE</b><br/>
+                <b>*3/</b> Sélectionnez le <u>rang taxonomique</u> qui vous intéresse"""),
+            self.taxonomic_ranks_variables,
+            allowMultiple=False
+        )
+        taxonomic_rank.setMetadata(
+            {
+                'widget_wrapper': {
+                    'useCheckBoxes': True,
+                    'columns': len(self.taxonomic_ranks_variables)/2
+                }
+            }
+        )
+        self.addParameter(taxonomic_rank)
 
         ### Taxons filters ###
         self.addParameter(
             QgsProcessingParameterEnum(
                 self.GROUPE_TAXO,
                 self.tr("""<b style="color:#0a84db">FILTRES DE REQUÊTAGE</b><br/>
-                    <b>3/</b> Si cela vous intéresse, vous pouvez sélectionner un/plusieurs <u>taxon(s)</u> dans la liste déroulante suivante (à choix multiples)<br/> pour filtrer vos données d'observations. <u>Sinon</u>, vous pouvez ignorer cette étape.<br/>
+                    <b>4/</b> Si cela vous intéresse, vous pouvez sélectionner un/plusieurs <u>taxon(s)</u> dans la liste déroulante suivante (à choix multiples)<br/> pour filtrer vos données d'observations. <u>Sinon</u>, vous pouvez ignorer cette étape.<br/>
                     <i style="color:#952132"><b>N.B.</b> : D'autres filtres taxonomiques sont disponibles dans les paramètres avancés (plus bas, juste avant l'enregistrement des résultats).</i><br/>
                     - Groupes taxonomiques :"""),
                 self.db_variables.value("groupe_taxo"),
@@ -260,14 +278,14 @@ class ExtractData(QgsProcessingAlgorithm):
         self.addParameter(group2_inpn)
 
         ### Datetime filter ###
-        period_type = QgsProcessingParameterEnum(
+        period = QgsProcessingParameterEnum(
             self.PERIOD,
-            self.tr("<b>*4/</b> Sélectionnez une <u>période</u> pour filtrer vos données d'observations"),
+            self.tr("<b>*5/</b> Sélectionnez une <u>période</u> pour filtrer vos données d'observations"),
             self.period_variables,
             allowMultiple=False,
             optional=False
         )
-        period_type.setMetadata(
+        period.setMetadata(
             {
                 'widget_wrapper': {
                     'useCheckBoxes': True,
@@ -275,7 +293,7 @@ class ExtractData(QgsProcessingAlgorithm):
                 }
             }
         )
-        self.addParameter(period_type)
+        self.addParameter(period)
 
         start_date = QgsProcessingParameterString(
             self.START_DATE,
@@ -308,25 +326,58 @@ class ExtractData(QgsProcessingAlgorithm):
         extra_where.setFlags(extra_where.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(extra_where)
 
+        # Output PostGIS layer = summary table
+        self.addOutput(
+            QgsProcessingOutputVectorLayer(
+                self.OUTPUT,
+                self.tr('Couche en sortie'),
+                QgsProcessing.TypeVectorAnyGeometry
+            )
+        )
+
         # Output PostGIS layer name
         self.addParameter(
             QgsProcessingParameterString(
                 self.OUTPUT_NAME,
                 self.tr("""<b style="color:#0a84db">PARAMÉTRAGE DES RESULTATS EN SORTIE</b><br/>
-                    <b>*5/</b> Définissez un <u>nom</u> pour votre nouvelle couche PostGIS"""),
-                self.tr("Données d'observation")
+                    <b>*6/</b> Définissez un <u>nom</u> pour votre nouvelle couche PostGIS"""),
+                self.tr("État des connaissances")
             )
         )
 
-        # Output PostGIS layer = biodiversity data
+        # Boolean : True = add the summary table in the DB ; False = don't
         self.addParameter(
-            QgsProcessingParameterFeatureSink(
-                self.OUTPUT,
-                self.tr("""<b style="color:#DF7401">EXPORT DES RESULTATS</b><br/>
-                    <b>6/</b> Si cela vous intéresse, vous pouvez <u>exporter</u> votre nouvelle couche sur votre ordinateur. <u>Sinon</u>, vous pouvez ignorer cette étape.<br/>
-                    <u>Précisions</u> : La couche exportée est une couche figée qui n'est pas rafraîchie à chaque réouverture de QGis, contrairement à la couche PostGIS.<br/>
-                    <font style='color:#DF7401'><u>Aide</u> : Cliquez sur le bouton [...] puis sur le type d'export qui vous convient</font>"""),
-                QgsProcessing.TypeVectorPoint,
+            QgsProcessingParameterBoolean(
+                self.ADD_TABLE,
+                self.tr("Enregistrer les résultats en sortie dans une nouvelle table PostgreSQL"),
+                defaultValue=False
+            )
+        )
+
+        ### Histogram ###
+        histogram_options = QgsProcessingParameterEnum(
+            self.HISTOGRAM_OPTIONS,
+            self.tr("<b>7/</b> Si cela vous intéresse, vous pouvez <u>exporter</u> les résultats sous forme d'<u>histogramme</u>. Dans ce cas, sélectionnez le type<br/> d'histogramme qui vous convient. <u>Sinon</u>, vous pouvez ignorer cette étape."),
+            histogram_variables,
+            defaultValue="Pas d'histogramme"
+        )
+        histogram_options.setMetadata(
+            {
+                'widget_wrapper': {
+                    'useCheckBoxes': True,
+                    'columns': len(histogram_variables)/3
+                }
+            }
+        )
+        self.addParameter(histogram_options)
+
+        self.addParameter(
+            QgsProcessingParameterFileDestination(
+                self.OUTPUT_HISTOGRAM,
+                self.tr("""<b style="color:#0a84db">ENREGISTREMENT DES RESULTATS</b><br/>
+                <b>8/</b> <u style="color:#952132">Si (et seulement si !)</u> vous avez sélectionné un type d'<u>histogramme</u>, veuillez renseigner un emplacement pour l'enregistrer<br/> sur votre ordinateur (au format image). <u>Dans le cas contraire</u>, vous pouvez ignorer cette étape.<br/>
+                <font style='color:#06497a'><u>Aide</u> : Cliquez sur le bouton [...] puis sur 'Enregistrer vers un fichier...'</font>"""),
+                self.tr('image PNG (*.png)'),
                 optional=True,
                 createByDefault=False
             )
@@ -344,6 +395,11 @@ class ExtractData(QgsProcessingAlgorithm):
         layer_name = self.parameterAsString(parameters, self.OUTPUT_NAME, context)
         ts = datetime.now()
         format_name = "{} {}".format(layer_name, str(ts.strftime('%Y%m%d_%H%M%S')))
+        # Retrieve the taxonomic rank
+        taxonomic_ranks_labels = ["Groupe taxo", "Règne", "Phylum", "Classe", "Ordre", "Famille", "Groupe 1 INPN", "Groupe 2 INPN"]
+        taxonomic_ranks_db = ["groupe_taxo", "regne", "phylum", "classe", "ordre", "famille", "obs.group1_inpn", "obs.group2_inpn"]
+        taxonomic_rank_label = taxonomic_ranks_labels[self.parameterAsEnum(parameters, self.TAXONOMIC_RANK, context)]
+        taxonomic_rank_db = taxonomic_ranks_db[self.parameterAsEnum(parameters, self.TAXONOMIC_RANK, context)]
         # Retrieve the taxons filters
         groupe_taxo = [self.db_variables.value('groupe_taxo')[i] for i in (self.parameterAsEnums(parameters, self.GROUPE_TAXO, context))]
         regne = [self.db_variables.value('regne')[i] for i in (self.parameterAsEnums(parameters, self.REGNE, context))]
@@ -354,15 +410,22 @@ class ExtractData(QgsProcessingAlgorithm):
         group1_inpn = [self.db_variables.value('group1_inpn')[i] for i in (self.parameterAsEnums(parameters, self.GROUP1_INPN, context))]
         group2_inpn = [self.db_variables.value('group2_inpn')[i] for i in (self.parameterAsEnums(parameters, self.GROUP2_INPN, context))]
         # Retrieve the datetime filter
-        period_type = self.period_variables[self.parameterAsEnum(parameters, self.PERIOD, context)]
+        period = self.period_variables[self.parameterAsEnum(parameters, self.PERIOD, context)]
         # Retrieve the extra "where" conditions
         extra_where = self.parameterAsString(parameters, self.EXTRA_WHERE, context)
+        # Retrieve the histogram parameter
+        histogram_variables = ["Pas d'histogramme", "Nb de données", "Nb d'espèces", "Nb d'observateurs", "Nb de dates", "Nb de données de mortalité"]
+        histogram_option = histogram_variables[self.parameterAsEnum(parameters, self.HISTOGRAM_OPTIONS, context)]
+        if histogram_option != "Pas d'histogramme":
+            output_histogram = self.parameterAsFileOutput(parameters, self.OUTPUT_HISTOGRAM, context)
+            if output_histogram == "":
+                raise QgsProcessingException("Veuillez renseigner un emplacement pour enregistrer votre histogramme !")
 
         ### CONSTRUCT "WHERE" CLAUSE (SQL) ###
         # Construct the sql array containing the study area's features geometry
         array_polygons = construct_sql_array_polygons(study_area)
-        # Define the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer = biodiversity data
-        where = "is_valid and ST_within(geom, ST_union({}))".format(array_polygons)
+        # Define the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer = summary table
+        where = "is_valid and is_present and ST_within(obs.geom, ST_union({}))".format(array_polygons)
         # Define a dictionnary with the aggregated taxons filters and complete the "where" clause thanks to it
         taxons_filters = {
             "groupe_taxo": groupe_taxo,
@@ -377,7 +440,7 @@ class ExtractData(QgsProcessingAlgorithm):
         taxons_where = construct_sql_taxons_filter(taxons_filters)
         where += taxons_where
         # Complete the "where" clause with the datetime filter
-        datetime_where = construct_sql_datetime_filter(self, period_type, ts, parameters, context)
+        datetime_where = construct_sql_datetime_filter(self, period, ts, parameters, context)
         where += datetime_where
         # Complete the "where" clause with the extra conditions
         where += " " + extra_where
@@ -388,38 +451,91 @@ class ExtractData(QgsProcessingAlgorithm):
         # URI --> Configures connection to database and the SQL query
         uri = postgis.uri_from_name(connection)
         # Define the SQL query
-        query = """SELECT obs.*
-        FROM src_lpodatas.v_c_observations obs
+        query = """WITH obs AS (
+            SELECT obs.*
+            FROM src_lpodatas.v_c_observations obs
+            LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
+            WHERE {}),
+        communes AS (
+            SELECT DISTINCT obs.id_synthese, la.area_name
+            FROM obs
+            LEFT JOIN gn_synthese.cor_area_synthese cor ON obs.id_synthese = cor.id_synthese
+            JOIN ref_geo.l_areas la ON cor.id_area = la.id_area
+            WHERE la.id_type = (SELECT id_type FROM ref_geo.bib_areas_types WHERE type_code = 'COM')),
+        total_count AS (
+            SELECT COUNT(*) AS total_count
+            FROM obs)
+        SELECT row_number() OVER () AS id, COALESCE({}, 'Pas de correspondance taxref') AS "{}", {}
+            COUNT(*) AS "Nb de données",
+            ROUND(COUNT(*)::decimal/total_count, 4)*100 AS "Nb données / Nb données TOTAL (%)",
+            COUNT(DISTINCT t.cd_ref) FILTER (WHERE t.id_rang='ES') AS "Nb d'espèces",
+            COUNT(DISTINCT observateur) AS "Nb d'observateurs", 
+            COUNT(DISTINCT date) AS "Nb de dates",
+            SUM(CASE WHEN mortalite THEN 1 ELSE 0 END) AS "Nb de données de mortalité",
+            max(nombre_total) AS "Nb d'individus max",
+            min (date_an) AS "Année première obs", max(date_an) AS "Année dernière obs",
+            string_agg(DISTINCT obs.nom_vern,', ') FILTER (WHERE t.id_rang='ES') AS "Liste des espèces",
+            string_agg(DISTINCT com.area_name,', ') AS "Communes",
+            string_agg(DISTINCT obs.source,', ') AS "Sources"
+        FROM total_count, obs
         LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom=t.cd_nom
-        WHERE {}""".format(where)
+        LEFT JOIN communes com ON obs.id_synthese = com.id_synthese
+        GROUP BY {}{}, total_count 
+        ORDER BY {}{}""".format(where, taxonomic_rank_db, taxonomic_rank_label, 'groupe_taxo AS "Groupe taxo", ' if taxonomic_rank_label in ['Ordre', 'Famille'] else "", "groupe_taxo, " if taxonomic_rank_label in ['Ordre', 'Famille'] else "", taxonomic_rank_db, "groupe_taxo, " if taxonomic_rank_label in ['Ordre', 'Famille'] else "", taxonomic_rank_db)
         #feedback.pushInfo(query)
-        # Format the URI with the query
-        uri.setDataSource("", "("+query+")", "geom", "", "id_synthese")
+        # Retrieve the boolean add_table
+        add_table = self.parameterAsBool(parameters, self.ADD_TABLE, context)
+        if add_table:
+            # Define the name of the PostGIS summary table which will be created in the DB
+            table_name = simplify_name(format_name)
+            # Define the SQL queries
+            queries = construct_queries_list(table_name, query)
+            # Execute the SQL queries
+            execute_sql_queries(context, feedback, connection, queries)
+            # Format the URI
+            uri.setDataSource(None, table_name, None, "", "id")
+        else:
+            # Format the URI with the query
+            uri.setDataSource("", "("+query+")", None, "", "id")
 
         ### GET THE OUTPUT LAYER ###
-        # Retrieve the output PostGIS layer = biodiversity data
-        layer_obs = QgsVectorLayer(uri.uri(), format_name, "postgres")
+        # Retrieve the output PostGIS layer = summary table
+        layer_summary = QgsVectorLayer(uri.uri(), format_name, "postgres")
         # Check if the PostGIS layer is valid
-        check_layer_is_valid(feedback, layer_obs)
+        check_layer_is_valid(feedback, layer_summary)
         # Load the PostGIS layer
-        load_layer(context, layer_obs)
+        load_layer(context, layer_summary)
+        # Open the attribute table of the PostGIS layer
+        iface.showAttributeTable(layer_summary)
+        iface.setActiveLayer(layer_summary)
 
-        ### MANAGE EXPORT ###
-        # Create new valid fields for the sink
-        new_fields = format_layer_export(layer_obs)
-        # Retrieve the sink for the export
-        (sink, dest_id) = self.parameterAsSink(parameters, self.OUTPUT, context, new_fields, layer_obs.wkbType(), layer_obs.sourceCrs())
-        if sink is None:
-            # Return the PostGIS layer
-            return {self.OUTPUT: layer_obs.id()}
-        else:
-            # Fill the sink and return it
-            for feature in layer_obs.getFeatures():
-                sink.addFeature(feature)
-            return {self.OUTPUT: dest_id}
+        ### CONSTRUCT THE HISTOGRAM ###
+        if histogram_option != "Pas d'histogramme":
+            plt.close()
+            x_var = [(feature[taxonomic_rank_label] if feature[taxonomic_rank_label] != 'Pas de correspondance taxref' else 'Aucune correspondance') for feature in layer_summary.getFeatures()]
+            y_var = [int(feature[histogram_option]) for feature in layer_summary.getFeatures()]
+            if len(x_var) <= 20:
+                plt.subplots_adjust(bottom=0.5)
+            elif len(x_var) <= 80:
+                plt.figure(figsize=(20, 8))
+                plt.subplots_adjust(bottom=0.3, left=0.05, right=0.95)
+            else:
+                plt.figure(figsize=(40, 16))
+                plt.subplots_adjust(bottom=0.2, left=0.03, right=0.97)
+            plt.bar(range(len(x_var)), y_var, tick_label=x_var)
+            plt.xticks(rotation='vertical')
+            plt.xlabel(self.taxonomic_ranks_variables[self.parameterAsEnum(parameters, self.TAXONOMIC_RANK, context)])
+            plt.ylabel(histogram_option.replace("Nb", "Nombre"))
+            plt.title('{} par {}'.format(histogram_option.replace("Nb", "Nombre"), taxonomic_rank_label[0].lower() + taxonomic_rank_label[1:].replace("taxo", "taxonomique")))
+            if output_histogram[-4:] != ".png":
+                output_histogram += ".png"
+            plt.savefig(output_histogram)
+            #plt.show()
+        
+        return {self.OUTPUT: layer_summary.id()}
 
     def tr(self, string):
         return QCoreApplication.translate('Processing', string)
 
     def createInstance(self):
-        return ExtractData()
+        return StateOfKnowledge()
