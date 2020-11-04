@@ -467,8 +467,6 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         , nb_dates                                          AS "Nb de dates"
                         , nb_mortalite                                      AS "Nb de données de mortalité"
                         , lr_france                                         AS "LR France"
-                        , lrra                                              AS "LR Rhône-Alpes"
-                        , lrauv                                             AS "LR Auvergne"
                         , dir_hab                                           AS "Directive Habitats"
                         , dir_ois                                           AS "Directive Oiseaux"
                         , protection_nat                                    AS "Protection nationale"
