@@ -105,7 +105,8 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
         return 'Tableaux de synthèse'
 
     def shortDescription(self):
-        return self.tr("""Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données <i>gnlpoaura</i>,  d'obtenir un <b>tableau bilan</b> (couche PostgreSQL)...
+        return self.tr("""<font style="font-size:18px"><b>Besoin d'aide ?</b> Vous pouvez vous référer au <b>Wiki</b> accessible sur ce lien : <a href="https://github.com/lpoaura/PluginQGis-LPOData/wiki" target="_blank">https://github.com/lpoaura/PluginQGis-LPOData/wiki</a>.</font><br/><br/>
+            Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données LPO,  d'obtenir un <b>tableau bilan</b> (couche PostgreSQL)...
             <ul><li>par année <u>ou</u> par mois (au choix)</li>
             <li>et par espèce <u>ou</u> par groupe taxonomique (au choix)</li></ul>
             ... basé sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones) et selon une période de votre choix.
@@ -129,8 +130,8 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
         # db_param = QgsProcessingParameterString(
         #     self.DATABASE,
         #     self.tr("""<b style="color:#0a84db">CONNEXION À LA BASE DE DONNÉES</b><br/>
-        #         <b>*1/</b> Sélectionnez votre <u>connexion</u> à la base de données LPO AuRA (<i>gnlpoaura</i>)"""),
-        #     defaultValue='gnlpoaura'
+        #         <b>*1/</b> Sélectionnez votre <u>connexion</u> à la base de données LPO"""),
+        #     defaultValue='geonature_lpo'
         # )
         # db_param.setMetadata(
         #     {
@@ -144,7 +145,7 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
                 self.tr("""<b style="color:#0a84db">CONNEXION À LA BASE DE DONNÉES</b><br/>
                     <b>*1/</b> Sélectionnez votre <u>connexion</u> à la base de données LPO"""),
                 'postgres',
-                defaultValue='gnlpoaura'
+                defaultValue='geonature_lpo'
             )
         )
 

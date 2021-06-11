@@ -3,10 +3,10 @@ from qgis.utils import iface
 from qgis.core import (Qgis, QgsVectorLayer, QgsSettings, QgsProviderRegistry, QgsDataSourceUri, QgsProviderConnectionException, QgsProcessingException)
 # from processing.tools import postgis
 
-# uri = postgis.uri_from_name("gnlpoaura")
+# uri = postgis.uri_from_name("geonature_lpo")
 try:
     postgres_metadata = QgsProviderRegistry.instance().providerMetadata('postgres')
-    connection = postgres_metadata.createConnection("gnlpoaura")
+    connection = postgres_metadata.createConnection("geonature_lpo")
 except QgsProviderConnectionException:
     raise QgsProcessingException(self.tr('Could not retrieve connection details for {}').format(connection))
 uri = QgsDataSourceUri(connection.uri())

@@ -117,7 +117,8 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
         return 'Tableaux de synthèse'
 
     def shortDescription(self):
-        return self.tr("""Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données LPO,  d'obtenir un <b>état des connaissances</b> par taxon (couche PostgreSQL), basé sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones) et selon le rang taxonomique de votre choix, à savoir :
+        return self.tr("""<font style="font-size:18px"><b>Besoin d'aide ?</b> Vous pouvez vous référer au <b>Wiki</b> accessible sur ce lien : <a href="https://github.com/lpoaura/PluginQGis-LPOData/wiki" target="_blank">https://github.com/lpoaura/PluginQGis-LPOData/wiki</a>.</font><br/><br/>
+            Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données LPO,  d'obtenir un <b>état des connaissances</b> par taxon (couche PostgreSQL), basé sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones) et selon le rang taxonomique de votre choix, à savoir :
             <ul><li>Groupes taxonomiques</li>
             <li>Règnes</li>
             <li>Phylum</li>
@@ -158,7 +159,7 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
         #     self.DATABASE,
         #     self.tr("""<b style="color:#0a84db">CONNEXION À LA BASE DE DONNÉES</b><br/>
         #         <b>*1/</b> Sélectionnez votre <u>connexion</u> à la base de données LPO"""),
-        #     defaultValue='gnlpoaura'
+        #     defaultValue='geonature_lpo'
         # )
         # db_param.setMetadata(
         #     {
@@ -172,7 +173,7 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
                 self.tr("""<b style="color:#0a84db">CONNEXION À LA BASE DE DONNÉES</b><br/>
                     <b>*1/</b> Sélectionnez votre <u>connexion</u> à la base de données LPO"""),
                 'postgres',
-                defaultValue='gnlpoaura'
+                defaultValue='geonature_lpo'
             )
         )
 

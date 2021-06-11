@@ -112,7 +112,8 @@ class ExtractData(QgsProcessingAlgorithm):
         return 'Données brutes'
 
     def shortDescription(self):
-        return self.tr("""Cet algorithme vous permet d'<b>extraire des données d'observation</b> contenues dans la base de données LPO (couche PostGIS de type points) à partir d'une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones).<br/><br/>
+        return self.tr("""<font style="font-size:18px"><b>Besoin d'aide ?</b> Vous pouvez vous référer au <b>Wiki</b> accessible sur ce lien : <a href="https://github.com/lpoaura/PluginQGis-LPOData/wiki" target="_blank">https://github.com/lpoaura/PluginQGis-LPOData/wiki</a>.</font><br/><br/>
+            Cet algorithme vous permet d'<b>extraire des données d'observation</b> contenues dans la base de données LPO (couche PostGIS de type points) à partir d'une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones).<br/><br/>
             <font style='color:#0a84db'><u>IMPORTANT</u> : Les <b>étapes indispensables</b> sont marquées d'une <b>étoile *</b> avant leur numéro. Prenez le temps de lire <u>attentivement</U> les instructions pour chaque étape, et particulièrement les</font> <font style ='color:#952132'>informations en rouge</font> <font style='color:#0a84db'>!</font>""")
 
     def initAlgorithm(self, config=None):
@@ -129,7 +130,7 @@ class ExtractData(QgsProcessingAlgorithm):
         #     self.DATABASE,
         #     self.tr("""<b style="color:#0a84db">CONNEXION À LA BASE DE DONNÉES</b><br/>
         #         <b>*1/</b> Sélectionnez votre <u>connexion</u> à la base de données LPO"""),
-        #     defaultValue='gnlpoaura'
+        #     defaultValue='geonature_lpo'
         # )
         # db_param.setMetadata(
         #     {'widget_wrapper': {'class': 'processing.gui.wrappers_postgis.ConnectionWidgetWrapper'}}
@@ -141,7 +142,7 @@ class ExtractData(QgsProcessingAlgorithm):
                 self.tr("""<b style="color:#0a84db">CONNEXION À LA BASE DE DONNÉES</b><br/>
                     <b>*1/</b> Sélectionnez votre <u>connexion</u> à la base de données LPO"""),
                 'postgres',
-                defaultValue='gnlpoaura'
+                defaultValue='geonature_lpo'
             )
         )
 
