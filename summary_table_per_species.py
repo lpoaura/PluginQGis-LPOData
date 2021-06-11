@@ -113,7 +113,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
 
     def shortDescription(self):
         return self.tr("""<font style="font-size:18px"><b>Besoin d'aide ?</b> Vous pouvez vous référer au <b>Wiki</b> accessible sur ce lien : <a href="https://github.com/lpoaura/PluginQGis-LPOData/wiki" target="_blank">https://github.com/lpoaura/PluginQGis-LPOData/wiki</a>.</font><br/><br/>
-            Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données LPO,  d'obtenir un <b>tableau de synthèse</b> par espèce (couche PostgreSQL) basé sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones).
+            Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données LPO, d'obtenir un <b>tableau de synthèse</b> par espèce (couche PostgreSQL) basé sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones).
             <b style='color:#952132'>Les données d'absence sont exclues de ce traitement.</b><br/><br/>
             <b>Pour chaque espèce <u>ou</u> groupe d'espèces</b> observée dans la zone d'étude considérée, le tableau fournit les informations suivantes :
             <ul><li>Identifiant VisioNature de l'espèce</li>
@@ -447,8 +447,8 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         LEFT JOIN taxonomie.bib_taxref_rangs r ON t.id_rang = r.id_rang
                         LEFT JOIN gn_synthese.cor_area_synthese cor ON obs.id_synthese = cor.id_synthese
                         LEFT JOIN communes com ON obs.id_synthese = com.id_synthese
-                        LEFT JOIN taxonomie.vm_statut_lr lr ON (obs.taxref_cdnom, obs.nom_sci) = (lr.cd_nom, lr.vn_nom_sci)
-                        LEFT JOIN taxonomie.vm_statut_protection p ON (obs.taxref_cdnom, obs.nom_sci) = (p.cd_nom, p.vn_nom_sci)
+                        LEFT JOIN taxonomie.mv_c_statut_lr lr ON (obs.taxref_cdnom, obs.nom_sci) = (lr.cd_nom, lr.vn_nom_sci)
+                        LEFT JOIN taxonomie.mv_c_statut_protection p ON (obs.taxref_cdnom, obs.nom_sci) = (p.cd_nom, p.vn_nom_sci)
                         WHERE
                             n.id_type=(select id_type from ref_nomenclatures.bib_nomenclatures_types where mnemonique='VN_ATLAS_CODE')
                          --   and la.id_type = (SELECT id_type FROM ref_geo.bib_areas_types WHERE type_code = 'COM')
