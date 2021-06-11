@@ -38,6 +38,7 @@ from processing.gui.wrappers import WidgetWrapper
 from qgis.core import (QgsProcessing,
                        QgsProcessingAlgorithm,
                        QgsSettings,
+                       QgsProcessingParameterProviderConnection,
                        QgsProcessingParameterString,
                        QgsProcessingParameterFeatureSource,
                        QgsProcessingParameterEnum,
@@ -48,7 +49,8 @@ from qgis.core import (QgsProcessing,
                        QgsDataSourceUri,
                        QgsVectorLayer,
                        QgsProcessingException)
-from processing.tools import postgis
+# from processing.tools import postgis
+from .qgis_processing_postgis import uri_from_name
 from .common_functions import simplify_name, check_layer_is_valid, construct_sql_array_polygons, construct_queries_list, construct_sql_taxons_filter, construct_sql_datetime_filter, load_layer, execute_sql_queries, format_layer_export
 
 pluginPath = os.path.dirname(__file__)
@@ -112,7 +114,8 @@ class SummaryMap(QgsProcessingAlgorithm):
         return 'Cartes'
 
     def shortDescription(self):
-        return self.tr("""Cet algorithme vous permet de générer une <b>carte de synthèse</b> (couche PostGIS de type polygones) par maille ou par commune (au choix) basée sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones). Pour chaque entité géographique, la table attributaire de la nouvelle couche fournit les informations suivantes :
+        return self.tr("""<font style="font-size:18px"><b>Besoin d'aide ?</b> Vous pouvez vous référer au <b>Wiki</b> accessible sur ce lien : <a href="https://github.com/lpoaura/PluginQGis-LPOData/wiki" target="_blank">https://github.com/lpoaura/PluginQGis-LPOData/wiki</a>.</font><br/><br/>
+            Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données LPO, de générer une <b>carte de synthèse</b> (couche PostGIS de type polygones) par maille ou par commune (au choix) basée sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones). Pour chaque entité géographique, la table attributaire de la nouvelle couche fournit les informations suivantes :
             <ul><li>Code de l'entité</li>
             <li>Surface (en km<sup>2</sup>)</li>
             <li>Nombre de données</li>
@@ -137,18 +140,27 @@ class SummaryMap(QgsProcessingAlgorithm):
         self.period_variables = ["Pas de filtre temporel", "5 dernières années", "10 dernières années", "Date de début - Date de fin (à définir ci-dessous)"]
 
         # Data base connection
-        db_param = QgsProcessingParameterString(
-            self.DATABASE,
-            self.tr("""<b style="color:#0a84db">CONNEXION À LA BASE DE DONNÉES</b><br/>
-                <b>*1/</b> Sélectionnez votre <u>connexion</u> à la base de données LPO AuRA (<i>gnlpoaura</i>)"""),
-            defaultValue='gnlpoaura'
+        # db_param = QgsProcessingParameterString(
+        #     self.DATABASE,
+        #     self.tr("""<b style="color:#0a84db">CONNEXION À LA BASE DE DONNÉES</b><br/>
+        #         <b>*1/</b> Sélectionnez votre <u>connexion</u> à la base de données LPO"""),
+        #     defaultValue='geonature_lpo'
+        # )
+        # db_param.setMetadata(
+        #     {
+        #         'widget_wrapper': {'class': 'processing.gui.wrappers_postgis.ConnectionWidgetWrapper'}
+        #     }
+        # )
+        # self.addParameter(db_param)
+        self.addParameter(
+            QgsProcessingParameterProviderConnection(
+                self.DATABASE,
+                self.tr("""<b style="color:#0a84db">CONNEXION À LA BASE DE DONNÉES</b><br/>
+                    <b>*1/</b> Sélectionnez votre <u>connexion</u> à la base de données LPO"""),
+                'postgres',
+                defaultValue='geonature_lpo'
+            )
         )
-        db_param.setMetadata(
-            {
-                'widget_wrapper': {'class': 'processing.gui.wrappers_postgis.ConnectionWidgetWrapper'}
-            }
-        )
-        self.addParameter(db_param)
 
         # Input vector layer = study area
         self.addParameter(
@@ -402,7 +414,8 @@ class SummaryMap(QgsProcessingAlgorithm):
         # Retrieve the data base connection name
         connection = self.parameterAsString(parameters, self.DATABASE, context)
         # URI --> Configures connection to database and the SQL query
-        uri = postgis.uri_from_name(connection)
+        # uri = postgis.uri_from_name(connection)
+        uri = uri_from_name(connection)
         # Define the SQL query
         query = """SELECT row_number() OVER () AS id, area_name AS "Nom", area_code AS "Code", la.geom,
                 ROUND(ST_area(la.geom)::decimal/1000000, 2) AS "Surface (km2)",

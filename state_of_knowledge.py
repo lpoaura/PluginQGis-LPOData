@@ -39,6 +39,7 @@ from processing.gui.wrappers import WidgetWrapper
 from qgis.core import (QgsProcessing,
                        QgsProcessingAlgorithm,
                        QgsSettings,
+                       QgsProcessingParameterProviderConnection,
                        QgsProcessingParameterString,
                        QgsProcessingParameterFeatureSource,
                        QgsProcessingParameterEnum,
@@ -49,7 +50,8 @@ from qgis.core import (QgsProcessing,
                        QgsDataSourceUri,
                        QgsVectorLayer,
                        QgsProcessingException)
-from processing.tools import postgis
+# from processing.tools import postgis
+from .qgis_processing_postgis import uri_from_name
 from .common_functions import simplify_name, check_layer_is_valid, construct_sql_array_polygons, construct_queries_list, construct_sql_taxons_filter, construct_sql_datetime_filter, load_layer, execute_sql_queries
 
 pluginPath = os.path.dirname(__file__)
@@ -115,7 +117,8 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
         return 'Tableaux de synthèse'
 
     def shortDescription(self):
-        return self.tr("""Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données <i>gnlpoaura</i>,  d'obtenir un <b>état des connaissances</b> par taxon (couche PostgreSQL), basé sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones) et selon le rang taxonomique de votre choix, à savoir :
+        return self.tr("""<font style="font-size:18px"><b>Besoin d'aide ?</b> Vous pouvez vous référer au <b>Wiki</b> accessible sur ce lien : <a href="https://github.com/lpoaura/PluginQGis-LPOData/wiki" target="_blank">https://github.com/lpoaura/PluginQGis-LPOData/wiki</a>.</font><br/><br/>
+            Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données LPO,  d'obtenir un <b>état des connaissances</b> par taxon (couche PostgreSQL), basé sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones) et selon le rang taxonomique de votre choix, à savoir :
             <ul><li>Groupes taxonomiques</li>
             <li>Règnes</li>
             <li>Phylum</li>
@@ -152,18 +155,27 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
         histogram_variables = ["Pas d'histogramme", "Histogramme du nombre de données par taxon", "Histogramme du nombre d'espèces par taxon", "Histogramme du nombre d'observateurs par taxon", "Histogramme du nombre de dates par taxon", "Histogramme du nombre de données de mortalité par taxon"]
 
         # Data base connection
-        db_param = QgsProcessingParameterString(
-            self.DATABASE,
-            self.tr("""<b style="color:#0a84db">CONNEXION À LA BASE DE DONNÉES</b><br/>
-                <b>*1/</b> Sélectionnez votre <u>connexion</u> à la base de données LPO AuRA (<i>gnlpoaura</i>)"""),
-            defaultValue='gnlpoaura'
+        # db_param = QgsProcessingParameterString(
+        #     self.DATABASE,
+        #     self.tr("""<b style="color:#0a84db">CONNEXION À LA BASE DE DONNÉES</b><br/>
+        #         <b>*1/</b> Sélectionnez votre <u>connexion</u> à la base de données LPO"""),
+        #     defaultValue='geonature_lpo'
+        # )
+        # db_param.setMetadata(
+        #     {
+        #         'widget_wrapper': {'class': 'processing.gui.wrappers_postgis.ConnectionWidgetWrapper'}
+        #     }
+        # )
+        # self.addParameter(db_param)
+        self.addParameter(
+            QgsProcessingParameterProviderConnection(
+                self.DATABASE,
+                self.tr("""<b style="color:#0a84db">CONNEXION À LA BASE DE DONNÉES</b><br/>
+                    <b>*1/</b> Sélectionnez votre <u>connexion</u> à la base de données LPO"""),
+                'postgres',
+                defaultValue='geonature_lpo'
+            )
         )
-        db_param.setMetadata(
-            {
-                'widget_wrapper': {'class': 'processing.gui.wrappers_postgis.ConnectionWidgetWrapper'}
-            }
-        )
-        self.addParameter(db_param)
 
         # Input vector layer = study area
         self.addParameter(
@@ -449,7 +461,8 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
         # Retrieve the data base connection name
         connection = self.parameterAsString(parameters, self.DATABASE, context)
         # URI --> Configures connection to database and the SQL query
-        uri = postgis.uri_from_name(connection)
+        # uri = postgis.uri_from_name(connection)
+        uri = uri_from_name(connection)
         # Define the SQL query
         query = """WITH obs AS (
             SELECT obs.*
