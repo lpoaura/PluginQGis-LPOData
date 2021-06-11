@@ -428,8 +428,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         , COUNT(DISTINCT obs.date)                                                          AS nb_dates
                         , SUM(CASE WHEN mortalite THEN 1 ELSE 0 END)                                        AS nb_mortalite
                         , lr.lr_france
-                        , lr.lrra
-                        , lr.lrauv
+                        , lr.lrr
                         , p.dir_hab
                         , p.dir_ois
                         , p.protection_nat
@@ -459,8 +458,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         , t.cd_ref
                         , r.nom_rang
                         , lr.lr_france
-                        , lr.lrra
-                        , lr.lrauv
+                        , lr.lrr
                         , p.dir_hab
                         , p.dir_ois
                         , p.protection_nat
@@ -480,8 +478,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         , nb_dates                                          AS "Nb de dates"
                         , nb_mortalite                                      AS "Nb de données de mortalité"
                         , lr_france                                         AS "LR France"
-                        , lrra                                              AS "LR Rhône-Alpes"
-                        , lrauv                                             AS "LR Auvergne"
+                        , lrr                                               AS "LR Régionale"
                         , dir_hab                                           AS "Directive Habitats"
                         , dir_ois                                           AS "Directive Oiseaux"
                         , protection_nat                                    AS "Protection nationale"
