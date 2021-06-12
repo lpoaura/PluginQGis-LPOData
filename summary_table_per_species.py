@@ -412,6 +412,14 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         LEFT JOIN gn_synthese.cor_area_synthese cor ON obs.id_synthese = cor.id_synthese
                         JOIN ref_geo.l_areas la ON cor.id_area = la.id_area
                         WHERE la.id_type = (SELECT id_type FROM ref_geo.bib_areas_types WHERE type_code = 'COM')),
+                    atlas_code as (
+                    	select 
+                    		cd_nomenclature,
+                    		label_fr,
+                    		hierarchy 
+                    	from ref_nomenclatures.t_nomenclatures
+                    	where id_type=(select id_type from ref_nomenclatures.bib_nomenclatures_types where mnemonique='VN_ATLAS_CODE')
+                    ),
                     total_count AS (
                         SELECT COUNT(*) AS total_count
                         FROM obs),
@@ -435,23 +443,20 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         , p.protection_nat
                         , p.conv_berne
                         , p.conv_bonn
-                        , max(n.hierarchy)                                                                  AS max_hierarchy_atlas_code
+                        , max(ac.hierarchy)                                                                  AS max_hierarchy_atlas_code
                         , max(obs.nombre_total)                                                             AS nb_individus_max
                         , min(obs.date_an)                                                                  AS premiere_observation
                         , max(obs.date_an)                                                                  AS derniere_observation
                         , string_agg(DISTINCT com.area_name, ', ')                                          AS communes                   
                         , string_agg(DISTINCT obs.source, ', ')                                             AS sources
                         FROM obs
-                        LEFT JOIN ref_nomenclatures.t_nomenclatures n ON obs.oiso_code_nidif = n.cd_nomenclature::int
+                        LEFT JOIN atlas_code ac ON obs.oiso_code_nidif = ac.cd_nomenclature::int
                         LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
                         LEFT JOIN taxonomie.bib_taxref_rangs r ON t.id_rang = r.id_rang
                         LEFT JOIN communes com ON obs.id_synthese = com.id_synthese
                         LEFT JOIN taxonomie.mv_c_statut_lr lr ON (obs.taxref_cdnom, obs.nom_sci) = (lr.cd_nom, lr.vn_nom_sci)
                         LEFT JOIN taxonomie.mv_c_statut_protection p ON (obs.taxref_cdnom, obs.nom_sci) = (p.cd_nom, p.vn_nom_sci)
-                        WHERE
-                            n.id_type=(select id_type from ref_nomenclatures.bib_nomenclatures_types where mnemonique='VN_ATLAS_CODE')
-                         --   and la.id_type = (SELECT id_type FROM ref_geo.bib_areas_types WHERE type_code = 'COM')
-                        GROUP BY
+                       GROUP BY
                         obs.taxref_cdnom
                         , obs.groupe_taxo
                         , obs.nom_vern
@@ -487,16 +492,14 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         , protection_nat                                    AS "Protection nationale"
                         , conv_berne                                        AS "Convention de Berne"
                         , conv_bonn                                         AS "Convention de Bonn"
-                        , n.label_fr                                        AS "Statut nidif"
+                        , ac.label_fr                                        AS "Statut nidif"
                         , nb_individus_max                                  AS "Nb d'individus max"
                         , premiere_observation                              AS "Année première obs"
                         , derniere_observation                              AS "Année dernière obs"
                         , communes                                          AS "Liste de communes"
                         , sources                                           AS "Sources"
                         FROM total_count, data d
-                        LEFT JOIN ref_nomenclatures.t_nomenclatures n ON d.max_hierarchy_atlas_code = n.hierarchy
-                        WHERE 
-                            n.id_type=(select id_type from ref_nomenclatures.bib_nomenclatures_types where mnemonique='VN_ATLAS_CODE')
+                        LEFT JOIN atlas_code ac ON d.max_hierarchy_atlas_code = ac.hierarchy
                         ORDER BY groupe_taxo, nom_vern)
                     SELECT row_number() OVER () AS id, *
                     FROM synthese""".format(where)
