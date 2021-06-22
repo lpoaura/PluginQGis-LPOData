@@ -136,7 +136,7 @@ class SummaryMap(QgsProcessingAlgorithm):
         """
 
         self.db_variables = QgsSettings()
-        self.areas_variables = ["Mailles0.5*0.5", "Mailles1*1", "Mailles5*5", "Mailles10*10", "Communes"]
+        self.areas_variables = ["Mailles 0.5*0.5", "Mailles 1*1", "Mailles 5*5", "Mailles 10*10", "Communes"]
         self.period_variables = ["Pas de filtre temporel", "5 dernières années", "10 dernières années", "Date de début - Date de fin (à définir ci-dessous)"]
 
         # Data base connection
@@ -369,7 +369,9 @@ class SummaryMap(QgsProcessingAlgorithm):
         ts = datetime.now()
         format_name = "{} {}".format(layer_name, str(ts.strftime('%Y%m%d_%H%M%S')))
         # Retrieve the areas type
-        areas_type = self.areas_variables[self.parameterAsEnum(parameters, self.AREAS_TYPE, context)]
+        # areas_type = self.areas_variables[self.parameterAsEnum(parameters, self.AREAS_TYPE, context)]
+        areas_types_codes = ["M0.5", "M1", "M5", "M10", "COM"]
+        areas_type = areas_types_codes[self.parameterAsEnum(parameters, self.AREAS_TYPE, context)]
         # Retrieve the taxons filters
         groupe_taxo = [self.db_variables.value('groupe_taxo')[i] for i in (self.parameterAsEnums(parameters, self.GROUPE_TAXO, context))]
         regne = [self.db_variables.value('regne')[i] for i in (self.parameterAsEnums(parameters, self.REGNE, context))]
@@ -430,7 +432,7 @@ class SummaryMap(QgsProcessingAlgorithm):
             LEFT JOIN gn_synthese.cor_area_synthese cor on la.id_area=cor.id_area
             LEFT JOIN src_lpodatas.v_c_observations obs on cor.id_synthese=obs.id_synthese
             LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
-            WHERE la.id_type=(SELECT id_type FROM ref_geo.bib_areas_types WHERE type_name = '{}') and {}
+            WHERE la.id_type=(SELECT id_type FROM ref_geo.bib_areas_types WHERE type_code = '{}') and {}
             GROUP BY area_name, area_code, la.geom
             ORDER BY area_code""".format(where_filter, where_filter, where_filter, where_filter, where_filter, where_filter, where_filter, areas_type, where)
         #feedback.pushInfo(query)
