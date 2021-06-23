@@ -115,7 +115,8 @@ class SummaryMap(QgsProcessingAlgorithm):
 
     def shortDescription(self):
         return self.tr("""<font style="font-size:18px"><b>Besoin d'aide ?</b> Vous pouvez vous référer au <b>Wiki</b> accessible sur ce lien : <a href="https://github.com/lpoaura/PluginQGis-LPOData/wiki" target="_blank">https://github.com/lpoaura/PluginQGis-LPOData/wiki</a>.</font><br/><br/>
-            Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données LPO, de générer une <b>carte de synthèse</b> (couche PostGIS de type polygones) par maille ou par commune (au choix) basée sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones). Pour chaque entité géographique, la table attributaire de la nouvelle couche fournit les informations suivantes :
+            Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données LPO, de générer une <b>carte de synthèse</b> (couche PostGIS de type polygones) par maille ou par commune (au choix) basée sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones). <b style='color:#952132'>Les données d'absence sont exclues de ce traitement.</b><br/><br/>
+            <b>Pour chaque entité géographique</b>, la table attributaire de la nouvelle couche fournit les informations suivantes :
             <ul><li>Code de l'entité</li>
             <li>Surface (en km<sup>2</sup>)</li>
             <li>Nombre de données</li>
@@ -125,7 +126,6 @@ class SummaryMap(QgsProcessingAlgorithm):
             <li>Nombre de dates</li>
             <li>Nombre de données de mortalité</li>
             <li>Liste des espèces observées</li></ul><br/>
-            <b style='color:#952132'>Les données d'absence sont exclues de ce traitement.</b><br/><br/>
             Vous pouvez ensuite modifier la <b>symbologie</b> de la couche comme bon vous semble, en fonction du critère de votre choix.<br/><br/>
             <font style='color:#0a84db'><u>IMPORTANT</u> : Les <b>étapes indispensables</b> sont marquées d'une <b>étoile *</b> avant leur numéro. Prenez le temps de lire <u>attentivement</u> les instructions pour chaque étape, et particulièrement les</font> <font style ='color:#952132'>informations en rouge</font> <font style='color:#0a84db'>!</font>""")
 
@@ -136,7 +136,7 @@ class SummaryMap(QgsProcessingAlgorithm):
         """
 
         self.db_variables = QgsSettings()
-        self.areas_variables = ["Mailles0.5*0.5", "Mailles1*1", "Mailles5*5", "Mailles10*10", "Communes"]
+        self.areas_variables = ["Mailles 0.5*0.5", "Mailles 1*1", "Mailles 5*5", "Mailles 10*10", "Communes"]
         self.period_variables = ["Pas de filtre temporel", "5 dernières années", "10 dernières années", "Date de début - Date de fin (à définir ci-dessous)"]
 
         # Data base connection
@@ -369,7 +369,9 @@ class SummaryMap(QgsProcessingAlgorithm):
         ts = datetime.now()
         format_name = "{} {}".format(layer_name, str(ts.strftime('%Y%m%d_%H%M%S')))
         # Retrieve the areas type
-        areas_type = self.areas_variables[self.parameterAsEnum(parameters, self.AREAS_TYPE, context)]
+        # areas_type = self.areas_variables[self.parameterAsEnum(parameters, self.AREAS_TYPE, context)]
+        areas_types_codes = ["M0.5", "M1", "M5", "M10", "COM"]
+        areas_type = areas_types_codes[self.parameterAsEnum(parameters, self.AREAS_TYPE, context)]
         # Retrieve the taxons filters
         groupe_taxo = [self.db_variables.value('groupe_taxo')[i] for i in (self.parameterAsEnums(parameters, self.GROUPE_TAXO, context))]
         regne = [self.db_variables.value('regne')[i] for i in (self.parameterAsEnums(parameters, self.REGNE, context))]
@@ -430,7 +432,7 @@ class SummaryMap(QgsProcessingAlgorithm):
             LEFT JOIN gn_synthese.cor_area_synthese cor on la.id_area=cor.id_area
             LEFT JOIN src_lpodatas.v_c_observations obs on cor.id_synthese=obs.id_synthese
             LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
-            WHERE la.id_type=(SELECT id_type FROM ref_geo.bib_areas_types WHERE type_name = '{}') and {}
+            WHERE la.id_type=(SELECT id_type FROM ref_geo.bib_areas_types WHERE type_code = '{}') and {}
             GROUP BY area_name, area_code, la.geom
             ORDER BY area_code""".format(where_filter, where_filter, where_filter, where_filter, where_filter, where_filter, where_filter, areas_type, where)
         #feedback.pushInfo(query)

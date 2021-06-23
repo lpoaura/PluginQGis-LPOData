@@ -115,7 +115,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
         return self.tr("""<font style="font-size:18px"><b>Besoin d'aide ?</b> Vous pouvez vous référer au <b>Wiki</b> accessible sur ce lien : <a href="https://github.com/lpoaura/PluginQGis-LPOData/wiki" target="_blank">https://github.com/lpoaura/PluginQGis-LPOData/wiki</a>.</font><br/><br/>
             Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données LPO, d'obtenir un <b>tableau de synthèse</b> par espèce (couche PostgreSQL) basé sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones).
             <b style='color:#952132'>Les données d'absence sont exclues de ce traitement.</b><br/><br/>
-            <b>Pour chaque espèce <u>ou</u> groupe d'espèces</b> observée dans la zone d'étude considérée, le tableau fournit les informations suivantes :
+            <b>Pour chaque espèce</b> observée dans la zone d'étude considérée, le tableau fournit les informations suivantes :
             <ul><li>Identifiant VisioNature de l'espèce</li>
             <li>cd_nom et cd_ref</li>
             <li>Rang</li>
@@ -128,8 +128,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
             <li>Nombre de dates</li>
             <li>Nombre de données de mortalité</li>
             <li>LR France</li>
-            <li>LR Rhône-Alpes</li>
-            <li>LR Auvergne</li>
+            <li>LR régionale</li>
             <li>Directive Habitats</li>
             <li>Directive Oiseaux</li>
             <li>Protection nationale</li>
@@ -413,28 +412,25 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         JOIN ref_geo.l_areas la ON cor.id_area = la.id_area
                         WHERE la.id_type = (SELECT id_type FROM ref_geo.bib_areas_types WHERE type_code = 'COM')),
                      atlas_code as (
-                    	select 
-                    		cd_nomenclature,
-                    		label_fr,
-                    		hierarchy 
-                    	from ref_nomenclatures.t_nomenclatures
-                    	where id_type=(select id_type from ref_nomenclatures.bib_nomenclatures_types where mnemonique='VN_ATLAS_CODE')
+                    	SELECT cd_nomenclature, label_fr, hierarchy 
+                    	FROM ref_nomenclatures.t_nomenclatures
+                    	WHERE id_type=(SELECT id_type FROM ref_nomenclatures.bib_nomenclatures_types WHERE mnemonique='VN_ATLAS_CODE')
                     ),
                     total_count AS (
                         SELECT COUNT(*) AS total_count
                         FROM obs),
                     data AS (
                          SELECT
-                        obs.taxref_cdnom                                                                  AS cd_nom
+                        obs.taxref_cdnom                                AS cd_nom
                         , t.cd_ref
                         , r.nom_rang
                         , obs.groupe_taxo
                         , obs.nom_vern
                         , obs.nom_sci
-                        , COUNT(*)                                                                          AS nb_donnees
-                        , COUNT(DISTINCT obs.observateur)                                                   AS nb_observateurs
-                        , COUNT(DISTINCT obs.date)                                                          AS nb_dates
-                        , SUM(CASE WHEN mortalite THEN 1 ELSE 0 END)                                        AS nb_mortalite
+                        , COUNT(*)                                      AS nb_donnees
+                        , COUNT(DISTINCT obs.observateur)               AS nb_observateurs
+                        , COUNT(DISTINCT obs.date)                      AS nb_dates
+                        , SUM(CASE WHEN mortalite THEN 1 ELSE 0 END)    AS nb_mortalite
                         , lr.lr_france
                         , lr.lrr
                         , p.dir_hab
@@ -442,12 +438,12 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         , p.protection_nat
                         , p.conv_berne
                         , p.conv_bonn
-                        , max(ac.hierarchy)                                                                  AS max_hierarchy_atlas_code
-                        , max(obs.nombre_total)                                                             AS nb_individus_max
-                        , min(obs.date_an)                                                                  AS premiere_observation
-                        , max(obs.date_an)                                                                  AS derniere_observation
-                        , string_agg(DISTINCT com.area_name, ', ')                                          AS communes                   
-                        , string_agg(DISTINCT obs.source, ', ')                                             AS sources
+                        , max(ac.hierarchy)                             AS max_hierarchy_atlas_code
+                        , max(obs.nombre_total)                         AS nb_individus_max
+                        , min(obs.date_an)                              AS premiere_observation
+                        , max(obs.date_an)                              AS derniere_observation
+                        , string_agg(DISTINCT com.area_name, ', ')      AS communes                   
+                        , string_agg(DISTINCT obs.source, ', ')         AS sources
                         FROM obs
                         LEFT JOIN atlas_code ac ON obs.oiso_code_nidif = ac.cd_nomenclature::int
                         LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
@@ -484,13 +480,13 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         , nb_dates                                          AS "Nb de dates"
                         , nb_mortalite                                      AS "Nb de données de mortalité"
                         , lr_france                                         AS "LR France"
-                        , lrr                                              AS "LR régionale"
+                        , lrr                                               AS "LR régionale"
                         , dir_hab                                           AS "Directive Habitats"
                         , dir_ois                                           AS "Directive Oiseaux"
                         , protection_nat                                    AS "Protection nationale"
                         , conv_berne                                        AS "Convention de Berne"
                         , conv_bonn                                         AS "Convention de Bonn"
-                        , ac.label_fr 								AS "Statut nidif"
+                        , ac.label_fr 								        AS "Statut nidif"
                         , nb_individus_max                                  AS "Nb d'individus max"
                         , premiere_observation                              AS "Année première obs"
                         , derniere_observation                              AS "Année dernière obs"
