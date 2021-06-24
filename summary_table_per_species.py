@@ -115,7 +115,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
         return self.tr("""<font style="font-size:18px"><b>Besoin d'aide ?</b> Vous pouvez vous référer au <b>Wiki</b> accessible sur ce lien : <a href="https://github.com/lpoaura/PluginQGis-LPOData/wiki" target="_blank">https://github.com/lpoaura/PluginQGis-LPOData/wiki</a>.</font><br/><br/>
             Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données LPO, d'obtenir un <b>tableau de synthèse</b> par espèce (couche PostgreSQL) basé sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones).
             <b style='color:#952132'>Les données d'absence sont exclues de ce traitement.</b><br/><br/>
-            <b>Pour chaque espèce <u>ou</u> groupe d'espèces</b> observée dans la zone d'étude considérée, le tableau fournit les informations suivantes :
+            <b>Pour chaque espèce</b> observée dans la zone d'étude considérée, le tableau fournit les informations suivantes :
             <ul><li>Identifiant VisioNature de l'espèce</li>
             <li>cd_nom et cd_ref</li>
             <li>Rang</li>

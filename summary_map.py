@@ -115,7 +115,8 @@ class SummaryMap(QgsProcessingAlgorithm):
 
     def shortDescription(self):
         return self.tr("""<font style="font-size:18px"><b>Besoin d'aide ?</b> Vous pouvez vous référer au <b>Wiki</b> accessible sur ce lien : <a href="https://github.com/lpoaura/PluginQGis-LPOData/wiki" target="_blank">https://github.com/lpoaura/PluginQGis-LPOData/wiki</a>.</font><br/><br/>
-            Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données LPO, de générer une <b>carte de synthèse</b> (couche PostGIS de type polygones) par maille ou par commune (au choix) basée sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones). Pour chaque entité géographique, la table attributaire de la nouvelle couche fournit les informations suivantes :
+            Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données LPO, de générer une <b>carte de synthèse</b> (couche PostGIS de type polygones) par maille ou par commune (au choix) basée sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones). <b style='color:#952132'>Les données d'absence sont exclues de ce traitement.</b><br/><br/>
+            <b>Pour chaque entité géographique</b>, la table attributaire de la nouvelle couche fournit les informations suivantes :
             <ul><li>Code de l'entité</li>
             <li>Surface (en km<sup>2</sup>)</li>
             <li>Nombre de données</li>
@@ -125,7 +126,6 @@ class SummaryMap(QgsProcessingAlgorithm):
             <li>Nombre de dates</li>
             <li>Nombre de données de mortalité</li>
             <li>Liste des espèces observées</li></ul><br/>
-            <b style='color:#952132'>Les données d'absence sont exclues de ce traitement.</b><br/><br/>
             Vous pouvez ensuite modifier la <b>symbologie</b> de la couche comme bon vous semble, en fonction du critère de votre choix.<br/><br/>
             <font style='color:#0a84db'><u>IMPORTANT</u> : Les <b>étapes indispensables</b> sont marquées d'une <b>étoile *</b> avant leur numéro. Prenez le temps de lire <u>attentivement</u> les instructions pour chaque étape, et particulièrement les</font> <font style ='color:#952132'>informations en rouge</font> <font style='color:#0a84db'>!</font>""")
 

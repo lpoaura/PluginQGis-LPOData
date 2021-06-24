@@ -118,16 +118,8 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
 
     def shortDescription(self):
         return self.tr("""<font style="font-size:18px"><b>Besoin d'aide ?</b> Vous pouvez vous référer au <b>Wiki</b> accessible sur ce lien : <a href="https://github.com/lpoaura/PluginQGis-LPOData/wiki" target="_blank">https://github.com/lpoaura/PluginQGis-LPOData/wiki</a>.</font><br/><br/>
-            Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données LPO,  d'obtenir un <b>état des connaissances</b> par taxon (couche PostgreSQL), basé sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones) et selon le rang taxonomique de votre choix, à savoir :
-            <ul><li>Groupes taxonomiques</li>
-            <li>Règnes</li>
-            <li>Phylum</li>
-            <li>Classes</li>
-            <li>Ordres</li>
-            <li>Familles</li>
-            <li>Groupes 1 INPN</li>
-            <li>Groupes 2 INPN</li></ul>
-            Cet état des connaissances correspond en fait à un <b>tableau</b>, qui, pour chaque taxon observé dans la zone d'étude considérée, fournit les informations suivantes :
+            Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données LPO,  d'obtenir un <b>état des connaissances</b> par taxon (couche PostgreSQL), basé sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones) et selon le rang taxonomique de votre choix, à savoir : groupes taxonomiques / règnes / phylum / classes / ordres / familles / groupes 1 INPN / groupes 2 INPN. <b style='color:#952132'>Les données d'absence sont exclues de ce traitement.</b><br/><br/>
+            Cet état des connaissances correspond en fait à un <b>tableau</b>, qui, <b>pour chaque taxon</b> observé dans la zone d'étude considérée, fournit les informations suivantes :
             <ul><li>Nombre de données</li>
             <li>Nombre de données / Nombre de données TOTAL</li>
             <li>Nombre d'espèces</li>
@@ -140,7 +132,6 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
             <li>Liste des espèces impliquées</li>
             <li>Liste des communes</li>
             <li>Liste des sources VisioNature</li></ul><br/>
-            <b style='color:#952132'>Les données d'absence sont exclues de ce traitement.</b><br/><br/>
             <font style='color:#0a84db'><u>IMPORTANT</u> : Les <b>étapes indispensables</b> sont marquées d'une <b>étoile *</b> avant leur numéro. Prenez le temps de lire <u>attentivement</U> les instructions pour chaque étape, et particulièrement les</font> <font style ='color:#952132'>informations en rouge</font> <font style='color:#0a84db'>!</font>""")
 
     def initAlgorithm(self, config=None):
