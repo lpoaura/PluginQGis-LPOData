@@ -409,7 +409,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         LEFT JOIN gn_synthese.cor_area_synthese cor ON obs.id_synthese = cor.id_synthese
                         JOIN ref_geo.l_areas la ON cor.id_area = la.id_area
                         WHERE la.id_type = (SELECT id_type FROM ref_geo.bib_areas_types WHERE type_code = 'COM')),
-                     atlas_code as (
+                    atlas_code as (
                     	SELECT cd_nomenclature, label_fr, hierarchy 
                     	FROM ref_nomenclatures.t_nomenclatures
                     	WHERE id_type=(SELECT id_type FROM ref_nomenclatures.bib_nomenclatures_types WHERE mnemonique='VN_ATLAS_CODE')
@@ -418,7 +418,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         SELECT COUNT(*) AS total_count
                         FROM obs),
                     data AS (
-                         SELECT
+                        SELECT
                         obs.taxref_cdnom                                AS cd_nom
                         , t.cd_ref
                         , r.nom_rang
@@ -484,7 +484,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         , protection_nat                                    AS "Protection nationale"
                         , conv_berne                                        AS "Convention de Berne"
                         , conv_bonn                                         AS "Convention de Bonn"
-                        , ac.label_fr 								        AS "Statut nidif"
+                        , ac.label_fr                                       AS "Statut nidif"
                         , nb_individus_max                                  AS "Nb d'individus max"
                         , premiere_observation                              AS "Année première obs"
                         , derniere_observation                              AS "Année dernière obs"

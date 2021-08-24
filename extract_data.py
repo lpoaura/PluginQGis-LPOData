@@ -400,7 +400,7 @@ class ExtractData(QgsProcessingAlgorithm):
         # Define the SQL query
         query = """SELECT obs.*
         FROM src_lpodatas.v_c_observations obs
-        LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom=t.cd_nom
+        LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
         WHERE {}""".format(where)
         #feedback.pushInfo(query)
         # Format the URI with the query
