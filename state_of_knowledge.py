@@ -47,7 +47,6 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterBoolean,
                        QgsProcessingParameterFileDestination,
                        QgsProcessingParameterDefinition,
-                       QgsDataSourceUri,
                        QgsVectorLayer,
                        QgsProcessingException)
 # from processing.tools import postgis

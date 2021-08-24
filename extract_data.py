@@ -41,12 +41,9 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterString,
                        QgsProcessingParameterFeatureSource,
                        QgsProcessingParameterEnum,
-                       QgsProcessingOutputVectorLayer,
                        QgsProcessingParameterFeatureSink,
                        QgsProcessingParameterDefinition,
-                       QgsDataSourceUri,
-                       QgsVectorLayer,
-                       QgsProcessingException,)
+                       QgsVectorLayer)
 # from processing.tools import postgis
 from .qgis_processing_postgis import uri_from_name
 from .common_functions import check_layer_is_valid, construct_sql_array_polygons, construct_sql_taxons_filter, construct_sql_datetime_filter, load_layer, format_layer_export

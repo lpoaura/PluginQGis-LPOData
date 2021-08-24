@@ -45,9 +45,7 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingOutputVectorLayer,
                        QgsProcessingParameterBoolean,
                        QgsProcessingParameterDefinition,
-                       QgsDataSourceUri,
-                       QgsVectorLayer,
-                       QgsProcessingException)
+                       QgsVectorLayer)
 # from processing.tools import postgis
 from .qgis_processing_postgis import uri_from_name
 from .common_functions import simplify_name, check_layer_is_valid, construct_sql_array_polygons, construct_queries_list, construct_sql_taxons_filter, construct_sql_datetime_filter, load_layer, execute_sql_queries
