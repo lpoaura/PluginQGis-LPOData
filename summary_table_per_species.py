@@ -527,6 +527,11 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
             action_code = file.read()
         action = QgsAction(QgsAction.GenericPython, 'Exporter la couche sous format Excel dans mon dossier utilisateur avec la mise en forme adaptée', action_code, os.path.join(pluginPath, 'icons', 'excel.png'), False, 'Exporter sous format Excel dans mon dossier utilisateur avec la mise en forme adaptée', {'Layer'})
         layer_summary.actions().addAction(action)
+        # JOKE
+        with open(os.path.join(pluginPath, 'joke.py'), 'r') as file:
+            joke_action_code = file.read()
+        joke_action = QgsAction(QgsAction.GenericPython, 'Rédiger mon rapport', joke_action_code, os.path.join(pluginPath, 'icons', 'logo_LPO.png'), False, 'Rédiger mon rapport', {'Layer'})
+        layer_summary.actions().addAction(joke_action)
         # Open the attribute table of the PostGIS layer
         iface.showAttributeTable(layer_summary)
         iface.setActiveLayer(layer_summary)

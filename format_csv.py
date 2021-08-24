@@ -24,6 +24,23 @@ import re
 #from openpyxl.formatting.rule import ColorScaleRule, CellIsRule, FormulaRule
 from qgis.core import QgsProject
 from qgis.PyQt.QtCore import NULL
+from qgis.gui import QgsMessageBar
+from PyQt5.QtWidgets import QDialog, QSizePolicy, QLabel, QDialogButtonBox, QVBoxLayout
+
+class SuccessDialog(QDialog):
+    def __init__(self):
+        QDialog.__init__(self)
+        self.bar = QgsMessageBar()
+        self.bar.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
+        self.setWindowTitle("EXPORT RÉUSSI !")
+        self.setLayout(QVBoxLayout())
+        self.layout().setContentsMargins(0, 0, 0, 0)
+        message = QLabel(" Le fichier Excel a bien été enregistré dans {}/QGIS_exports ".format(os.path.expanduser('~')))
+        self.buttonbox = QDialogButtonBox(QDialogButtonBox.Ok)
+        self.buttonbox.accepted.connect(self.close)
+        self.layout().addWidget(message)
+        self.layout().addWidget(self.buttonbox)
+        self.layout().addWidget(self.bar)
 
 #####################################################
 ##### 2 - Gestion des données                       #
@@ -165,5 +182,9 @@ set_border(ws, 'A1:Z3275')
 ##### 4 - Enregistrement du résultat final          #
 #####################################################
 
-# Sauvegarde du fichier 
-wb.save("{}/{}.xlsx".format(os.path.expanduser('~'), layer.name()))
+# Sauvegarde du fichier
+if os.path.exists("{}/QGIS_exports".format(os.path.expanduser('~'))) == False :
+    os.mkdir("{}/QGIS_exports".format(os.path.expanduser('~')))
+wb.save("{}/QGIS_exports/{}.xlsx".format(os.path.expanduser('~'), layer.name()))
+successDialog = SuccessDialog()
+successDialog.show()
