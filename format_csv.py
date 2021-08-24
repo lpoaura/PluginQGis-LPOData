@@ -17,7 +17,7 @@
 from openpyxl import Workbook
 from openpyxl.styles import PatternFill, Font, Alignment, Border, Side #, Color
 import csv
-import os 
+import os, webbrowser
 import re
 #from openpyxl.formatting import Rule
 #from openpyxl.styles.differential import DifferentialStyle
@@ -183,8 +183,10 @@ set_border(ws, 'A1:Z3275')
 #####################################################
 
 # Sauvegarde du fichier
-if os.path.exists("{}/QGIS_exports".format(os.path.expanduser('~'))) == False :
-    os.mkdir("{}/QGIS_exports".format(os.path.expanduser('~')))
-wb.save("{}/QGIS_exports/{}.xlsx".format(os.path.expanduser('~'), layer.name()))
+path = "{}/QGIS_exports".format(os.path.expanduser('~'))
+if os.path.exists(path) == False :
+    os.mkdir(path)
+wb.save("{}/{}.xlsx".format(path, layer.name()))
 successDialog = SuccessDialog()
 successDialog.show()
+webbrowser.open(os.path.realpath(path))
