@@ -45,9 +45,8 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingOutputVectorLayer,
                        QgsProcessingParameterBoolean,
                        QgsProcessingParameterDefinition,
-                       QgsDataSourceUri,
                        QgsVectorLayer,
-                       QgsProcessingException)
+                       QgsAction)
 # from processing.tools import postgis
 from .qgis_processing_postgis import uri_from_name
 from .common_functions import simplify_name, check_layer_is_valid, construct_sql_array_polygons, construct_queries_list, construct_sql_taxons_filter, construct_sql_datetime_filter, load_layer, execute_sql_queries
@@ -523,6 +522,11 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
         check_layer_is_valid(feedback, layer_summary)
         # Load the PostGIS layer
         load_layer(context, layer_summary)
+        # Add action to layer
+        with open(os.path.join(pluginPath, 'format_csv.py'), 'r') as file:
+            action_code = file.read()
+        action = QgsAction(QgsAction.GenericPython, 'Exporter la couche sous format Excel dans mon dossier utilisateur avec la mise en forme adaptée', action_code, os.path.join(pluginPath, 'icons', 'excel.png'), False, 'Exporter sous format Excel dans mon dossier utilisateur avec la mise en forme adaptée', {'Layer'})
+        layer_summary.actions().addAction(action)
         # Open the attribute table of the PostGIS layer
         iface.showAttributeTable(layer_summary)
         iface.setActiveLayer(layer_summary)
