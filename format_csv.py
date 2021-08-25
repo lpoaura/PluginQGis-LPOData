@@ -187,6 +187,6 @@ path = "{}/QGIS_exports".format(os.path.expanduser('~'))
 if os.path.exists(path) == False :
     os.mkdir(path)
 wb.save("{}/{}.xlsx".format(path, layer.name()))
+webbrowser.open(os.path.realpath(path))
 successDialog = SuccessDialog()
 successDialog.show()
-webbrowser.open(os.path.realpath(path))

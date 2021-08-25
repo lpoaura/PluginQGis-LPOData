@@ -47,7 +47,8 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterFileDestination,
                        QgsProcessingParameterDefinition,
                        QgsVectorLayer,
-                       QgsProcessingException)
+                       QgsProcessingException,
+                       QgsAction)
 # from processing.tools import postgis
 from .qgis_processing_postgis import uri_from_name
 from .common_functions import simplify_name, check_layer_is_valid, construct_sql_select_data_per_time_interval, construct_sql_array_polygons, construct_queries_list, construct_sql_taxons_filter, load_layer, execute_sql_queries
@@ -538,6 +539,16 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
         check_layer_is_valid(feedback, layer_summary)
         # Load the PostGIS layer
         load_layer(context, layer_summary)
+        # Add action to layer
+        with open(os.path.join(pluginPath, 'format_csv.py'), 'r') as file:
+            action_code = file.read()
+        action = QgsAction(QgsAction.GenericPython, 'Exporter la couche sous format Excel dans mon dossier utilisateur avec la mise en forme adaptée', action_code, os.path.join(pluginPath, 'icons', 'excel.png'), False, 'Exporter sous format Excel', {'Layer'})
+        layer_summary.actions().addAction(action)
+        # JOKE
+        with open(os.path.join(pluginPath, 'joke.py'), 'r') as file:
+            joke_action_code = file.read()
+        joke_action = QgsAction(QgsAction.GenericPython, 'Rédiger mon rapport', joke_action_code, os.path.join(pluginPath, 'icons', 'logo_LPO.png'), False, 'Rédiger mon rapport', {'Layer'})
+        layer_summary.actions().addAction(joke_action)
         # Open the attribute table of the PostGIS layer
         iface.showAttributeTable(layer_summary)
         iface.setActiveLayer(layer_summary)
