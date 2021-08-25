@@ -525,7 +525,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
         # Add action to layer
         with open(os.path.join(pluginPath, 'format_csv.py'), 'r') as file:
             action_code = file.read()
-        action = QgsAction(QgsAction.GenericPython, 'Exporter la couche sous format Excel dans mon dossier utilisateur avec la mise en forme adaptée', action_code, os.path.join(pluginPath, 'icons', 'excel.png'), False, 'Exporter sous format Excel dans mon dossier utilisateur avec la mise en forme adaptée', {'Layer'})
+        action = QgsAction(QgsAction.GenericPython, 'Exporter la couche sous format Excel', action_code, os.path.join(pluginPath, 'icons', 'excel.png'), False, 'Exporter sous format Excel dans mon dossier utilisateur avec la mise en forme adaptée', {'Layer'})
         layer_summary.actions().addAction(action)
         # JOKE
         with open(os.path.join(pluginPath, 'joke.py'), 'r') as file:
