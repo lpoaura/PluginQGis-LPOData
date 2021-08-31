@@ -504,30 +504,27 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
 
         ### GET THE OUTPUT LAYER ###
         # Retrieve the output PostGIS layer = summary table
-        layer_summary = QgsVectorLayer(uri.uri(), format_name, "postgres")
+        self.layer_summary = QgsVectorLayer(uri.uri(), format_name, "postgres")
         # Check if the PostGIS layer is valid
-        check_layer_is_valid(feedback, layer_summary)
+        check_layer_is_valid(feedback, self.layer_summary)
         # Load the PostGIS layer
-        load_layer(context, layer_summary)
+        load_layer(context, self.layer_summary)
         # Add action to layer
         with open(os.path.join(pluginPath, 'format_csv.py'), 'r') as file:
             action_code = file.read()
         action = QgsAction(QgsAction.GenericPython, 'Exporter la couche sous format Excel dans mon dossier utilisateur avec la mise en forme adaptée', action_code, os.path.join(pluginPath, 'icons', 'excel.png'), False, 'Exporter sous format Excel', {'Layer'})
-        layer_summary.actions().addAction(action)
+        self.layer_summary.actions().addAction(action)
         # JOKE
         with open(os.path.join(pluginPath, 'joke.py'), 'r') as file:
             joke_action_code = file.read()
         joke_action = QgsAction(QgsAction.GenericPython, 'Rédiger mon rapport', joke_action_code, os.path.join(pluginPath, 'icons', 'logo_LPO.png'), False, 'Rédiger mon rapport', {'Layer'})
-        layer_summary.actions().addAction(joke_action)
-        # Open the attribute table of the PostGIS layer
-        iface.showAttributeTable(layer_summary)
-        iface.setActiveLayer(layer_summary)
+        self.layer_summary.actions().addAction(joke_action)
 
         ### CONSTRUCT THE HISTOGRAM ###
         if histogram_option != "Pas d'histogramme":
             plt.close()
-            x_var = [(feature[taxonomic_rank_label] if feature[taxonomic_rank_label] != 'Pas de correspondance taxref' else 'Aucune correspondance') for feature in layer_summary.getFeatures()]
-            y_var = [int(feature[histogram_option]) for feature in layer_summary.getFeatures()]
+            x_var = [(feature[taxonomic_rank_label] if feature[taxonomic_rank_label] != 'Pas de correspondance taxref' else 'Aucune correspondance') for feature in self.layer_summary.getFeatures()]
+            y_var = [int(feature[histogram_option]) for feature in self.layer_summary.getFeatures()]
             if len(x_var) <= 20:
                 plt.subplots_adjust(bottom=0.5)
             elif len(x_var) <= 80:
@@ -546,7 +543,14 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
             plt.savefig(output_histogram)
             #plt.show()
         
-        return {self.OUTPUT: layer_summary.id()}
+        return {self.OUTPUT: self.layer_summary.id()}
+
+    def postProcessAlgorithm(self, context, feedback):
+        # Open the attribute table of the PostGIS layer
+        iface.showAttributeTable(self.layer_summary)
+        iface.setActiveLayer(self.layer_summary)
+
+        return {}
 
     def tr(self, string):
         return QCoreApplication.translate('Processing', string)
