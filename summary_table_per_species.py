@@ -450,8 +450,8 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
                         LEFT JOIN taxonomie.bib_taxref_rangs r ON t.id_rang = r.id_rang
                         LEFT JOIN communes com ON obs.id_synthese = com.id_synthese
-                        LEFT JOIN taxonomie.mv_c_statut_lr lr ON obs.taxref_cdnom = lr.cd_nom
-                        LEFT JOIN taxonomie.mv_c_statut_protection p ON obs.taxref_cdnom = p.cd_nom
+                        LEFT JOIN taxonomie.mv_c_statut_lr_test lr ON t.cd_ref = lr.cd_ref
+                        LEFT JOIN taxonomie.mv_c_statut_protection_test p ON t.cd_ref = p.cd_ref
                        GROUP BY
                         obs.taxref_cdnom
                         , obs.groupe_taxo
@@ -469,7 +469,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         , p.conv_bonn),
                     synthese AS (
                         SELECT DISTINCT
-                         cd_nom
+                         -- cd_nom
                         , cd_ref
                         , nom_rang                                          AS "Rang"
                         , groupe_taxo                                       AS "Groupe taxo"
