@@ -470,7 +470,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                     synthese AS (
                         SELECT DISTINCT
                          -- cd_nom
-                        , cd_ref
+                         cd_ref
                         , nom_rang                                          AS "Rang"
                         , groupe_taxo                                       AS "Groupe taxo"
                         , nom_vern                                          AS "Nom vernaculaire"
