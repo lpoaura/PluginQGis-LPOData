@@ -164,7 +164,10 @@ for row in ws.rows:
         if cell.value:
             dims[cell.column_letter] = max((dims.get(cell.column_letter, 0), len(str(cell.value))))  
 for col, value in dims.items():
-    ws.column_dimensions[col].width = value
+    if(value < 13):
+        ws.column_dimensions[col].width = 13  
+    else : 
+        ws.column_dimensions[col].width = value
 
 ## Mise en forme des bordures du tableau
 # Définition d'une fonction qui parcourt les cellules et applique le style de bordure choisie
