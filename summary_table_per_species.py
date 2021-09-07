@@ -426,7 +426,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         , r.nom_rang
                         , obs.groupe_taxo
                         , string_agg(distinct cor.vn_nom_fr, ', ') nom_vern
-                        , string_agg(distinct obs.nom_sci, ', ') nom_sci
+                        , string_agg(distinct cor.vn_nom_sci, ', ') nom_sci
                         , COUNT(*)                                      AS nb_donnees
                         , COUNT(DISTINCT obs.observateur)               AS nb_observateurs
                         , COUNT(DISTINCT obs.date)                      AS nb_dates
@@ -453,7 +453,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
 /*todo mettre les bons noms*/                        
                         LEFT JOIN taxonomie.mv_c_statut_lr_test lr ON t.cd_ref = lr.cd_ref
                         LEFT JOIN taxonomie.mv_c_statut_protection_test_V2 p ON t.cd_ref = p.cd_ref
-                        INNER JOIN taxonomie.mv_cor_vn_taxref cor on cor.cd_ref=t.cd_ref
+                        INNER JOIN taxonomie.mv_c_cor_vn_taxref cor on cor.cd_ref=t.cd_ref
                        GROUP BY
                         obs.taxref_cdnom
                         , obs.groupe_taxo
