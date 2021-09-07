@@ -425,8 +425,8 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         , t.cd_ref
                         , r.nom_rang
                         , obs.groupe_taxo
-                        , obs.nom_vern
-                        , obs.nom_sci
+                        , string_agg(distinct cor.vn_nom_fr, ', ') nom_vern
+                        , string_agg(distinct obs.nom_sci, ', ') nom_sci
                         , COUNT(*)                                      AS nb_donnees
                         , COUNT(DISTINCT obs.observateur)               AS nb_observateurs
                         , COUNT(DISTINCT obs.date)                      AS nb_dates
@@ -450,13 +450,13 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
                         LEFT JOIN taxonomie.bib_taxref_rangs r ON t.id_rang = r.id_rang
                         LEFT JOIN communes com ON obs.id_synthese = com.id_synthese
+/*todo mettre les bons noms*/                        
                         LEFT JOIN taxonomie.mv_c_statut_lr_test lr ON t.cd_ref = lr.cd_ref
                         LEFT JOIN taxonomie.mv_c_statut_protection_test_V2 p ON t.cd_ref = p.cd_ref
+                        INNER JOIN taxonomie.mv_cor_vn_taxref cor on cor.cd_ref=t.cd_ref
                        GROUP BY
                         obs.taxref_cdnom
                         , obs.groupe_taxo
-                        , obs.nom_vern
-                        , obs.nom_sci
                         , t.cd_ref
                         , r.nom_rang
                         , lr.lr_france
@@ -469,7 +469,6 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         , p.conv_bonn),
                     synthese AS (
                         SELECT DISTINCT
-                         -- cd_nom
                          cd_ref
                         , nom_rang                                          AS "Rang"
                         , groupe_taxo                                       AS "Groupe taxo"
@@ -499,13 +498,6 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         ORDER BY groupe_taxo, nom_vern)
                     SELECT row_number() OVER () AS id, *
                     FROM synthese""".format(where)
-
-# test jointure via CD com suite a la mise a jours taxref
-## old version : 
-#                      LEFT JOIN taxonomie.mv_c_statut_lr lr ON (obs.taxref_cdnom, obs.nom_sci) = (lr.cd_nom, lr.vn_nom_sci)
-#                      LEFT JOIN taxonomie.mv_c_statut_protection p ON (obs.taxref_cdnom, obs.nom_sci) = (p.cd_nom, p.vn_nom_sci)
-#
-
 
         #feedback.pushInfo(query)
         # Retrieve the boolean add_table
