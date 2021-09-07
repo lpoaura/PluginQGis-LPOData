@@ -450,9 +450,8 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
                         LEFT JOIN taxonomie.bib_taxref_rangs r ON t.id_rang = r.id_rang
                         LEFT JOIN communes com ON obs.id_synthese = com.id_synthese
-/*todo mettre les bons noms*/                        
-                        LEFT JOIN taxonomie.mv_c_statut_lr_test lr ON t.cd_ref = lr.cd_ref
-                        LEFT JOIN taxonomie.mv_c_statut_protection_test_V2 p ON t.cd_ref = p.cd_ref
+                        LEFT JOIN taxonomie.mv_c_statut_lr lr ON t.cd_ref = lr.cd_ref
+                        LEFT JOIN taxonomie.mv_c_statut_protection p ON t.cd_ref = p.cd_ref
                         INNER JOIN taxonomie.mv_c_cor_vn_taxref cor on cor.cd_ref=t.cd_ref
                        GROUP BY
                         obs.taxref_cdnom
