@@ -251,7 +251,7 @@ def format_layer_export(layer):
     invalid_formats = ["_text", "jsonb"]
     for field in old_fields:
         if field.typeName() in invalid_formats:
-            new_fields.append(QgsField(field.name(), QVariant.String, "str"))
+            new_fields.append(QgsField(field.name(), QVariant.String, "text"))
         else:
             new_fields.append(field)
     # for i,field in enumerate(new_fields):

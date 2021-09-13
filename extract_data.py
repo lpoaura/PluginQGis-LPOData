@@ -27,6 +27,7 @@ __copyright__ = '(C) 2020 by Elsa Guilley (LPO AuRA)'
 __revision__ = '$Format:%H$'
 
 import os
+import json
 from datetime import datetime
 
 from qgis.PyQt.QtGui import QIcon
@@ -423,8 +424,18 @@ class ExtractData(QgsProcessingAlgorithm):
             # Return the PostGIS layer
             return {self.OUTPUT: layer_obs.id()}
         else:
+            # Dealing with jsonb fields
+            old_fields = layer_obs.fields()
+            invalid_fields = []
+            invalid_formats = ["jsonb"]
+            for field in old_fields:
+                if field.typeName() in invalid_formats:
+                    invalid_fields.append(field.name())
             # Fill the sink and return it
             for feature in layer_obs.getFeatures():
+                for invalid_field in invalid_fields:
+                    if feature[invalid_field] != None:
+                        feature[invalid_field] = json.dumps(feature[invalid_field], sort_keys=True, indent=4, separators=(',', ': '))
                 sink.addFeature(feature)
             return {self.OUTPUT: dest_id}
 
