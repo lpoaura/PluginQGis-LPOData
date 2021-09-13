@@ -451,38 +451,42 @@ class SummaryMap(QgsProcessingAlgorithm):
 
         ### GET THE OUTPUT LAYER ###
         # Retrieve the output PostGIS layer = map data
-        layer_map = QgsVectorLayer(uri.uri(), format_name, "postgres")
+        self.layer_map = QgsVectorLayer(uri.uri(), format_name, "postgres")
         # Check if the PostGIS layer is valid
-        check_layer_is_valid(feedback, layer_map)
+        check_layer_is_valid(feedback, self.layer_map)
         # Load the PostGIS layer
-        load_layer(context, layer_map)
-        # Open the attribute table of the PostGIS layer
-        iface.showAttributeTable(layer_map)
-        iface.setActiveLayer(layer_map)
+        load_layer(context, self.layer_map)
         
         ### MANAGE EXPORT ###
         # Create new valid fields for the sink
-        new_fields = format_layer_export(layer_map)
+        new_fields = format_layer_export(self.layer_map)
         # Retrieve the sink for the export
-        (sink, dest_id) = self.parameterAsSink(parameters, self.OUTPUT, context, new_fields, layer_map.wkbType(), layer_map.sourceCrs())
+        (sink, dest_id) = self.parameterAsSink(parameters, self.OUTPUT, context, new_fields, self.layer_map.wkbType(), self.layer_map.sourceCrs())
         if sink is None:
             # Return the PostGIS layer
-            return {self.OUTPUT: layer_map.id()}
+            return {self.OUTPUT: self.layer_map.id()}
         else:
             # Dealing with jsonb fields
-            old_fields = layer_map.fields()
+            old_fields = self.layer_map.fields()
             invalid_fields = []
             invalid_formats = ["jsonb"]
             for field in old_fields:
                 if field.typeName() in invalid_formats:
                     invalid_fields.append(field.name())
             # Fill the sink and return it
-            for feature in layer_map.getFeatures():
+            for feature in self.layer_map.getFeatures():
                 for invalid_field in invalid_fields:
                     if feature[invalid_field] != None:
                         feature[invalid_field] = json.dumps(feature[invalid_field], sort_keys=True, indent=4, separators=(',', ': '))
                 sink.addFeature(feature)
             return {self.OUTPUT: dest_id}
+
+    def postProcessAlgorithm(self, context, feedback):
+        # Open the attribute table of the PostGIS layer
+        iface.showAttributeTable(self.layer_map)
+        iface.setActiveLayer(self.layer_map)
+
+        return {}
 
     def tr(self, string):
         return QCoreApplication.translate('Processing', string)
