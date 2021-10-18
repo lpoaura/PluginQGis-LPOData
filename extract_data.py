@@ -44,7 +44,8 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterEnum,
                        QgsProcessingParameterFeatureSink,
                        QgsProcessingParameterDefinition,
-                       QgsVectorLayer)
+                       QgsVectorLayer,
+                       QgsEditorWidgetSetup)
 # from processing.tools import postgis
 from .qgis_processing_postgis import uri_from_name
 from .common_functions import check_layer_is_valid, construct_sql_array_polygons, construct_sql_taxons_filter, construct_sql_datetime_filter, load_layer, format_layer_export
@@ -410,6 +411,10 @@ class ExtractData(QgsProcessingAlgorithm):
         ### GET THE OUTPUT LAYER ###
         # Retrieve the output PostGIS layer = biodiversity data
         layer_obs = QgsVectorLayer(uri.uri(), format_name, "postgres")
+        # Display 'details' field in the attribute table
+        details_field_id = layer_obs.fields().indexFromName('details')
+        widget_setup = QgsEditorWidgetSetup('TextEdit', {})
+        layer_obs.setEditorWidgetSetup(details_field_id, widget_setup)
         # Check if the PostGIS layer is valid
         check_layer_is_valid(feedback, layer_obs)
         # Load the PostGIS layer
