@@ -480,8 +480,6 @@ class SummaryMap(QgsProcessingAlgorithm):
                         feature[invalid_field] = json.dumps(feature[invalid_field], sort_keys=True, indent=4, separators=(',', ': '))
                 sink.addFeature(feature)
             return {self.OUTPUT: dest_id}
-        
-        return {self.OUTPUT: self.layer_map.id()}
 
     def postProcessAlgorithm(self, context, feedback):
         # Open the attribute table of the PostGIS layer
