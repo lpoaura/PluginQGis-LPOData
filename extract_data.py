@@ -441,6 +441,9 @@ class ExtractData(QgsProcessingAlgorithm):
                 for invalid_field in invalid_fields:
                     if feature[invalid_field] != None:
                         feature[invalid_field] = json.dumps(feature[invalid_field], sort_keys=True, indent=4, separators=(',', ': '))
+                # Dealing with "comportement" field
+                if feature['comportement'] != None:
+                    feature['comportement'] = ', '.join([item for item in feature['comportement']])
                 sink.addFeature(feature)
             return {self.OUTPUT: dest_id}
 
