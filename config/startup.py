@@ -6,7 +6,7 @@ from qgis.core import (Qgis, QgsVectorLayer, QgsSettings, QgsProviderRegistry, Q
 # uri = postgis.uri_from_name("geonature_lpo")
 try:
     postgres_metadata = QgsProviderRegistry.instance().providerMetadata('postgres')
-    connection = postgres_metadata.createConnection("geonature_lpo")
+    connection = postgres_metadata.createConnection("gnlpoaura")
 except QgsProviderConnectionException:
     raise QgsProcessingException(self.tr('Could not retrieve connection details for {}').format(connection))
 uri = QgsDataSourceUri(connection.uri())
@@ -105,6 +105,6 @@ db_variables.setValue("famille", famille)
 db_variables.setValue("group1_inpn", group1_inpn)
 db_variables.setValue("group2_inpn", group2_inpn)
 
+# Add Plugin LPO menu
 
-
-
+iface.pluginMenu().parent().addMenu("Plugin LPO")
