@@ -4,9 +4,9 @@
 /***************************************************************************
         ScriptsLPO : scripts_lpo.py
         -------------------
-        Date                 : 2020-04-16
+        Date                 : 2020-04-16 / 2021-12-07
         Copyright            : (C) 2020 by Elsa Guilley (LPO AuRA)
-        Email                : lpo-aura@lpo.fr
+        Email                : auvergne-rhone-alpes@lpo.fr
  ***************************************************************************/
 
 /***************************************************************************
@@ -33,7 +33,7 @@ import inspect
 from qgis.core import QgsApplication
 from qgis.PyQt.QtWidgets import QAction, QMenu
 from .scripts_lpo_provider import ScriptsLPOProvider
-from .carte_par_especes import CarteParEspece
+from .species_map import CarteParEspece
 
 
 cmd_folder = os.path.split(inspect.getfile(inspect.currentframe()))[0]
