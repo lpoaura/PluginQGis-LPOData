@@ -967,7 +967,7 @@ def get_connection_name():
     s = QgsSettings()
     s.beginGroup("PostgreSQL/connections")
     connection_name, res = QInputDialog.getItem(
-        None, "Choisir une connection", "Connection", s.childGroups(), editable=False
+        None, "Choisir une connexion", "Connection", s.childGroups(), editable=False
     )
     if res:
         return connection_name
