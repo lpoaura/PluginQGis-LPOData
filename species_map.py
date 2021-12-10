@@ -100,7 +100,7 @@ class MyCheckableComboBox(QComboBox):
 
 
 class CarteParEspece(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, connection_name, parent=None):
         super().__init__(parent)
 
         self.setWindowTitle("Carte par espèce(s)")
@@ -139,44 +139,45 @@ class CarteParEspece(QDialog):
         connection = (
             QgsProviderRegistry.instance()
             .providerMetadata("postgres")
-            .createConnection("gnlpoaura")
+            .createConnection(connection_name)
         )
 
-        query = """SELECT unnest(liste_object)
-            FROM qgis_shared.vm_taxonomy
-            WHERE rang='species'"""
-        especes = [json.loads(item[0]) for item in connection.executeSql(query)]
+        with OverrideCursor(Qt.WaitCursor):
+            query = """SELECT unnest(liste_object)
+                FROM qgis_shared.vm_taxonomy
+                WHERE rang='species'"""
+            especes = [json.loads(item[0]) for item in connection.executeSql(query)]
 
-        # Remplissage des combobox
-        for espece in especes:
-            nom_sci = espece["nom_sci"]
-            nom_vern = espece["nom_vern"]
-            cd_nom = espece["cd_nom"]
-            if nom_sci is not None and nom_sci.strip() != "":
-                sci_item = QStandardItem()
-                sci_item.setCheckable(True)
-                sci_item.setText(nom_sci)
-                sci_item.setData(cd_nom, Qt.UserRole)
-                self.cbx_nom_sci.model().sourceModel().appendRow(
-                    [sci_item, QStandardItem(sanitizeName(nom_sci))]
-                )
-            if nom_vern is not None and nom_vern.strip() != "":
-                vern_item = QStandardItem()
-                vern_item.setCheckable(True)
-                vern_item.setText(nom_vern)
-                vern_item.setData(cd_nom, Qt.UserRole)
-                self.cbx_nom_vern.model().sourceModel().appendRow(
-                    [vern_item, QStandardItem(sanitizeName(nom_vern))]
-                )
-        self.cbx_nom_vern.updateText()
-        self.cbx_nom_sci.updateText()
+            # Remplissage des combobox
+            for espece in especes:
+                nom_sci = espece["nom_sci"]
+                nom_vern = espece["nom_vern"]
+                cd_nom = espece["cd_nom"]
+                if nom_sci is not None and nom_sci.strip() != "":
+                    sci_item = QStandardItem()
+                    sci_item.setCheckable(True)
+                    sci_item.setText(nom_sci)
+                    sci_item.setData(cd_nom, Qt.UserRole)
+                    self.cbx_nom_sci.model().sourceModel().appendRow(
+                        [sci_item, QStandardItem(sanitizeName(nom_sci))]
+                    )
+                if nom_vern is not None and nom_vern.strip() != "":
+                    vern_item = QStandardItem()
+                    vern_item.setCheckable(True)
+                    vern_item.setText(nom_vern)
+                    vern_item.setData(cd_nom, Qt.UserRole)
+                    self.cbx_nom_vern.model().sourceModel().appendRow(
+                        [vern_item, QStandardItem(sanitizeName(nom_vern))]
+                    )
+            self.cbx_nom_vern.updateText()
+            self.cbx_nom_sci.updateText()
 
-        self.cbx_nom_vern.model().setFilterKeyColumn(1)
-        self.cbx_nom_sci.model().setFilterKeyColumn(1)
-        self.cbx_nom_vern.model().setFilterCaseSensitivity(Qt.CaseInsensitive)
-        self.cbx_nom_sci.model().setFilterCaseSensitivity(Qt.CaseInsensitive)
-        self.cbx_nom_vern.model().sort(0)
-        self.cbx_nom_sci.model().sort(0)
+            self.cbx_nom_vern.model().setFilterKeyColumn(1)
+            self.cbx_nom_sci.model().setFilterKeyColumn(1)
+            self.cbx_nom_vern.model().setFilterCaseSensitivity(Qt.CaseInsensitive)
+            self.cbx_nom_sci.model().setFilterCaseSensitivity(Qt.CaseInsensitive)
+            self.cbx_nom_vern.model().sort(0)
+            self.cbx_nom_sci.model().sort(0)
 
         rbtn_vern.toggled.connect(
             lambda checked: self.cbx_nom_vern.setVisible(checked)

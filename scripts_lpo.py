@@ -34,6 +34,7 @@ from qgis.core import QgsApplication
 from qgis.PyQt.QtWidgets import QAction, QMenu
 from .scripts_lpo_provider import ScriptsLPOProvider
 from .species_map import CarteParEspece
+from .qgis_processing_postgis import get_connection_name
 
 
 cmd_folder = os.path.split(inspect.getfile(inspect.currentframe()))[0]
@@ -62,7 +63,7 @@ class ScriptsLPOPlugin(object):
             "Carte par espèces",
             self.iface.mainWindow(),
         )
-        self.especes_action.triggered.connect(lambda: CarteParEspece().exec())
+        self.especes_action.triggered.connect(self.runEspeces)
         try:
             # Try to put the button in the LPO menu bar
             lpo_menu = [
@@ -78,6 +79,11 @@ class ScriptsLPOPlugin(object):
                 "Attention",
                 "La carte par espèces est accessible via la barre d'outils d'Extensions",
             )
+
+    def runEspeces(self):
+        connection_name = get_connection_name()
+        if connection_name is not None:
+            CarteParEspece(connection_name).exec()
 
     def unload(self):
         QgsApplication.processingRegistry().removeProvider(self.provider)
