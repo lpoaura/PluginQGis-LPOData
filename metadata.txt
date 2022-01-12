@@ -11,7 +11,7 @@ qgisMinimumVersion=3.4
 description=Scripts processing for LPO
 about=Provide a brief description of the plugin and its purpose.
 
-version=0.0.2
+version=1.0.2
 author=Elsa Guilley (LPO AuRA)
 email=lpo-aura@lpo.fr
 
