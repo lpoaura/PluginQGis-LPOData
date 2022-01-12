@@ -427,7 +427,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         , obs.groupe_taxo
                         , string_agg(distinct cor.vn_nom_fr, ', ') nom_vern
                         , string_agg(distinct cor.vn_nom_sci, ', ') nom_sci
-                        , COUNT(*)                                      AS nb_donnees
+                        , COUNT(distinct obs.id_synthese)                                      AS nb_donnees
                         , COUNT(DISTINCT obs.observateur)               AS nb_observateurs
                         , COUNT(DISTINCT obs.date)                      AS nb_dates
                         , SUM(CASE WHEN mortalite THEN 1 ELSE 0 END)    AS nb_mortalite
