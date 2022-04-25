@@ -6,7 +6,7 @@
 
 [general]
 name=Traitements de la LPO AuRA
-qgisMinimumVersion=3.4
+qgisMinimumVersion=3.16
 
 description=Scripts processing for LPO
 about=Provide a brief description of the plugin and its purpose.
