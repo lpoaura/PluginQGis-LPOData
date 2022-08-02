@@ -373,7 +373,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
         # Construct the sql array containing the study area's features geometry
         array_polygons = construct_sql_array_polygons(study_area)
         # Define the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer = summary table
-        where = """is_valid and is_present and ST_within(obs.geom, ST_union({}))""".format(array_polygons)
+        where = """is_valid and is_present and ST_intersects(obs.geom, ST_union({}))""".format(array_polygons)
         # Define a dictionnary with the aggregated taxons filters and complete the "where" clause thanks to it
         taxons_filters = {
             "groupe_taxo": groupe_taxo,
@@ -402,6 +402,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
         # Define the SQL query
         query = """WITH obs AS (
                         SELECT obs.*
+                        ,t.*
                         FROM src_lpodatas.v_c_observations obs
                         LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
                         WHERE {}),
@@ -419,10 +420,9 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                     total_count AS (
                         SELECT COUNT(*) AS total_count
                         FROM obs),
-                    data AS (
+                     data AS (
                         SELECT
-                        obs.taxref_cdnom                                AS cd_nom
-                        , t.cd_ref
+                         cor.cd_ref
                         , r.nom_rang
                         , obs.groupe_taxo
                         , string_agg(distinct cor.vn_nom_fr, ', ') nom_vern
@@ -431,14 +431,15 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         , COUNT(DISTINCT obs.observateur)               AS nb_observateurs
                         , COUNT(DISTINCT obs.date)                      AS nb_dates
                         , SUM(CASE WHEN mortalite THEN 1 ELSE 0 END)    AS nb_mortalite
-                        , lr.lr_france
-                        , lr.lrra
-                        , lr.lrauv
-                        , p.dir_hab
-                        , p.dir_ois
-                        , p.protection_nat
-                        , p.conv_berne
-                        , p.conv_bonn
+                        , st.lr_france
+                        , st.lr_ra
+                        , st.lr_auv
+                        , st.n2k
+                        /*, dir_hab
+                        , t.dir_ois*/
+                        , st.prot_nat as protection_nat
+                        , st.conv_berne
+                        , st.conv_bonn
                         , max(ac.hierarchy)                             AS max_hierarchy_atlas_code
                         , max(obs.nombre_total)                         AS nb_individus_max
                         , min(obs.date_an)                              AS premiere_observation
@@ -447,25 +448,22 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         , string_agg(DISTINCT obs.source, ', ')         AS sources
                         FROM obs
                         LEFT JOIN atlas_code ac ON obs.oiso_code_nidif = ac.cd_nomenclature::int
-                        LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
-                        LEFT JOIN taxonomie.bib_taxref_rangs r ON t.id_rang = r.id_rang
+                        LEFT JOIN taxonomie.bib_taxref_rangs r ON obs.id_rang = r.id_rang
                         LEFT JOIN communes com ON obs.id_synthese = com.id_synthese
-                        LEFT JOIN taxonomie.mv_c_statut_lr lr ON t.cd_ref = lr.cd_ref
-                        LEFT JOIN taxonomie.mv_c_statut_protection p ON t.cd_ref = p.cd_ref
-                        INNER JOIN taxonomie.mv_c_cor_vn_taxref cor on cor.cd_ref=t.cd_ref
+                        left join taxonomie.mv_c_statut st on st.cd_ref=obs.cd_ref
+                        INNER JOIN taxonomie.mv_c_cor_vn_taxref cor on cor.cd_ref=obs.cd_nom
                        GROUP BY
-                        obs.taxref_cdnom
-                        , obs.groupe_taxo
-                        , t.cd_ref
+                      --  obs.taxref_cdnom,
+                         obs.groupe_taxo
+                        , cor.cd_ref
                         , r.nom_rang
-                        , lr.lr_france
-                        , lr.lrra
-                        , lr.lrauv
-                        , p.dir_hab
-                        , p.dir_ois
-                        , p.protection_nat
-                        , p.conv_berne
-                        , p.conv_bonn),
+                        , st.lr_france
+                        , st.lr_ra
+                        , st.lr_auv
+                        , st.n2k
+                        , st.prot_nat
+                        , st.conv_berne
+                        , st.conv_bonn),
                     synthese AS (
                         SELECT DISTINCT
                          cd_ref
@@ -479,10 +477,9 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         , nb_dates                                          AS "Nb de dates"
                         , nb_mortalite                                      AS "Nb de données de mortalité"
                         , lr_france                                         AS "LR France"
-                        , lrra                                              AS "LR Rhône-Alpes"
-                        , lrauv                                             AS "LR Auvergne"
-                        , dir_hab                                           AS "Directive Habitats"
-                        , dir_ois                                           AS "Directive Oiseaux"
+                        , lr_ra                                              AS "LR Rhône-Alpes"
+                        , lr_auv                                             AS "LR Auvergne"
+                        , n2k                                           AS "Natura 2000"
                         , protection_nat                                    AS "Protection nationale"
                         , conv_berne                                        AS "Convention de Berne"
                         , conv_bonn                                         AS "Convention de Bonn"

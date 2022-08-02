@@ -199,6 +199,7 @@ from prep_lrf_ok
 lr_euro as (
 select 
 	bs.cd_ref 
+	,bs.cd_nom
 	, bs.code_statut 
 	, bs.label_statut 
 FROM taxonomie.bdc_statut bs 
@@ -206,7 +207,8 @@ where bs.cd_type_statut='LRE'
 ),
 lr_monde as (
 select 
-	 bs.cd_ref 
+	 bs.cd_ref
+	 , bs.cd_nom 
 	, bs.code_statut 
 	, bs.label_statut 
 FROM taxonomie.bdc_statut bs 
@@ -281,9 +283,9 @@ from lpo38_aat.tabesp1806 tb
 	left join taxonomie.taxref t on ccvt.taxref_id =t.cd_nom
 where sc38_2015 is not null)
 select distinct
-	vn.groupe_taxo_fr,
-    vn.french_name AS vn_nom_fr,
-    vn.latin_name AS vn_nom_sci,
+	cor.groupe_taxo_fr,
+    cor.vn_nom_fr,
+    cor.vn_nom_sci,
     cor.cd_ref,
     lr_auv.code_statut lr_auv,
     lr_ra.code_statut lr_ra
@@ -299,22 +301,22 @@ select distinct
     , lr_monde.code_statut lr_monde
     , prot_nat.article prot_nat
     , case when n2k.annexe in ('Annexe II, Annexe IV','Annexe IV, Annexe II') then 'Annexes II, IV' else n2k.annexe end n2k
-    , berne.annexe berne
-    , bonn.annexe bonne
+    , berne.annexe conv_berne
+    , bonn.annexe conv_bonn
     , pna_en_cours.statut pna_en_cours
     , pna_ex.statut pna_ex
     ,sc38.sc38_2015
 from taxonomie.taxref t	
-	left join (SELECT cor.vn_id, t.cd_ref AS cd_ref 
-						FROM taxonomie.cor_c_vn_taxref cor
-						LEFT JOIN taxonomie.taxref t ON cor.taxref_id = t.cd_nom) cor ON t.cd_nom =cor.cd_ref
-      left join import_vn.v_c_species vn on vn.vn_id = cor.vn_id
+	/*left join (SELECT cor.vn_id, t.cd_ref AS cd_ref 
+						FROM taxonomie.mv_c_cor_vn_taxref_dev cor
+						LEFT JOIN taxonomie.taxref t ON cor.cd_ref = t.cd_nom) cor ON t.cd_nom =cor.cd_ref*/
+	left join (select * from taxonomie.mv_c_cor_vn_taxref_dev mccvtd where vn_utilisation) cor on cor.cd_nom=t.cd_nom
       left join lr_auv on lr_auv.cd_ref=cor.cd_ref
 		left join lr_ra on lr_ra.cd_ref=cor.cd_ref
 		left join lr_aura on lr_aura.cd_ref=cor.cd_ref
 	left join lr_fr on lr_fr.cd_ref=cor.cd_ref
-	left join lr_euro on lr_euro.cd_ref=cor.cd_ref
-	left join lr_monde on lr_monde.cd_ref=cor.cd_ref
+	left join lr_euro on lr_euro.cd_nom=cor.cd_ref
+	left join lr_monde on lr_monde.cd_nom=cor.cd_ref
 	left join prot_nat on prot_nat.cd_ref=cor.cd_ref
 	left join n2k on n2k.cd_ref=cor.cd_ref
 	left join berne on berne.cd_ref=cor.cd_ref
@@ -322,10 +324,23 @@ from taxonomie.taxref t
 	left join pna_en_cours on pna_en_cours.cd_ref=cor.cd_ref
 	left join pna_ex on pna_ex.cd_ref=cor.cd_ref
 	left join sc38 on sc38.cd_ref=cor.cd_ref
-order by groupe_taxo_fr, vn_nom_fr
+where t.cd_nom =t.cd_ref 
+	order by groupe_taxo_fr, vn_nom_fr
 	);
-      
-select * from taxonomie.mv_statut ms ;
+
+
+select * from taxonomie.mv_statut ms where cd_ref =631131;
+select * from taxonomie.mv_statut ms where vn_nom_sci ilike '%mustela nivalis%';
+select 
+tx_nom_sci 
+, vn_id 
+, count(vcod.*)
+from taxonomie.mv_c_cor_vn_taxref_dev mccvtd 
+join src_lpodatas.v_c_observations_dev vcod on mccvtd.vn_id =vcod.source_id_sp 
+where vn_utilisation is false
+group by 1,2;
+
+select * from taxonomie.mv_c_cor_vn_taxref_dev mccvtd where vn_nom_sci ilike 'mustela ni%'
 
 
 -- intégration de l'ensemble des tables sur bdc_statut
@@ -373,4 +388,50 @@ select * from taxonomie.bdc_statut_values where code_statut ='NO3'
 select * from taxonomie.taxref t where nom_vern ilike '%barge à que%'
 select * from taxonomie.taxref t where cd_nom =2492;
 select * from taxonomie.taxref t where nom_vern  ilike '%héron g%';
+
+
+select 
+	 bs.cd_ref 
+	, bs.code_statut 
+	, bs.label_statut 
+FROM taxonomie.bdc_statut bs 
+where bs.cd_type_statut ='LRM' and cd_nom =69182
+
+select * from taxonomie.mv_c_cor_vn_taxref_dev mccvtd where vn_utilisation and cd_ref =69182;
+select * from taxonomie.mv_statut ms where cd_ref =69182;
+
+
+--
+with 
+lr_monde as (
+select 
+	 bs.cd_nom 
+	, bs.code_statut 
+	, bs.label_statut 
+FROM taxonomie.bdc_statut bs 
+where bs.cd_type_statut ='LRM'
+)
+select distinct
+/*	cor.groupe_taxo_fr,
+    cor.vn_nom_fr,
+    cor.vn_nom_sci,
+    cor.cd_ref
+        , lr_monde.* */
+        lr_monde.*
+from taxonomie.taxref t	
+	/*left join (SELECT cor.vn_id, t.cd_ref AS cd_ref 
+						FROM taxonomie.mv_c_cor_vn_taxref_dev cor
+						LEFT JOIN taxonomie.taxref t ON cor.cd_ref = t.cd_nom) cor ON t.cd_nom =cor.cd_ref*/
+	left join (select * from taxonomie.mv_c_cor_vn_taxref_dev mccvtd where vn_utilisation) cor on cor.cd_nom=t.cd_nom
+   	left join lr_monde on lr_monde.cd_nom=cor.cd_ref
+where t.cd_nom =t.cd_ref and t.cd_nom =69182
+	--order by groupe_taxo_fr, vn_nom_fr
+;
+
+
+
+select 
+	*
+FROM taxonomie.bdc_statut bs 
+where bs.cd_type_statut ='LRM' and cd_ref =69182
 
