@@ -230,7 +230,7 @@ class CarteParEspece(QDialog):
                 mortalite_cause
                FROM src_lpodatas.v_c_observations
               WHERE is_valid and st_geometrytype(geom) = 'ST_Point'
-              and taxref_cdnom in ({', '.join(str(a) for a in cd_noms)})"""
+              and cd_nom in ({', '.join(str(a) for a in cd_noms)})"""
         uri = QgsDataSourceUri(connection.uri())
         uri.setDataSource("", "(" + query + ")", "geom", "", "id_synthese")
         with OverrideCursor(Qt.WaitCursor):
