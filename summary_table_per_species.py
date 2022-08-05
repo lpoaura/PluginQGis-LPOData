@@ -402,7 +402,8 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
         # Define the SQL query
         query = """WITH obs AS (
                         SELECT obs.*
-                        ,t.*
+                        ,t.cd_ref
+                        , t.id_rang
                         FROM src_lpodatas.v_c_observations obs
                         LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
                         WHERE {}),

@@ -28,8 +28,8 @@
  */
 
 
-drop materialized view taxonomie.mv_statut;
-create materialized view taxonomie.mv_statut as (
+drop materialized view taxonomie.mv_c_statut;
+create materialized view taxonomie.mv_c_statut as (
 with 
 prep_lrra as (
          SELECT DISTINCT 
@@ -218,11 +218,12 @@ where bs.cd_type_statut ='LRM'
 prot_nat as (
 select 
 	 bs.cd_ref 
-	, split_part(label_statut,' : ',2) article
-	, bs.code_statut 
-	, bs.label_statut 
+	, string_agg(distinct split_part(label_statut,' : ',2),', ') article
+	, string_agg(distinct bs.code_statut,', ') code_statut
+	, string_agg(distinct bs.label_statut,', ') label_statut 
 FROM taxonomie.bdc_statut bs 
 where bs.cd_type_statut ='PN' and bs.lb_adm_tr='France métropolitaine'
+group by cd_ref 
 )
 ,
 n2k as (
@@ -277,11 +278,11 @@ where bs.cd_type_statut ='exPNA'
 )
 ,
 sc38 as 
-(select t.cd_ref, sc38_2015  
+(select tb.cdnom_taxref cd_ref, sc38_2015  
 from lpo38_aat.tabesp1806 tb 
-	left join taxonomie.cor_c_vn_taxref ccvt on ccvt.vn_id =tb.id_species
-	left join taxonomie.taxref t on ccvt.taxref_id =t.cd_nom
-where sc38_2015 is not null)
+	left join taxonomie.mv_c_cor_vn_taxref ccvt on ccvt.cd_nom  =tb.cdnom_taxref 
+where sc38_2015 is not null
+)
 select distinct
 	cor.groupe_taxo_fr,
     cor.vn_nom_fr,
@@ -310,7 +311,7 @@ from taxonomie.taxref t
 	/*left join (SELECT cor.vn_id, t.cd_ref AS cd_ref 
 						FROM taxonomie.mv_c_cor_vn_taxref_dev cor
 						LEFT JOIN taxonomie.taxref t ON cor.cd_ref = t.cd_nom) cor ON t.cd_nom =cor.cd_ref*/
-	left join (select * from taxonomie.mv_c_cor_vn_taxref_dev mccvtd where vn_utilisation) cor on cor.cd_nom=t.cd_nom
+	left join (select * from taxonomie.mv_c_cor_vn_taxref mccvtd where vn_utilisation) cor on cor.cd_nom=t.cd_nom
       left join lr_auv on lr_auv.cd_ref=cor.cd_ref
 		left join lr_ra on lr_ra.cd_ref=cor.cd_ref
 		left join lr_aura on lr_aura.cd_ref=cor.cd_ref
@@ -328,9 +329,11 @@ where t.cd_nom =t.cd_ref
 	order by groupe_taxo_fr, vn_nom_fr
 	);
 
+select * from taxonomie.mv_c_cor_vn_taxref_dev mccvtd where vn_utilisation and cd_nom =65076;
 
-select * from taxonomie.mv_statut ms where cd_ref =631131;
-select * from taxonomie.mv_statut ms where vn_nom_sci ilike '%mustela nivalis%';
+
+select * from taxonomie.mv_statut ms where cd_ref =65076;
+select * from taxonomie.mv_statut ms where vn_nom_sci ilike 'columbia liv%';
 select 
 tx_nom_sci 
 , vn_id 
@@ -340,7 +343,8 @@ join src_lpodatas.v_c_observations_dev vcod on mccvtd.vn_id =vcod.source_id_sp
 where vn_utilisation is false
 group by 1,2;
 
-select * from taxonomie.mv_c_cor_vn_taxref_dev mccvtd where vn_nom_sci ilike 'mustela ni%'
+select * from taxonomie.mv_c_cor_vn_taxref_dev mccvtd where vn_nom_sci ilike 'mustela ni%';
+select * from taxonomie.mv_c_cor_vn_taxref_dev mccvtd where cd_ref = 61281;
 
 
 -- intégration de l'ensemble des tables sur bdc_statut
@@ -369,9 +373,17 @@ having count(*)>1;
 
 -- bac à sable
 
-select * from taxonomie.mv_statut ms 
-join taxonomie.taxref t on t.cd_nom =ms.cd_ref
-where ms.cd_ref=54265;
+select * from taxonomie.mv_statut ms where cd_ref=61281 ;
+
+
+select *
+from lpo38_aat.tabesp1806 tb 
+	left join taxonomie.mv_c_cor_vn_taxref_dev ccvt on ccvt.cd_nom  =tb.cdnom_taxref 
+--	left join taxonomie.taxref t on ccvt.cd_nom =t.cd_nom
+where ccvt.cd_nom =699157 ;
+
+select * from taxonomie.mv_c_cor_vn_taxref_dev where cd_nom =699157;
+select * from lpo38_aat.tabesp1806 t where id_species in (8640,15086);
 
 
 select * from taxonomie.taxref t where cd_nom in (219768,608318);
@@ -388,7 +400,7 @@ select * from taxonomie.bdc_statut_values where code_statut ='NO3'
 select * from taxonomie.taxref t where nom_vern ilike '%barge à que%'
 select * from taxonomie.taxref t where cd_nom =2492;
 select * from taxonomie.taxref t where nom_vern  ilike '%héron g%';
-
+select * from taxonomie.mv_statut ms where vn_nom_sci  ilike 'boloria%';
 
 select 
 	 bs.cd_ref 
