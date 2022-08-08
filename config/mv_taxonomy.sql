@@ -13,6 +13,7 @@ AS WITH taxa AS (
             t.group1_inpn,
             t.group2_inpn,
             t.cd_nom,
+            t.cd_ref,
             t.lb_nom AS nom_sci,
             COALESCE(tcse.common_name, split_part(t.nom_vern::text, ','::text, 1)::character varying)::character varying(250) AS nom_vern
            FROM gn_synthese.synthese s
@@ -61,7 +62,7 @@ UNION ALL
 UNION ALL
  SELECT 'species'::text AS rang,
     NULL::text[] AS liste,
-    array_agg(json_build_object('cd_nom', taxa.cd_nom, 'nom_vern', taxa.nom_vern, 'nom_sci', taxa.nom_sci)) AS liste_object
+    array_agg(json_build_object('cd_ref', taxa.cd_ref, 'nom_vern', taxa.nom_vern, 'nom_sci', taxa.nom_sci)) AS liste_object
    FROM taxa
 WITH DATA;
 
