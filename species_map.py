@@ -152,12 +152,12 @@ class CarteParEspece(QDialog):
             for espece in especes:
                 nom_sci = espece["nom_sci"]
                 nom_vern = espece["nom_vern"]
-                cd_nom = espece["cd_nom"]
+                cd_ref = espece["cd_ref"]
                 if nom_sci is not None and nom_sci.strip() != "":
                     sci_item = QStandardItem()
                     sci_item.setCheckable(True)
                     sci_item.setText(nom_sci)
-                    sci_item.setData(cd_nom, Qt.UserRole)
+                    sci_item.setData(cd_ref, Qt.UserRole)
                     self.cbx_nom_sci.model().sourceModel().appendRow(
                         [sci_item, QStandardItem(sanitizeName(nom_sci))]
                     )
@@ -165,7 +165,7 @@ class CarteParEspece(QDialog):
                     vern_item = QStandardItem()
                     vern_item.setCheckable(True)
                     vern_item.setText(nom_vern)
-                    vern_item.setData(cd_nom, Qt.UserRole)
+                    vern_item.setData(cd_ref, Qt.UserRole)
                     self.cbx_nom_vern.model().sourceModel().appendRow(
                         [vern_item, QStandardItem(sanitizeName(nom_vern))]
                     )
@@ -197,11 +197,11 @@ class CarteParEspece(QDialog):
 
     def accept(self):
         if self.cbx_nom_vern.isVisible():
-            cd_noms = self.cbx_nom_vern.checkedItemsData()
+            cd_refs = self.cbx_nom_vern.checkedItemsData()
         else:
-            cd_noms = self.cbx_nom_sci.checkedItemsData()
+            cd_refs = self.cbx_nom_sci.checkedItemsData()
 
-        if len(cd_noms) == 0:
+        if len(cd_refs) == 0:
             QMessageBox.warning(None, "Attention", "Aucune espèce sélectionnée")
             return
 
@@ -230,7 +230,7 @@ class CarteParEspece(QDialog):
                 mortalite_cause
                FROM src_lpodatas.v_c_observations
               WHERE is_valid and st_geometrytype(geom) = 'ST_Point'
-              and cd_nom in ({', '.join(str(a) for a in cd_noms)})"""
+              and cd_ref in ({', '.join(str(a) for a in cd_refs)})"""
         uri = QgsDataSourceUri(connection.uri())
         uri.setDataSource("", "(" + query + ")", "geom", "", "id_synthese")
         with OverrideCursor(Qt.WaitCursor):
