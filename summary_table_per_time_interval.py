@@ -474,7 +474,7 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
         # Select data according to the time interval and the period
         select_data, x_var = construct_sql_select_data_per_time_interval(self, time_interval, start_year, end_year, aggregation_type, parameters, context)
         # Select species info (optional)
-        select_species_info = """/*source_id_sp, */taxref_cdnom AS cd_nom, cd_ref, nom_rang as "Rang", groupe_taxo AS "Groupe taxo",
+        select_species_info = """/*source_id_sp, */taxref_cdnom AS cd_nom, obs.cd_ref, nom_rang as "Rang", groupe_taxo AS "Groupe taxo",
             obs.nom_vern AS "Nom vernaculaire", nom_sci AS "Nom scientifique\""""
         # Select taxonomic groups info (optional)
         select_taxo_groups_info = 'groupe_taxo AS "Groupe taxo"'
@@ -500,7 +500,7 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
         where += " " + extra_where
         ### CONSTRUCT "GROUP BY" CLAUSE (SQL) ###
         # Group by species (optional)
-        group_by_species = "/*source_id_sp, */taxref_cdnom, cd_ref, nom_rang, nom_sci, obs.nom_vern, " if taxonomic_rank == 'Espèces' else ""
+        group_by_species = "/*source_id_sp, */taxref_cdnom, obs.cd_ref, nom_rang, nom_sci, obs.nom_vern, " if taxonomic_rank == 'Espèces' else ""
 
         ### EXECUTE THE SQL QUERY ###
         # Retrieve the data base connection name
