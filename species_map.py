@@ -144,7 +144,7 @@ class CarteParEspece(QDialog):
 
         with OverrideCursor(Qt.WaitCursor):
             query = """SELECT unnest(liste_object)
-                FROM qgis_shared.vm_taxonomy
+                FROM dbadmin.mv_taxonomy
                 WHERE rang='species'"""
             especes = [json.loads(item[0]) for item in connection.executeSql(query)]
 
@@ -210,27 +210,30 @@ class CarteParEspece(QDialog):
             .providerMetadata("postgres")
             .createConnection("gnlpoaura")
         )
-        query = f"""SELECT id_synthese,
-                nom_sci,
-                nom_vern,
-                date::date,
-                date_an,
-                nombre_total,
-                details::character varying AS details,
-                oiso_code_nidif,
-                oiso_statut_nidif,
-                geom::geometry(Point,2154) AS geom,
-                commentaires,
-                comportement::character varying AS comportement,
-                precision,
-                place,
-                observateur,
-                source,
-                mortalite,
-                mortalite_cause
-               FROM src_lpodatas.v_c_observations
-              WHERE is_valid and st_geometrytype(geom) = 'ST_Point'
-              and cd_ref in ({', '.join(str(a) for a in cd_refs)})"""
+        query = f"""SELECT s.id_synthese,
+               cor.vn_nom_sci as nom_sci,
+                cor.vn_nom_fr as nom_vern,
+                s.date_min::date,
+                tcse.date_year as date_an,
+                s.count_max as nombre_total,
+                tcse.details::character varying AS details,
+                tcse.bird_breed_code as oiso_code_nidif,
+                tcse.bird_breed_status as oiso_statut_nidif,
+                s.the_geom_local::geometry(Point,2154) AS geom,
+                s.comment_description as commentaires,
+                tcse.behaviour::character varying as comportement,
+                tcse.geo_accuracy as precision,
+                tcse.place,
+                s.observers as observateur,
+                ts.desc_source as source,
+                tcse.mortality as mortalite,
+                tcse.mortality_cause as mortalite_cause
+               from gn_synthese.synthese s 
+               	join src_lpodatas.t_c_synthese_extended tcse on s.id_synthese =tcse.id_synthese
+               	join taxonomie.mv_c_cor_vn_taxref cor on cor.cd_nom=s.cd_nom
+               	join gn_synthese.t_sources ts on ts.id_source=s.id_source
+               WHERE tcse.is_valid and st_geometrytype(s.the_geom_local) = 'ST_Point'
+              and cor.cd_ref in ({', '.join(str(a) for a in cd_refs)})"""
         uri = QgsDataSourceUri(connection.uri())
         uri.setDataSource("", "(" + query + ")", "geom", "", "id_synthese")
         with OverrideCursor(Qt.WaitCursor):
