@@ -401,30 +401,35 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
         uri = uri_from_name(connection)
         # Define the SQL query
         query = """WITH obs AS (
+                        -- selection des cd_nom
                         SELECT obs.*
                         , t.id_rang
                         FROM src_lpodatas.v_c_observations obs
-                        LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
+                        LEFT JOIN taxonomie.taxref t ON obs.cd_nom = t.cd_nom
                         WHERE {}),
                     communes AS (
+                        --selection des communes
                         SELECT DISTINCT obs.id_synthese, la.area_name
                         FROM obs
                         LEFT JOIN gn_synthese.cor_area_synthese cor ON obs.id_synthese = cor.id_synthese
                         JOIN ref_geo.l_areas la ON cor.id_area = la.id_area
                         WHERE la.id_type = (SELECT id_type FROM ref_geo.bib_areas_types WHERE type_code = 'COM')),
                     atlas_code as (
+                        --préparation codes atlas
                     	SELECT cd_nomenclature, label_fr, hierarchy 
                     	FROM ref_nomenclatures.t_nomenclatures
                     	WHERE id_type=(SELECT id_type FROM ref_nomenclatures.bib_nomenclatures_types WHERE mnemonique='VN_ATLAS_CODE')
                     ),
                     total_count AS (
+                        --comptage nb total individus
                         SELECT COUNT(*) AS total_count
                         FROM obs),
                      data AS (
+                        --selection des données + statut
                         SELECT
                          cor.cd_ref
                         , r.nom_rang
-                        , obs.groupe_taxo
+                        , cor.groupe_taxo_fr
                         , string_agg(distinct cor.vn_nom_fr, ', ') nom_vern
                         , string_agg(distinct cor.vn_nom_sci, ', ') nom_sci
                         , COUNT(DISTINCT obs.id_synthese)               AS nb_donnees
@@ -451,10 +456,10 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         LEFT JOIN taxonomie.bib_taxref_rangs r ON obs.id_rang = r.id_rang
                         LEFT JOIN communes com ON obs.id_synthese = com.id_synthese
                         left join taxonomie.mv_c_statut st on st.cd_ref=obs.cd_ref
-                        INNER JOIN taxonomie.mv_c_cor_vn_taxref cor on cor.cd_ref=obs.cd_nom
+                        INNER JOIN taxonomie.mv_c_cor_vn_taxref cor on cor.cd_ref=obs.cd_ref
                        GROUP BY
                       --  obs.taxref_cdnom,
-                         obs.groupe_taxo
+                         cor.groupe_taxo_fr
                         , cor.cd_ref
                         , r.nom_rang
                         , st.lr_france
@@ -468,7 +473,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         SELECT DISTINCT
                          cd_ref
                         , nom_rang                                          AS "Rang"
-                        , groupe_taxo                                       AS "Groupe taxo"
+                        , d.groupe_taxo_fr              AS "Groupe taxo"
                         , nom_vern                                          AS "Nom vernaculaire"
                         , nom_sci                                           AS "Nom scientifique"
                         , nb_donnees                                        AS "Nb de données"
@@ -491,7 +496,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         , sources                                           AS "Sources"
                         FROM total_count, data d
                         LEFT JOIN atlas_code ac ON d.max_hierarchy_atlas_code = ac.hierarchy
-                        ORDER BY groupe_taxo, nom_vern)
+                        ORDER BY groupe_taxo_fr, nom_vern)
                     SELECT row_number() OVER () AS id, *
                     FROM synthese""".format(where)
         #feedback.pushInfo(query)
