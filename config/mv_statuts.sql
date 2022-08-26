@@ -121,7 +121,6 @@ prep_t_redlist_fr AS (
            FROM prep_t_redlist_fr ptlr
              LEFT JOIN taxonomie.taxref tr ON ptlr.cd_ref = tr.cd_nom
              LEFT JOIN taxonomie.bib_redlist_source art ON ptlr.id_source = art.id_source
-            where cd_nom =2563
         )
 , prep_lrf_ok as (SELECT 
     prep2.cd_ref,
@@ -308,10 +307,7 @@ select distinct
     , pna_ex.statut pna_ex
     ,sc38.sc38_2015
 from taxonomie.taxref t	
-	/*left join (SELECT cor.vn_id, t.cd_ref AS cd_ref 
-						FROM taxonomie.mv_c_cor_vn_taxref_dev cor
-						LEFT JOIN taxonomie.taxref t ON cor.cd_ref = t.cd_nom) cor ON t.cd_nom =cor.cd_ref*/
-	left join (select * from taxonomie.mv_c_cor_vn_taxref mccvtd where vn_utilisation) cor on cor.cd_nom=t.cd_nom
+	left join (select * from taxonomie.mv_c_cor_vn_taxref mccvtd where vn_utilisation) cor on cor.cd_ref=t.cd_nom
       left join lr_auv on lr_auv.cd_ref=cor.cd_ref
 		left join lr_ra on lr_ra.cd_ref=cor.cd_ref
 		left join lr_aura on lr_aura.cd_ref=cor.cd_ref
@@ -328,6 +324,30 @@ from taxonomie.taxref t
 where t.cd_nom =t.cd_ref 
 	order by groupe_taxo_fr, vn_nom_fr
 	);
+
+
+
+create index on taxonomie.mv_c_statut  (groupe_taxo_fr);
+create index on taxonomie.mv_c_statut  (vn_nom_fr);
+create index on taxonomie.mv_c_statut  (vn_nom_sci);
+create index on taxonomie.mv_c_statut  (cd_ref);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 select * from taxonomie.mv_c_cor_vn_taxref_dev mccvtd where vn_utilisation and cd_nom =65076;
 
