@@ -27,6 +27,7 @@ __copyright__ = '(C) 2020 by Elsa Guilley (LPO AuRA)'
 __revision__ = '$Format:%H$'
 
 import os
+import json
 from datetime import datetime
 
 from qgis.PyQt.QtGui import QIcon
@@ -41,12 +42,10 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterString,
                        QgsProcessingParameterFeatureSource,
                        QgsProcessingParameterEnum,
-                       QgsProcessingOutputVectorLayer,
                        QgsProcessingParameterFeatureSink,
                        QgsProcessingParameterDefinition,
-                       QgsDataSourceUri,
                        QgsVectorLayer,
-                       QgsProcessingException,)
+                       QgsEditorWidgetSetup)
 # from processing.tools import postgis
 from .qgis_processing_postgis import uri_from_name
 from .common_functions import check_layer_is_valid, construct_sql_array_polygons, construct_sql_taxons_filter, construct_sql_datetime_filter, load_layer, format_layer_export
@@ -403,7 +402,7 @@ class ExtractData(QgsProcessingAlgorithm):
         # Define the SQL query
         query = """SELECT obs.*
         FROM src_lpodatas.v_c_observations obs
-        LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom=t.cd_nom
+        LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
         WHERE {}""".format(where)
         #feedback.pushInfo(query)
         # Format the URI with the query
@@ -412,6 +411,10 @@ class ExtractData(QgsProcessingAlgorithm):
         ### GET THE OUTPUT LAYER ###
         # Retrieve the output PostGIS layer = biodiversity data
         layer_obs = QgsVectorLayer(uri.uri(), format_name, "postgres")
+        # Display 'details' field in the attribute table
+        details_field_id = layer_obs.fields().indexFromName('details')
+        widget_setup = QgsEditorWidgetSetup('TextEdit', {})
+        layer_obs.setEditorWidgetSetup(details_field_id, widget_setup)
         # Check if the PostGIS layer is valid
         check_layer_is_valid(feedback, layer_obs)
         # Load the PostGIS layer
@@ -426,8 +429,21 @@ class ExtractData(QgsProcessingAlgorithm):
             # Return the PostGIS layer
             return {self.OUTPUT: layer_obs.id()}
         else:
+            # Dealing with jsonb fields
+            old_fields = layer_obs.fields()
+            invalid_fields = []
+            invalid_formats = ["jsonb"]
+            for field in old_fields:
+                if field.typeName() in invalid_formats:
+                    invalid_fields.append(field.name())
             # Fill the sink and return it
             for feature in layer_obs.getFeatures():
+                for invalid_field in invalid_fields:
+                    if feature[invalid_field] != None:
+                        feature[invalid_field] = json.dumps(feature[invalid_field], sort_keys=True, indent=4, separators=(',', ': '))
+                # Dealing with "comportement" field
+                if feature['comportement'] != None:
+                    feature['comportement'] = ', '.join([item for item in feature['comportement']])
                 sink.addFeature(feature)
             return {self.OUTPUT: dest_id}
 

@@ -47,9 +47,9 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterBoolean,
                        QgsProcessingParameterFileDestination,
                        QgsProcessingParameterDefinition,
-                       QgsDataSourceUri,
                        QgsVectorLayer,
-                       QgsProcessingException)
+                       QgsProcessingException,
+                       QgsAction)
 # from processing.tools import postgis
 from .qgis_processing_postgis import uri_from_name
 from .common_functions import simplify_name, check_layer_is_valid, construct_sql_array_polygons, construct_queries_list, construct_sql_taxons_filter, construct_sql_datetime_filter, load_layer, execute_sql_queries
@@ -118,16 +118,8 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
 
     def shortDescription(self):
         return self.tr("""<font style="font-size:18px"><b>Besoin d'aide ?</b> Vous pouvez vous référer au <b>Wiki</b> accessible sur ce lien : <a href="https://github.com/lpoaura/PluginQGis-LPOData/wiki" target="_blank">https://github.com/lpoaura/PluginQGis-LPOData/wiki</a>.</font><br/><br/>
-            Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données LPO,  d'obtenir un <b>état des connaissances</b> par taxon (couche PostgreSQL), basé sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones) et selon le rang taxonomique de votre choix, à savoir :
-            <ul><li>Groupes taxonomiques</li>
-            <li>Règnes</li>
-            <li>Phylum</li>
-            <li>Classes</li>
-            <li>Ordres</li>
-            <li>Familles</li>
-            <li>Groupes 1 INPN</li>
-            <li>Groupes 2 INPN</li></ul>
-            Cet état des connaissances correspond en fait à un <b>tableau</b>, qui, pour chaque taxon observé dans la zone d'étude considérée, fournit les informations suivantes :
+            Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données LPO,  d'obtenir un <b>état des connaissances</b> par taxon (couche PostgreSQL), basé sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones) et selon le rang taxonomique de votre choix, à savoir : groupes taxonomiques / règnes / phylum / classes / ordres / familles / groupes 1 INPN / groupes 2 INPN. <b style='color:#952132'>Les données d'absence sont exclues de ce traitement.</b><br/><br/>
+            Cet état des connaissances correspond en fait à un <b>tableau</b>, qui, <b>pour chaque taxon</b> observé dans la zone d'étude considérée, fournit les informations suivantes :
             <ul><li>Nombre de données</li>
             <li>Nombre de données / Nombre de données TOTAL</li>
             <li>Nombre d'espèces</li>
@@ -140,7 +132,6 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
             <li>Liste des espèces impliquées</li>
             <li>Liste des communes</li>
             <li>Liste des sources VisioNature</li></ul><br/>
-            <b style='color:#952132'>Les données d'absence sont exclues de ce traitement.</b><br/><br/>
             <font style='color:#0a84db'><u>IMPORTANT</u> : Les <b>étapes indispensables</b> sont marquées d'une <b>étoile *</b> avant leur numéro. Prenez le temps de lire <u>attentivement</U> les instructions pour chaque étape, et particulièrement les</font> <font style ='color:#952132'>informations en rouge</font> <font style='color:#0a84db'>!</font>""")
 
     def initAlgorithm(self, config=None):
@@ -513,20 +504,27 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
 
         ### GET THE OUTPUT LAYER ###
         # Retrieve the output PostGIS layer = summary table
-        layer_summary = QgsVectorLayer(uri.uri(), format_name, "postgres")
+        self.layer_summary = QgsVectorLayer(uri.uri(), format_name, "postgres")
         # Check if the PostGIS layer is valid
-        check_layer_is_valid(feedback, layer_summary)
+        check_layer_is_valid(feedback, self.layer_summary)
         # Load the PostGIS layer
-        load_layer(context, layer_summary)
-        # Open the attribute table of the PostGIS layer
-        iface.showAttributeTable(layer_summary)
-        iface.setActiveLayer(layer_summary)
+        load_layer(context, self.layer_summary)
+        # Add action to layer
+        with open(os.path.join(pluginPath, 'format_csv.py'), 'r') as file:
+            action_code = file.read()
+        action = QgsAction(QgsAction.GenericPython, 'Exporter la couche sous format Excel dans mon dossier utilisateur avec la mise en forme adaptée', action_code, os.path.join(pluginPath, 'icons', 'excel.png'), False, 'Exporter sous format Excel', {'Layer'})
+        self.layer_summary.actions().addAction(action)
+        # JOKE
+        with open(os.path.join(pluginPath, 'joke.py'), 'r') as file:
+            joke_action_code = file.read()
+        joke_action = QgsAction(QgsAction.GenericPython, 'Rédiger mon rapport', joke_action_code, os.path.join(pluginPath, 'icons', 'logo_LPO.png'), False, 'Rédiger mon rapport', {'Layer'})
+        self.layer_summary.actions().addAction(joke_action)
 
         ### CONSTRUCT THE HISTOGRAM ###
         if histogram_option != "Pas d'histogramme":
             plt.close()
-            x_var = [(feature[taxonomic_rank_label] if feature[taxonomic_rank_label] != 'Pas de correspondance taxref' else 'Aucune correspondance') for feature in layer_summary.getFeatures()]
-            y_var = [int(feature[histogram_option]) for feature in layer_summary.getFeatures()]
+            x_var = [(feature[taxonomic_rank_label] if feature[taxonomic_rank_label] != 'Pas de correspondance taxref' else 'Aucune correspondance') for feature in self.layer_summary.getFeatures()]
+            y_var = [int(feature[histogram_option]) for feature in self.layer_summary.getFeatures()]
             if len(x_var) <= 20:
                 plt.subplots_adjust(bottom=0.5)
             elif len(x_var) <= 80:
@@ -545,7 +543,14 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
             plt.savefig(output_histogram)
             #plt.show()
         
-        return {self.OUTPUT: layer_summary.id()}
+        return {self.OUTPUT: self.layer_summary.id()}
+
+    def postProcessAlgorithm(self, context, feedback):
+        # Open the attribute table of the PostGIS layer
+        iface.showAttributeTable(self.layer_summary)
+        iface.setActiveLayer(self.layer_summary)
+
+        return {}
 
     def tr(self, string):
         return QCoreApplication.translate('Processing', string)

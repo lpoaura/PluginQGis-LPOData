@@ -31,6 +31,7 @@ from qgis.core import (
     QgsSettings,
 )
 from qgis.PyQt.QtCore import QCoreApplication
+from qgis.PyQt.QtWidgets import QInputDialog
 
 # Use unicode!
 psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
@@ -960,6 +961,18 @@ class GeoDB(object):
             return self._quote(table)
         else:
             return u'"%s"."%s"' % (self._quote(schema), self._quote(table))
+
+
+def get_connection_name():
+    s = QgsSettings()
+    s.beginGroup("PostgreSQL/connections")
+    connection_name, res = QInputDialog.getItem(
+        None, "Choisir une connexion", "Connection", s.childGroups(), editable=False
+    )
+    if res:
+        return connection_name
+    else:
+        return None
 
 
 # For debugging / testing

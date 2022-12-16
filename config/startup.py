@@ -6,7 +6,7 @@ from qgis.core import (Qgis, QgsVectorLayer, QgsSettings, QgsProviderRegistry, Q
 # uri = postgis.uri_from_name("geonature_lpo")
 try:
     postgres_metadata = QgsProviderRegistry.instance().providerMetadata('postgres')
-    connection = postgres_metadata.createConnection("geonature_lpo")
+    connection = postgres_metadata.createConnection("gnlpoaura")
 except QgsProviderConnectionException:
     raise QgsProcessingException(self.tr('Could not retrieve connection details for {}').format(connection))
 uri = QgsDataSourceUri(connection.uri())
@@ -22,7 +22,7 @@ uri = QgsDataSourceUri(connection.uri())
 
 # Groupe_taxo list
 groupe_taxo_query = """SELECT rang, liste
-    FROM qgis_shared.vm_taxonomy
+    FROM dbadmin.mv_taxonomy
     WHERE rang='groupe_taxo'"""
 uri.setDataSource("", "("+groupe_taxo_query+")", None, "", "rang")
 layer = QgsVectorLayer(uri.uri(), "groupe_taxo", "postgres")
@@ -32,7 +32,7 @@ for feature in layer.getFeatures():
 
 # Regne list
 regne_query = """SELECT rang, liste
-    FROM qgis_shared.vm_taxonomy
+    FROM dbadmin.mv_taxonomy
     WHERE rang='regne'"""
 uri.setDataSource("", "("+regne_query+")", None, "", "rang")
 layer = QgsVectorLayer(uri.uri(), "regne", "postgres")
@@ -41,7 +41,7 @@ for feature in layer.getFeatures():
 
 # Phylum list
 phylum_query = """SELECT rang, liste
-    FROM qgis_shared.vm_taxonomy
+    FROM dbadmin.mv_taxonomy
     WHERE rang='phylum'"""
 uri.setDataSource("", "("+phylum_query+")", None, "", "rang")
 layer = QgsVectorLayer(uri.uri(), "phylum", "postgres")
@@ -50,7 +50,7 @@ for feature in layer.getFeatures():
 
 # Classe list
 classe_query = """SELECT rang, liste
-    FROM qgis_shared.vm_taxonomy
+    FROM dbadmin.mv_taxonomy
     WHERE rang='classe'"""
 uri.setDataSource("", "("+classe_query+")", None, "", "rang")
 layer = QgsVectorLayer(uri.uri(), "classe", "postgres")
@@ -59,7 +59,7 @@ for feature in layer.getFeatures():
 
 # Ordre list
 ordre_query = """SELECT rang, liste
-    FROM qgis_shared.vm_taxonomy
+    FROM dbadmin.mv_taxonomy
     WHERE rang='ordre'"""
 uri.setDataSource("", "("+ordre_query+")", None, "", "rang")
 layer = QgsVectorLayer(uri.uri(), "ordre", "postgres")
@@ -68,7 +68,7 @@ for feature in layer.getFeatures():
 
 # Famille list
 famille_query = """SELECT rang, liste
-    FROM qgis_shared.vm_taxonomy
+    FROM dbadmin.mv_taxonomy
     WHERE rang='famille'"""
 uri.setDataSource("", "("+famille_query+")", None, "", "rang")
 layer = QgsVectorLayer(uri.uri(), "famille", "postgres")
@@ -77,7 +77,7 @@ for feature in layer.getFeatures():
 
 # Group1_INPN list
 group1_inpn_query = """SELECT rang, liste
-    FROM qgis_shared.vm_taxonomy
+    FROM dbadmin.mv_taxonomy
     WHERE rang='group1_inpn'"""
 uri.setDataSource("", "("+group1_inpn_query+")", None, "", "rang")
 layer = QgsVectorLayer(uri.uri(), "group1_inpn", "postgres")
@@ -86,7 +86,7 @@ for feature in layer.getFeatures():
 
 # Group2_INPN list
 group2_inpn_query = """SELECT rang, liste
-    FROM qgis_shared.vm_taxonomy
+    FROM dbadmin.mv_taxonomy
     WHERE rang='group2_inpn'"""
 uri.setDataSource("", "("+group2_inpn_query+")", None, "", "rang")
 layer = QgsVectorLayer(uri.uri(), "group2_inpn", "postgres")
@@ -105,6 +105,6 @@ db_variables.setValue("famille", famille)
 db_variables.setValue("group1_inpn", group1_inpn)
 db_variables.setValue("group2_inpn", group2_inpn)
 
+# Add Plugin LPO menu
 
-
-
+iface.pluginMenu().parent().addMenu("Plugin LPO")

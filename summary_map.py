@@ -27,6 +27,7 @@ __copyright__ = '(C) 2020 by Elsa Guilley (LPO AuRA)'
 __revision__ = '$Format:%H$'
 
 import os
+import json
 from qgis.utils import iface
 from datetime import datetime
 
@@ -42,13 +43,10 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterString,
                        QgsProcessingParameterFeatureSource,
                        QgsProcessingParameterEnum,
-                       QgsProcessingOutputVectorLayer,
                        QgsProcessingParameterBoolean,
                        QgsProcessingParameterFeatureSink,
                        QgsProcessingParameterDefinition,
-                       QgsDataSourceUri,
-                       QgsVectorLayer,
-                       QgsProcessingException)
+                       QgsVectorLayer)
 # from processing.tools import postgis
 from .qgis_processing_postgis import uri_from_name
 from .common_functions import simplify_name, check_layer_is_valid, construct_sql_array_polygons, construct_queries_list, construct_sql_taxons_filter, construct_sql_datetime_filter, load_layer, execute_sql_queries, format_layer_export
@@ -115,7 +113,8 @@ class SummaryMap(QgsProcessingAlgorithm):
 
     def shortDescription(self):
         return self.tr("""<font style="font-size:18px"><b>Besoin d'aide ?</b> Vous pouvez vous référer au <b>Wiki</b> accessible sur ce lien : <a href="https://github.com/lpoaura/PluginQGis-LPOData/wiki" target="_blank">https://github.com/lpoaura/PluginQGis-LPOData/wiki</a>.</font><br/><br/>
-            Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données LPO, de générer une <b>carte de synthèse</b> (couche PostGIS de type polygones) par maille ou par commune (au choix) basée sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones). Pour chaque entité géographique, la table attributaire de la nouvelle couche fournit les informations suivantes :
+            Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données LPO, de générer une <b>carte de synthèse</b> (couche PostGIS de type polygones) par maille ou par commune (au choix) basée sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones). <b style='color:#952132'>Les données d'absence sont exclues de ce traitement.</b><br/><br/>
+            <b>Pour chaque entité géographique</b>, la table attributaire de la nouvelle couche fournit les informations suivantes :
             <ul><li>Code de l'entité</li>
             <li>Surface (en km<sup>2</sup>)</li>
             <li>Nombre de données</li>
@@ -125,7 +124,6 @@ class SummaryMap(QgsProcessingAlgorithm):
             <li>Nombre de dates</li>
             <li>Nombre de données de mortalité</li>
             <li>Liste des espèces observées</li></ul><br/>
-            <b style='color:#952132'>Les données d'absence sont exclues de ce traitement.</b><br/><br/>
             Vous pouvez ensuite modifier la <b>symbologie</b> de la couche comme bon vous semble, en fonction du critère de votre choix.<br/><br/>
             <font style='color:#0a84db'><u>IMPORTANT</u> : Les <b>étapes indispensables</b> sont marquées d'une <b>étoile *</b> avant leur numéro. Prenez le temps de lire <u>attentivement</u> les instructions pour chaque étape, et particulièrement les</font> <font style ='color:#952132'>informations en rouge</font> <font style='color:#0a84db'>!</font>""")
 
@@ -136,7 +134,7 @@ class SummaryMap(QgsProcessingAlgorithm):
         """
 
         self.db_variables = QgsSettings()
-        self.areas_variables = ["Mailles0.5*0.5", "Mailles1*1", "Mailles5*5", "Mailles10*10", "Communes"]
+        self.areas_variables = ["Mailles 0.5*0.5", "Mailles 1*1", "Mailles 5*5", "Mailles 10*10", "Communes"]
         self.period_variables = ["Pas de filtre temporel", "5 dernières années", "10 dernières années", "Date de début - Date de fin (à définir ci-dessous)"]
 
         # Data base connection
@@ -369,7 +367,9 @@ class SummaryMap(QgsProcessingAlgorithm):
         ts = datetime.now()
         format_name = "{} {}".format(layer_name, str(ts.strftime('%Y%m%d_%H%M%S')))
         # Retrieve the areas type
-        areas_type = self.areas_variables[self.parameterAsEnum(parameters, self.AREAS_TYPE, context)]
+        # areas_type = self.areas_variables[self.parameterAsEnum(parameters, self.AREAS_TYPE, context)]
+        areas_types_codes = ["M0.5", "M1", "M5", "M10", "COM"]
+        areas_type = areas_types_codes[self.parameterAsEnum(parameters, self.AREAS_TYPE, context)]
         # Retrieve the taxons filters
         groupe_taxo = [self.db_variables.value('groupe_taxo')[i] for i in (self.parameterAsEnums(parameters, self.GROUPE_TAXO, context))]
         regne = [self.db_variables.value('regne')[i] for i in (self.parameterAsEnums(parameters, self.REGNE, context))]
@@ -430,7 +430,7 @@ class SummaryMap(QgsProcessingAlgorithm):
             LEFT JOIN gn_synthese.cor_area_synthese cor on la.id_area=cor.id_area
             LEFT JOIN src_lpodatas.v_c_observations obs on cor.id_synthese=obs.id_synthese
             LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
-            WHERE la.id_type=(SELECT id_type FROM ref_geo.bib_areas_types WHERE type_name = '{}') and {}
+            WHERE la.id_type=(SELECT id_type FROM ref_geo.bib_areas_types WHERE type_code = '{}') and {}
             GROUP BY area_name, area_code, la.geom
             ORDER BY area_code""".format(where_filter, where_filter, where_filter, where_filter, where_filter, where_filter, where_filter, areas_type, where)
         #feedback.pushInfo(query)
@@ -451,30 +451,42 @@ class SummaryMap(QgsProcessingAlgorithm):
 
         ### GET THE OUTPUT LAYER ###
         # Retrieve the output PostGIS layer = map data
-        layer_map = QgsVectorLayer(uri.uri(), format_name, "postgres")
+        self.layer_map = QgsVectorLayer(uri.uri(), format_name, "postgres")
         # Check if the PostGIS layer is valid
-        check_layer_is_valid(feedback, layer_map)
+        check_layer_is_valid(feedback, self.layer_map)
         # Load the PostGIS layer
-        load_layer(context, layer_map)
-        # Open the attribute table of the PostGIS layer
-        iface.showAttributeTable(layer_map)
-        iface.setActiveLayer(layer_map)
+        load_layer(context, self.layer_map)
         
         ### MANAGE EXPORT ###
         # Create new valid fields for the sink
-        new_fields = format_layer_export(layer_map)
+        new_fields = format_layer_export(self.layer_map)
         # Retrieve the sink for the export
-        (sink, dest_id) = self.parameterAsSink(parameters, self.OUTPUT, context, new_fields, layer_map.wkbType(), layer_map.sourceCrs())
+        (sink, dest_id) = self.parameterAsSink(parameters, self.OUTPUT, context, new_fields, self.layer_map.wkbType(), self.layer_map.sourceCrs())
         if sink is None:
             # Return the PostGIS layer
-            return {self.OUTPUT: layer_map.id()}
+            return {self.OUTPUT: self.layer_map.id()}
         else:
+            # Dealing with jsonb fields
+            old_fields = self.layer_map.fields()
+            invalid_fields = []
+            invalid_formats = ["jsonb"]
+            for field in old_fields:
+                if field.typeName() in invalid_formats:
+                    invalid_fields.append(field.name())
             # Fill the sink and return it
-            for feature in layer_map.getFeatures():
+            for feature in self.layer_map.getFeatures():
+                for invalid_field in invalid_fields:
+                    if feature[invalid_field] != None:
+                        feature[invalid_field] = json.dumps(feature[invalid_field], sort_keys=True, indent=4, separators=(',', ': '))
                 sink.addFeature(feature)
             return {self.OUTPUT: dest_id}
-        
-        return {self.OUTPUT: layer_map.id()}
+
+    def postProcessAlgorithm(self, context, feedback):
+        # Open the attribute table of the PostGIS layer
+        iface.showAttributeTable(self.layer_map)
+        iface.setActiveLayer(self.layer_map)
+
+        return {}
 
     def tr(self, string):
         return QCoreApplication.translate('Processing', string)
