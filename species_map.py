@@ -211,7 +211,7 @@ class CarteParEspece(QDialog):
             .createConnection("gnlpoaura")
         )
         query = f"""SELECT s.id_synthese,
-               cor.vn_nom_sci as nom_sci,
+                cor.vn_nom_sci as nom_sci,
                 cor.vn_nom_fr as nom_vern,
                 s.date_min::date,
                 tcse.date_year as date_an,
@@ -226,14 +226,16 @@ class CarteParEspece(QDialog):
                 tcse.place,
                 s.observers as observateur,
                 ts.desc_source as source,
+                s.reference_biblio,
                 tcse.mortality as mortalite,
                 tcse.mortality_cause as mortalite_cause
-               from gn_synthese.synthese s 
+                from gn_synthese.synthese s 
                	join src_lpodatas.t_c_synthese_extended tcse on s.id_synthese =tcse.id_synthese
                	join taxonomie.mv_c_cor_vn_taxref cor on cor.cd_nom=s.cd_nom
                	join gn_synthese.t_sources ts on ts.id_source=s.id_source
                WHERE tcse.is_valid and st_geometrytype(s.the_geom_local) = 'ST_Point'
-              and cor.cd_ref in ({', '.join(str(a) for a in cd_refs)})"""
+              and cor.cd_ref in ({', '.join(str(a) for a in cd_refs)})
+              ORDER BY tcse.bird_breed_code DESC"""
         uri = QgsDataSourceUri(connection.uri())
         uri.setDataSource("", "(" + query + ")", "geom", "", "id_synthese")
         with OverrideCursor(Qt.WaitCursor):
