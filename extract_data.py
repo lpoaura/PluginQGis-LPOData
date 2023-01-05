@@ -403,7 +403,8 @@ class ExtractData(QgsProcessingAlgorithm):
         query = """SELECT obs.*
         FROM src_lpodatas.v_c_observations obs
         LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
-        WHERE {}""".format(where)
+        WHERE st_geometrytype(obs.geom) = 'ST_Point' AND {}""".format(where)
+        # old :  WHERE {}""".format(where)
         #feedback.pushInfo(query)
         # Format the URI with the query
         uri.setDataSource("", "("+query+")", "geom", "", "id_synthese")
