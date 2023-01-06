@@ -125,6 +125,27 @@ def construct_sql_taxons_filter(taxons_dict):
     else:
         return ""
 
+
+def construct_sql_source_filter(source_dict):
+    """
+    Construct the sql "where" clause with source filters.
+    """
+    source_where = " and ("
+    source_where_suite = ""
+    for value in source_dict:
+        if len(source_dict) > 1:
+            if source_where == " and (" :
+                source_where += "desc_source ILIKE ANY (array[" 
+                source_where_suite += "'{}%'".format(str(value))
+            else:
+                source_where_suite += ",'{}%'".format(str(value)) 
+
+            if value == source_dict[len(source_dict)-1] :
+                source_where += source_where_suite + "]))"
+                return source_where  
+        else:
+            return ""
+
 def construct_sql_datetime_filter(self, period_type_filter, timestamp, parameters, context):
     """
     Construct the sql "where" clause with the datetime filter.
