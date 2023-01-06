@@ -48,7 +48,7 @@ from qgis.core import (QgsProcessing,
                        QgsEditorWidgetSetup)
 # from processing.tools import postgis
 from .qgis_processing_postgis import uri_from_name
-from .common_functions import check_layer_is_valid, construct_sql_array_polygons, construct_sql_taxons_filter, construct_sql_datetime_filter, load_layer, format_layer_export
+from .common_functions import check_layer_is_valid, construct_sql_array_polygons, construct_sql_taxons_filter, construct_sql_source_filter, construct_sql_datetime_filter, load_layer, format_layer_export
 
 pluginPath = os.path.dirname(__file__)
 
@@ -94,6 +94,7 @@ class ExtractData(QgsProcessingAlgorithm):
     EXTRA_WHERE = 'EXTRA_WHERE'
     OUTPUT = 'OUTPUT'
     OUTPUT_NAME = 'OUTPUT_NAME'
+    SOURCE_DATA = 'SOURCE_DATA'
 
     def name(self):
         return 'ExtractData'
@@ -185,7 +186,7 @@ class ExtractData(QgsProcessingAlgorithm):
                 [QgsProcessing.TypeVectorPolygon]
             )
         )
-
+      
         ### Taxons filters ###
         self.addParameter(
             QgsProcessingParameterEnum(
@@ -199,6 +200,7 @@ class ExtractData(QgsProcessingAlgorithm):
                 optional=True
             )
         )
+
 
         regne = QgsProcessingParameterEnum(
             self.REGNE,
@@ -343,6 +345,37 @@ class ExtractData(QgsProcessingAlgorithm):
             )
         )
 
+          
+        ### TEST Source of data filters v2 ###
+
+        group1_inpn = QgsProcessingParameterEnum(
+            self.GROUP1_INPN,
+            self.tr("- Groupe 1 INPN (regroupement vernaculaire du référentiel national - niveau 1) :"),
+            self.db_variables.value("group1_inpn"),
+            allowMultiple=True,
+            optional=True
+        )
+        group1_inpn.setFlags(group1_inpn.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        self.addParameter(group1_inpn)
+
+
+
+        self.data_source = ["[SINP]","[LPO]", "[ORB]", "[Partenaire]"]
+        source_data_where = QgsProcessingParameterEnum(
+            self.SOURCE_DATA,
+            self.tr(""" <b style="color:#0a84db">FILTRES DES SOURCES DE DONNEES </b><br/> 
+                        <b>7/</b> Cocher une ou plusieurs <u>sources</u> pour filtrer vos données d'observations. <br>
+                        <i style="color:#5b5b5b"><b>N.B.</b> : De base l'ensembles des sources HORS SINP est pris en compte"""),
+            #self.db_variables.value("source_data_where"),           
+            self.data_source,
+            defaultValue=[1,2,3],
+            allowMultiple=True,
+            optional=False
+        )
+        source_data_where.setFlags(source_data_where.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        self.addParameter(source_data_where)
+
+
     def processAlgorithm(self, parameters, context, feedback):
         """
         Here is where the processing itself takes place.
@@ -368,7 +401,10 @@ class ExtractData(QgsProcessingAlgorithm):
         period_type = self.period_variables[self.parameterAsEnum(parameters, self.PERIOD, context)]
         # Retrieve the extra "where" conditions
         extra_where = self.parameterAsString(parameters, self.EXTRA_WHERE, context)
-
+        # Retrieve the source 
+        # print("/!\ self.data_source /!\ : " + self.data_source)
+        source_data_where = [self.data_source[i] for i in (self.parameterAsEnums(parameters, self.SOURCE_DATA, context))]
+        source_where = construct_sql_source_filter(source_data_where)
         ### CONSTRUCT "WHERE" CLAUSE (SQL) ###
         # Construct the sql array containing the study area's features geometry
         array_polygons = construct_sql_array_polygons(study_area)
@@ -390,6 +426,9 @@ class ExtractData(QgsProcessingAlgorithm):
         # Complete the "where" clause with the datetime filter
         datetime_where = construct_sql_datetime_filter(self, period_type, ts, parameters, context)
         where += datetime_where
+        # Complete the "where" clause with the source data filter 
+        ###### print("/!\ source_data_where /!\ : "+source_data_where)
+        where += source_where
         # Complete the "where" clause with the extra conditions
         where += " " + extra_where
 
