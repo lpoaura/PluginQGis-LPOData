@@ -145,6 +145,21 @@ def construct_sql_source_filter(source_dict):
                 return source_where  
         else:
             return ""
+        
+
+def construct_sql_geom_type_filter(source_dict):
+    """
+    Construct the sql "where" clause with source filters.
+    """
+    geomtype_where = " and ("
+    for value in source_dict:
+        if len(source_dict) == 1:
+            geomtype_where += "type_geom ILIKE  '%{}%' )".format(str(value))
+            return geomtype_where  
+        else:
+            geomtype_where += "type_geom ILIKE '%point%' )"
+            return geomtype_where
+
 
 def construct_sql_datetime_filter(self, period_type_filter, timestamp, parameters, context):
     """
