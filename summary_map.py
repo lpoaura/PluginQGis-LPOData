@@ -421,16 +421,15 @@ class SummaryMap(QgsProcessingAlgorithm):
                 ROUND(ST_area(la.geom)::decimal/1000000, 2) AS "Surface (km2)",
                 COUNT(*) filter (where {}) AS "Nb de données",
                 ROUND((COUNT(*) filter (where {})) / ROUND(ST_area(la.geom)::decimal/1000000, 2), 2) AS "Densité (Nb de données/km2)",
-                COUNT(DISTINCT t.cd_ref) filter (where t.id_rang='ES' and {}) AS "Nb d'espèces",
+                COUNT(DISTINCT cd_ref) filter (where id_rang='ES' and {}) AS "Nb d'espèces",
                 COUNT(DISTINCT observateur) filter (where {}) AS "Nb d'observateurs",
                 COUNT(DISTINCT date) filter (where {}) AS "Nb de dates",
-                SUM(CASE WHEN mortalite THEN 1 ELSE 0 END) filter (where {}) AS "Nb de données de mortalité",
-                string_agg(DISTINCT obs.nom_vern,', ') filter (where t.id_rang='ES' and {}) AS "Liste des espèces observées"
+               COUNT(DISTINCT obs.id_synthese) FILTER (WHERE mortalite and {}) AS "Nb de données de mortalité",
+                string_agg(DISTINCT obs.nom_vern,', ') filter (where id_rang='ES' and {}) AS "Liste des espèces observées"
             FROM ref_geo.l_areas la
             LEFT JOIN gn_synthese.cor_area_synthese cor on la.id_area=cor.id_area
-            LEFT JOIN src_lpodatas.v_c_observations obs on cor.id_synthese=obs.id_synthese
-            LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
-            WHERE la.id_type=(SELECT id_type FROM ref_geo.bib_areas_types WHERE type_code = '{}') and {}
+            LEFT JOIN src_lpodatas.v_c_observations_light obs on cor.id_synthese=obs.id_synthese
+            where la.id_type=(SELECT ref_geo.get_id_area_type('{}')) and {}
             GROUP BY area_name, area_code, la.geom
             ORDER BY area_code""".format(where_filter, where_filter, where_filter, where_filter, where_filter, where_filter, where_filter, areas_type, where)
         #feedback.pushInfo(query)

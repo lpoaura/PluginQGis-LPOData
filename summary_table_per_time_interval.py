@@ -510,9 +510,8 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
         uri = uri_from_name(connection)
         # Define the SQL query
         query = """SELECT row_number() OVER () AS id, {}{}
-            FROM src_lpodatas.v_c_observations obs
-            LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
-            LEFT JOIN taxonomie.bib_taxref_rangs r ON t.id_rang = r.id_rang
+            FROM src_lpodatas.v_c_observations_light obs
+            LEFT JOIN taxonomie.bib_taxref_rangs r ON obs.id_rang = r.id_rang
             WHERE {}
             GROUP BY {}groupe_taxo
             ORDER BY groupe_taxo{}""".format(select_species_info if taxonomic_rank == 'Espèces' else select_taxo_groups_info, select_data, where, group_by_species, ", obs.nom_vern" if taxonomic_rank == 'Espèces' else "")

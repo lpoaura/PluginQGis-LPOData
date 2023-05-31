@@ -403,9 +403,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
         query = """WITH obs AS (
                         -- selection des cd_nom
                         SELECT obs.*
-                        , t.id_rang
-                        FROM src_lpodatas.v_c_observations obs
-                        LEFT JOIN taxonomie.taxref t ON obs.cd_nom = t.cd_nom
+                        FROM src_lpodatas.v_c_observations_light obs
                         WHERE {}),
                     communes AS (
                         --selection des communes
@@ -413,12 +411,12 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         FROM obs
                         LEFT JOIN gn_synthese.cor_area_synthese cor ON obs.id_synthese = cor.id_synthese
                         JOIN ref_geo.l_areas la ON cor.id_area = la.id_area
-                        WHERE la.id_type = (SELECT id_type FROM ref_geo.bib_areas_types WHERE type_code = 'COM')),
+                        WHERE la.id_type = (SELECT ref_geo.get_id_area_type('COM'))),
                     atlas_code as (
                         --préparation codes atlas
                     	SELECT cd_nomenclature, label_fr, hierarchy 
                     	FROM ref_nomenclatures.t_nomenclatures
-                    	WHERE id_type=(SELECT id_type FROM ref_nomenclatures.bib_nomenclatures_types WHERE mnemonique='VN_ATLAS_CODE')
+                    	WHERE id_type=(select ref_nomenclatures.get_id_nomenclature_type('VN_ATLAS_CODE'))
                     ),
                     total_count AS (
                         --comptage nb total individus
@@ -427,11 +425,11 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                      data AS (
                         --selection des données + statut
                         SELECT
-                         cor.cd_ref
+                         obs.cd_ref
                         , r.nom_rang
-                        , cor.groupe_taxo_fr
-                        , string_agg(distinct cor.vn_nom_fr, ', ') nom_vern
-                        , string_agg(distinct cor.vn_nom_sci, ', ') nom_sci
+                        , groupe_taxo
+                        , string_agg(distinct obs.nom_vern, ', ') nom_vern
+                        , string_agg(distinct obs.nom_sci, ', ') nom_sci
                         , COUNT(DISTINCT obs.id_synthese)               AS nb_donnees
                         , COUNT(DISTINCT obs.observateur)               AS nb_observateurs
                         , COUNT(DISTINCT obs.date)                      AS nb_dates
@@ -440,8 +438,6 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         , st.lr_ra
                         , st.lr_auv
                         , st.n2k
-                        /*, dir_hab
-                        , t.dir_ois*/
                         , st.prot_nat as protection_nat
                         , st.conv_berne
                         , st.conv_bonn
@@ -456,11 +452,9 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         LEFT JOIN taxonomie.bib_taxref_rangs r ON obs.id_rang = r.id_rang
                         LEFT JOIN communes com ON obs.id_synthese = com.id_synthese
                         left join taxonomie.mv_c_statut st on st.cd_ref=obs.cd_ref
-                        INNER JOIN taxonomie.mv_c_cor_vn_taxref cor on cor.cd_ref=obs.cd_ref
                        GROUP BY
-                      --  obs.taxref_cdnom,
-                         cor.groupe_taxo_fr
-                        , cor.cd_ref
+                         groupe_taxo
+                        , obs.cd_ref
                         , r.nom_rang
                         , st.lr_france
                         , st.lr_ra
@@ -471,9 +465,9 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         , st.conv_bonn),
                     synthese AS (
                         SELECT DISTINCT
-                         cd_ref
+                         d.cd_ref
                         , nom_rang                                          AS "Rang"
-                        , d.groupe_taxo_fr              AS "Groupe taxo"
+                        , d.groupe_taxo              AS "Groupe taxo"
                         , nom_vern                                          AS "Nom vernaculaire"
                         , nom_sci                                           AS "Nom scientifique"
                         , nb_donnees                                        AS "Nb de données"
@@ -496,7 +490,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         , sources                                           AS "Sources"
                         FROM total_count, data d
                         LEFT JOIN atlas_code ac ON d.max_hierarchy_atlas_code = ac.hierarchy
-                        ORDER BY groupe_taxo_fr, nom_vern)
+                        ORDER BY groupe_taxo, nom_vern)
                     SELECT row_number() OVER () AS id, *
                     FROM synthese""".format(where)
         #feedback.pushInfo(query)

@@ -457,32 +457,30 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
         # Define the SQL query
         query = """WITH obs AS (
             SELECT obs.*
-            FROM src_lpodatas.v_c_observations obs
-            LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
+            FROM src_lpodatas.v_c_observations_light obs
             WHERE {}),
         communes AS (
             SELECT DISTINCT obs.id_synthese, la.area_name
             FROM obs
-            LEFT JOIN gn_synthese.cor_area_synthese cor ON obs.id_synthese = cor.id_synthese
+            JOIN gn_synthese.cor_area_synthese cor ON obs.id_synthese = cor.id_synthese
             JOIN ref_geo.l_areas la ON cor.id_area = la.id_area
-            WHERE la.id_type = (SELECT id_type FROM ref_geo.bib_areas_types WHERE type_code = 'COM')),
+            WHERE la.id_type = (SELECT ref_geo.get_id_area_type('COM'))),
         total_count AS (
             SELECT COUNT(*) AS total_count
             FROM obs)
         SELECT row_number() OVER () AS id, COALESCE({}, 'Pas de correspondance taxref') AS "{}", {}
             COUNT(*) AS "Nb de données",
             ROUND(COUNT(*)::decimal/total_count, 4)*100 AS "Nb données / Nb données TOTAL (%)",
-            COUNT(DISTINCT t.cd_ref) FILTER (WHERE t.id_rang='ES') AS "Nb d'espèces",
+            COUNT(DISTINCT obs.cd_ref) FILTER (WHERE id_rang='ES') AS "Nb d'espèces",
             COUNT(DISTINCT observateur) AS "Nb d'observateurs", 
             COUNT(DISTINCT date) AS "Nb de dates",
-            SUM(CASE WHEN mortalite THEN 1 ELSE 0 END) AS "Nb de données de mortalité",
+            COUNT(DISTINCT obs.id_synthese) FILTER (WHERE mortalite) AS "Nb de données de mortalité",
             max(nombre_total) AS "Nb d'individus max",
             min (date_an) AS "Année première obs", max(date_an) AS "Année dernière obs",
-            string_agg(DISTINCT obs.nom_vern,', ') FILTER (WHERE t.id_rang='ES') AS "Liste des espèces",
+            string_agg(DISTINCT obs.nom_vern,', ') FILTER (WHERE id_rang='ES') AS "Liste des espèces",
             string_agg(DISTINCT com.area_name,', ') AS "Communes",
             string_agg(DISTINCT obs.source,', ') AS "Sources"
         FROM total_count, obs
-        LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom=t.cd_nom
         LEFT JOIN communes com ON obs.id_synthese = com.id_synthese
         GROUP BY {}{}, total_count 
         ORDER BY {}{}""".format(where, taxonomic_rank_db, taxonomic_rank_label, 'groupe_taxo AS "Groupe taxo", ' if taxonomic_rank_label in ['Ordre', 'Famille'] else "", "groupe_taxo, " if taxonomic_rank_label in ['Ordre', 'Famille'] else "", taxonomic_rank_db, "groupe_taxo, " if taxonomic_rank_label in ['Ordre', 'Famille'] else "", taxonomic_rank_db)
