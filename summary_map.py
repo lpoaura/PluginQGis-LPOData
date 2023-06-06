@@ -428,7 +428,7 @@ class SummaryMap(QgsProcessingAlgorithm):
                 string_agg(DISTINCT obs.nom_vern,', ') filter (where id_rang='ES' and {}) AS "Liste des espèces observées"
             FROM ref_geo.l_areas la
             LEFT JOIN gn_synthese.cor_area_synthese cor on la.id_area=cor.id_area
-            LEFT JOIN src_lpodatas.v_c_observations_light obs on cor.id_synthese=obs.id_synthese
+            JOIN src_lpodatas.v_c_observations_light obs on cor.id_synthese=obs.id_synthese
             where la.id_type=(SELECT ref_geo.get_id_area_type('{}')) and {}
             GROUP BY area_name, area_code, la.geom
             ORDER BY area_code""".format(where_filter, where_filter, where_filter, where_filter, where_filter, where_filter, where_filter, areas_type, where)
