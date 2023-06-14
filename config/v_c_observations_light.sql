@@ -1,7 +1,7 @@
 
 -- vue permettant l'exécution des requêtes de synthèse du plugin
 CREATE OR REPLACE VIEW src_lpodatas.v_c_observations_light
-AS SELECT DISTINCT s.id_synthese,
+AS SELECT s.id_synthese,
     s.unique_id_sinp AS uuid,
     ts.name_source AS source,
     ts.desc_source,

@@ -10,7 +10,7 @@
 
 drop view if exists src_lpodatas.v_c_observations;
 CREATE OR REPLACE VIEW src_lpodatas.v_c_observations
-AS SELECT DISTINCT s.id_synthese,
+AS SELECT s.id_synthese,
     s.unique_id_sinp AS uuid,
     ts.name_source AS source,
     ts.desc_source,
