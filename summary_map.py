@@ -417,21 +417,39 @@ class SummaryMap(QgsProcessingAlgorithm):
         # uri = postgis.uri_from_name(connection)
         uri = uri_from_name(connection)
         # Define the SQL query
-        query = """SELECT row_number() OVER () AS id, area_name AS "Nom", area_code AS "Code", la.geom,
-                ROUND(ST_area(la.geom)::decimal/1000000, 2) AS "Surface (km2)",
+        query = """with prep as (select la.id_area, ((st_area(la.geom))::decimal/1000000) area_surface
+                from ref_geo.l_areas la
+                where la.id_type=ref_geo.get_id_area_type('{}') and {}),
+                data as (
+                SELECT row_number() OVER () AS id, la.id_area,
+                ROUND(area_surface, 2) AS "Surface (km2)",
                 COUNT(*) filter (where {}) AS "Nb de données",
-                ROUND((COUNT(*) filter (where {})) / ROUND(ST_area(la.geom)::decimal/1000000, 2), 2) AS "Densité (Nb de données/km2)",
+                ROUND((COUNT(*) filter (where {})) / ROUND(area_surface, 2), 2) AS "Densité (Nb de données/km2)",
                 COUNT(DISTINCT cd_ref) filter (where id_rang='ES' and {}) AS "Nb d'espèces",
                 COUNT(DISTINCT observateur) filter (where {}) AS "Nb d'observateurs",
                 COUNT(DISTINCT date) filter (where {}) AS "Nb de dates",
-               COUNT(DISTINCT obs.id_synthese) FILTER (WHERE mortalite and {}) AS "Nb de données de mortalité",
+                COUNT(DISTINCT obs.id_synthese) FILTER (WHERE mortalite and {}) AS "Nb de données de mortalité",
                 string_agg(DISTINCT obs.nom_vern,', ') filter (where id_rang='ES' and {}) AS "Liste des espèces observées"
-            FROM ref_geo.l_areas la
-            LEFT JOIN gn_synthese.cor_area_synthese cor on la.id_area=cor.id_area
-            JOIN src_lpodatas.v_c_observations_light obs on cor.id_synthese=obs.id_synthese
-            where la.id_type=(SELECT ref_geo.get_id_area_type('{}')) and {}
-            GROUP BY area_name, area_code, la.geom
-            ORDER BY area_code""".format(where_filter, where_filter, where_filter, where_filter, where_filter, where_filter, where_filter, areas_type, where)
+                FROM prep la
+                LEFT JOIN gn_synthese.cor_area_synthese cor on la.id_area=cor.id_area
+                JOIN src_lpodatas.v_c_observations_light obs on cor.id_synthese=obs.id_synthese
+                GROUP BY la.id_area, la.area_surface
+                )
+                select 
+                data.id
+                , la.area_name
+                , la.area_code
+                , "Surface (km2)"
+                , 	"Nb de données"
+                , "Densité (Nb de données/km2)"
+                , "Nb d'espèces"
+                , "Nb d'observateurs"
+                ,"Nb de dates"
+                , "Nb de données de mortalité"
+                , "Liste des espèces observées"
+                ,la.geom
+                from data join ref_geo.l_areas la on data.id_area=la.id_area
+                ORDER BY area_code""".format(areas_type, where,where_filter,where_filter,where_filter,where_filter,where_filter,where_filter,where_filter)        
         #feedback.pushInfo(query)
         # Retrieve the boolean add_table
         add_table = self.parameterAsBool(parameters, self.ADD_TABLE, context)

@@ -5,8 +5,8 @@
         ScriptsLPO : summary_table_per_species.py
         -------------------
         Date                 : 2020-04-16
-        Copyright            : (C) 2020 by Elsa Guilley (LPO AuRA)
-        Email                : lpo-aura@lpo.fr
+        Copyright            : (C) Collectif (LPO AuRA)
+        Email                : 
  ***************************************************************************/
 
 /***************************************************************************
@@ -19,9 +19,9 @@
  ***************************************************************************/
 """
 
-__author__ = 'Elsa Guilley (LPO AuRA)'
+__author__ = 'Collectif (LPO AuRA)'
 __date__ = '2020-04-16'
-__copyright__ = '(C) 2020 by Elsa Guilley (LPO AuRA)'
+__copyright__ = '(C) Collectif (LPO AuRA)'
 
 # This will get replaced with a git SHA1 when you do a git archive
 __revision__ = '$Format:%H$'
@@ -411,7 +411,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         FROM obs
                         LEFT JOIN gn_synthese.cor_area_synthese cor ON obs.id_synthese = cor.id_synthese
                         JOIN ref_geo.l_areas la ON cor.id_area = la.id_area
-                        WHERE la.id_type = (SELECT ref_geo.get_id_area_type('COM'))),
+                        WHERE la.id_type = ref_geo.get_id_area_type('COM')),
                     atlas_code as (
                         --préparation codes atlas
                     	SELECT cd_nomenclature, label_fr, hierarchy 
