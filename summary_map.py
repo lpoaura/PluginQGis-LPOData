@@ -417,7 +417,7 @@ class SummaryMap(QgsProcessingAlgorithm):
         # uri = postgis.uri_from_name(connection)
         uri = uri_from_name(connection)
         # Define the SQL query
-        query = """with prep as (select la.id_area, ((st_area(la.geom))::decimal/1000000) area_surface
+        query = """/*set random_page_cost to 4;*/ with prep as (select la.id_area, ((st_area(la.geom))::decimal/1000000) area_surface
                 from ref_geo.l_areas la
                 where la.id_type=ref_geo.get_id_area_type('{}') and {}),
                 data as (
