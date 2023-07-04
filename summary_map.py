@@ -417,7 +417,8 @@ class SummaryMap(QgsProcessingAlgorithm):
         # uri = postgis.uri_from_name(connection)
         uri = uri_from_name(connection)
         # Define the SQL query
-        query = """/*set random_page_cost to 4;*/ with prep as (select la.id_area, ((st_area(la.geom))::decimal/1000000) area_surface
+        query = """/*set random_page_cost to 4;*/ 
+                with prep as (select la.id_area, ((st_area(la.geom))::decimal/1000000) area_surface
                 from ref_geo.l_areas la
                 where la.id_type=ref_geo.get_id_area_type('{}') and {}),
                 data as (
@@ -432,7 +433,7 @@ class SummaryMap(QgsProcessingAlgorithm):
                 string_agg(DISTINCT obs.nom_vern,', ') filter (where id_rang='ES' and {}) AS "Liste des espèces observées"
                 FROM prep la
                 LEFT JOIN gn_synthese.cor_area_synthese cor on la.id_area=cor.id_area
-                JOIN src_lpodatas.v_c_observations_light obs on cor.id_synthese=obs.id_synthese
+                left JOIN src_lpodatas.v_c_observations_light obs on cor.id_synthese=obs.id_synthese
                 GROUP BY la.id_area, la.area_surface
                 )
                 select 
