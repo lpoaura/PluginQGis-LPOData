@@ -16,6 +16,6 @@ La base de données sur laquelle les développements ont été faits dispose ég
 
 
 
-<img align="cebter" src="https://github.com/lpoaura/PluginQGis-LPOData/blob/develop_aura/icons/logo_lpo_aura.png">
+<img align="center" src="https://github.com/lpoaura/PluginQGis-LPOData/blob/develop_aura/icons/logo_lpo_aura.png">
 
 
