@@ -4,9 +4,7 @@
 /***************************************************************************
         ScriptsLPO : summary_table_per_species.py
         -------------------
-        Date                 : 2020-04-16
-        Copyright            : (C) Collectif (LPO AuRA)
-        Email                : 
+
  ***************************************************************************/
 
 /***************************************************************************
@@ -19,9 +17,8 @@
  ***************************************************************************/
 """
 
-__author__ = 'Collectif (LPO AuRA)'
-__date__ = '2020-04-16'
-__copyright__ = '(C) Collectif (LPO AuRA)'
+__author__ = 'LPO AuRA'
+__date__ = '2020-2023'
 
 # This will get replaced with a git SHA1 when you do a git archive
 __revision__ = '$Format:%H$'
