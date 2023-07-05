@@ -14,6 +14,8 @@ Outre la structure de la base de données Géonature, il nécessite :
 La base de données sur laquelle les développements ont été faits dispose également des fonctionnalités de [gn_vn2synthese] (https://github.com/lpoaura/gn_vn2synthese).
 
 
-![logoLPO AuRA](https://github.com/lpoaura/PluginQGis-LPOData/blob/develop_aura/config/logo_lpo_aura.png)
+
+
+<img align="cebter" src="https://github.com/lpoaura/PluginQGis-LPOData/blob/develop_aura/config/logo_lpo_aura.png">
 
 
