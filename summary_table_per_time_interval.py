@@ -434,7 +434,7 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
         study_area = self.parameterAsSource(parameters, self.STUDY_AREA, context)
         # Retrieve the output PostGIS layer name and format it
         layer_name = self.parameterAsString(parameters, self.OUTPUT_NAME, context)
-        format_name = "{} {}".format(layer_name, str(self.ts.strftime('%Y%m%d_%H%M%S')))
+        format_name = f"{layer_name} {str(self.ts.strftime('%Y%m%d_%H%M%S'))}"
         # Retrieve the time interval
         time_interval = self.interval_variables[self.parameterAsEnum(parameters, self.TIME_INTERVAL, context)]
         # Retrieve the period
@@ -478,7 +478,7 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
         # Construct the sql array containing the study area's features geometry
         array_polygons = construct_sql_array_polygons(study_area)
         # Define the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer = summary table
-        where = "is_valid and is_present and ST_intersects(obs.geom, ST_union({}))".format(array_polygons)
+        where = f"is_valid and is_present and ST_intersects(obs.geom, ST_union({array_polygons}))"
         # Define a dictionnary with the aggregated taxons filters and complete the "where" clause thanks to it
         taxons_filters = {
             "groupe_taxo": groupe_taxo,
@@ -505,12 +505,12 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
         # uri = postgis.uri_from_name(connection)
         uri = uri_from_name(connection)
         # Define the SQL query
-        query = """SELECT row_number() OVER () AS id, {}{}
+        query = f"""SELECT row_number() OVER () AS id, {select_species_info if taxonomic_rank == 'Espèces' else select_taxo_groups_info}{select_data}
             FROM src_lpodatas.v_c_observations_light obs
             LEFT JOIN taxonomie.bib_taxref_rangs r ON obs.id_rang = r.id_rang
-            WHERE {}
-            GROUP BY {}groupe_taxo
-            ORDER BY groupe_taxo{}""".format(select_species_info if taxonomic_rank == 'Espèces' else select_taxo_groups_info, select_data, where, group_by_species, ", obs.nom_vern" if taxonomic_rank == 'Espèces' else "")
+            WHERE {where}
+            GROUP BY {group_by_species}groupe_taxo
+            ORDER BY groupe_taxo{ ", obs.nom_vern" if taxonomic_rank == 'Espèces' else ""}"""
         #feedback.pushInfo(query)
         # Retrieve the boolean add_table
         add_table = self.parameterAsBool(parameters, self.ADD_TABLE, context)
@@ -569,7 +569,7 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
                 x_label += 's'
             plt.xlabel(x_label)
             plt.ylabel(aggregation_type)
-            plt.title('{} {}'.format(aggregation_type, time_interval[0].lower() + time_interval[1:]))
+            plt.title(f'{aggregation_type} {time_interval[0].lower() + time_interval[1:])}')
             if output_histogram[-4:] != ".png":
                 output_histogram += ".png"
             plt.savefig(output_histogram)

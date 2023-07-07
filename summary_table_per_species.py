@@ -351,7 +351,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
         # Retrieve the output PostGIS layer name and format it
         layer_name = self.parameterAsString(parameters, self.OUTPUT_NAME, context)
         ts = datetime.now()
-        format_name = "{} {}".format(layer_name, str(ts.strftime('%Y%m%d_%H%M%S')))
+        format_name = f"{layer_name} {str(self.ts.strftime('%Y%m%d_%H%M%S'))}"
         # Retrieve the taxons filters
         groupe_taxo = [self.db_variables.value('groupe_taxo')[i] for i in (self.parameterAsEnums(parameters, self.GROUPE_TAXO, context))]
         regne = [self.db_variables.value('regne')[i] for i in (self.parameterAsEnums(parameters, self.REGNE, context))]
@@ -370,7 +370,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
         # Construct the sql array containing the study area's features geometry
         array_polygons = construct_sql_array_polygons(study_area)
         # Define the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer = summary table
-        where = """is_valid and is_present and ST_intersects(obs.geom, ST_union({}))""".format(array_polygons)
+        where = f"""is_valid and is_present and ST_intersects(obs.geom, ST_union({array_polygons}))"""
         # Define a dictionnary with the aggregated taxons filters and complete the "where" clause thanks to it
         taxons_filters = {
             "groupe_taxo": groupe_taxo,
@@ -397,11 +397,11 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
         # uri = postgis.uri_from_name(connection)
         uri = uri_from_name(connection)
         # Define the SQL query
-        query = """WITH obs AS (
+        query = f"""WITH obs AS (
                         -- selection des cd_nom
                         SELECT obs.*
                         FROM src_lpodatas.v_c_observations_light obs
-                        WHERE {}),
+                        WHERE {where}),
                     communes AS (
                         --selection des communes
                         SELECT DISTINCT obs.id_synthese, la.area_name
@@ -489,7 +489,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         LEFT JOIN atlas_code ac ON d.max_hierarchy_atlas_code = ac.hierarchy
                         ORDER BY groupe_taxo, nom_vern)
                     SELECT row_number() OVER () AS id, *
-                    FROM synthese""".format(where)
+                    FROM synthese"""
         #feedback.pushInfo(query)
         # Retrieve the boolean add_table
         add_table = self.parameterAsBool(parameters, self.ADD_TABLE, context)

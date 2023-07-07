@@ -393,7 +393,7 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
         # Retrieve the output PostGIS layer name and format it
         layer_name = self.parameterAsString(parameters, self.OUTPUT_NAME, context)
         ts = datetime.now()
-        format_name = "{} {}".format(layer_name, str(ts.strftime('%Y%m%d_%H%M%S')))
+        format_name = f"{layer_name} {str(self.ts.strftime('%Y%m%d_%H%M%S'))}"
         # Retrieve the taxonomic rank
         taxonomic_ranks_labels = ["Groupe taxo", "Règne", "Phylum", "Classe", "Ordre", "Famille", "Groupe 1 INPN", "Groupe 2 INPN"]
         taxonomic_ranks_db = ["groupe_taxo", "regne", "phylum", "classe", "ordre", "famille", "obs.group1_inpn", "obs.group2_inpn"]
@@ -424,7 +424,7 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
         # Construct the sql array containing the study area's features geometry
         array_polygons = construct_sql_array_polygons(study_area)
         # Define the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer = summary table
-        where = "is_valid and is_present and ST_within(obs.geom, ST_union({}))".format(array_polygons)
+        where = f"is_valid and is_present and ST_within(obs.geom, ST_union({array_polygons}))"
         # Define a dictionnary with the aggregated taxons filters and complete the "where" clause thanks to it
         taxons_filters = {
             "groupe_taxo": groupe_taxo,
@@ -451,10 +451,10 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
         # uri = postgis.uri_from_name(connection)
         uri = uri_from_name(connection)
         # Define the SQL query
-        query = """WITH obs AS (
+        query = f"""WITH obs AS (
             SELECT obs.*
             FROM src_lpodatas.v_c_observations_light obs
-            WHERE {}),
+            WHERE {where}),
         communes AS (
             SELECT DISTINCT obs.id_synthese, la.area_name
             FROM obs
@@ -464,7 +464,7 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
         total_count AS (
             SELECT COUNT(*) AS total_count
             FROM obs)
-        SELECT row_number() OVER () AS id, COALESCE({}, 'Pas de correspondance taxref') AS "{}", {}
+        SELECT row_number() OVER () AS id, COALESCE({taxonomic_rank_db}, 'Pas de correspondance taxref') AS "{taxonomic_rank_label}", {'groupe_taxo AS "Groupe taxo", ' if taxonomic_rank_label in ['Ordre', 'Famille'] else ""}
             COUNT(*) AS "Nb de données",
             ROUND(COUNT(*)::decimal/total_count, 4)*100 AS "Nb données / Nb données TOTAL (%)",
             COUNT(DISTINCT obs.cd_ref) FILTER (WHERE id_rang='ES') AS "Nb d'espèces",
@@ -478,8 +478,8 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
             string_agg(DISTINCT obs.source,', ') AS "Sources"
         FROM total_count, obs
         LEFT JOIN communes com ON obs.id_synthese = com.id_synthese
-        GROUP BY {}{}, total_count 
-        ORDER BY {}{}""".format(where, taxonomic_rank_db, taxonomic_rank_label, 'groupe_taxo AS "Groupe taxo", ' if taxonomic_rank_label in ['Ordre', 'Famille'] else "", "groupe_taxo, " if taxonomic_rank_label in ['Ordre', 'Famille'] else "", taxonomic_rank_db, "groupe_taxo, " if taxonomic_rank_label in ['Ordre', 'Famille'] else "", taxonomic_rank_db)
+        GROUP BY {"groupe_taxo, " if taxonomic_rank_label in ['Ordre', 'Famille'] else ""}{taxonomic_rank_db}, total_count 
+        ORDER BY {"groupe_taxo, " if taxonomic_rank_label in ['Ordre', 'Famille'] else ""}{taxonomic_rank_db}"""
         #feedback.pushInfo(query)
         # Retrieve the boolean add_table
         add_table = self.parameterAsBool(parameters, self.ADD_TABLE, context)
@@ -531,7 +531,7 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
             plt.xticks(rotation='vertical')
             plt.xlabel(self.taxonomic_ranks_variables[self.parameterAsEnum(parameters, self.TAXONOMIC_RANK, context)])
             plt.ylabel(histogram_option.replace("Nb", "Nombre"))
-            plt.title('{} par {}'.format(histogram_option.replace("Nb", "Nombre"), taxonomic_rank_label[0].lower() + taxonomic_rank_label[1:].replace("taxo", "taxonomique")))
+            plt.title(f'{histogram_option.replace("Nb", "Nombre")} par {taxonomic_rank_label[0].lower() + taxonomic_rank_label[1:].replace("taxo", "taxonomique")}')
             if output_histogram[-4:] != ".png":
                 output_histogram += ".png"
             plt.savefig(output_histogram)

@@ -35,7 +35,7 @@ class SuccessDialog(QDialog):
         self.setWindowTitle("EXPORT RÉUSSI !")
         self.setLayout(QVBoxLayout())
         self.layout().setContentsMargins(0, 0, 0, 0)
-        message = QLabel(" Le fichier Excel a bien été enregistré dans {}/QGIS_exports ".format(os.path.expanduser('~')))
+        message = QLabel(f" Le fichier Excel a bien été enregistré dans {os.path.expanduser('~')}/QGIS_exports ")
         self.buttonbox = QDialogButtonBox(QDialogButtonBox.Ok)
         self.buttonbox.accepted.connect(self.close)
         self.layout().addWidget(message)
@@ -186,10 +186,10 @@ set_border(ws, 'A1:Z3275')
 #####################################################
 
 # Sauvegarde du fichier
-path = "{}/QGIS_exports".format(os.path.expanduser('~'))
+path = f"{os.path.expanduser('~')}/QGIS_exports"
 if os.path.exists(path) == False :
     os.mkdir(path)
-wb.save("{}/{}.xlsx".format(path, layer.name()))
+wb.save(f"{path}/{layer.name()}.xlsx")
 webbrowser.open(os.path.realpath(path))
 successDialog = SuccessDialog()
 successDialog.show()

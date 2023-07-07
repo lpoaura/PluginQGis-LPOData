@@ -362,7 +362,7 @@ class SummaryMap(QgsProcessingAlgorithm):
         # Retrieve the output PostGIS layer name and format it
         layer_name = self.parameterAsString(parameters, self.OUTPUT_NAME, context)
         ts = datetime.now()
-        format_name = "{} {}".format(layer_name, str(ts.strftime('%Y%m%d_%H%M%S')))
+        format_name = f"{layer_name} {str(self.ts.strftime('%Y%m%d_%H%M%S'))}"
         # Retrieve the areas type
         # areas_type = self.areas_variables[self.parameterAsEnum(parameters, self.AREAS_TYPE, context)]
         areas_types_codes = ["M0.5", "M1", "M5", "M10", "COM"]
@@ -385,7 +385,7 @@ class SummaryMap(QgsProcessingAlgorithm):
         # Construct the sql array containing the study area's features geometry
         array_polygons = construct_sql_array_polygons(study_area)
         # Define the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer = map data
-        where = "ST_intersects(la.geom, ST_union({}))".format(array_polygons)
+        where = f"ST_intersects(la.geom, ST_union({array_polygons}))"
         # Define the "where" filter for selected data
         where_filter = "is_valid and is_present"
         # Define a dictionnary with the aggregated taxons filters and complete the "where" clause thanks to it
@@ -414,20 +414,20 @@ class SummaryMap(QgsProcessingAlgorithm):
         # uri = postgis.uri_from_name(connection)
         uri = uri_from_name(connection)
         # Define the SQL query
-        query = """/*set random_page_cost to 4;*/ 
+        query = f"""/*set random_page_cost to 4;*/ 
                 with prep as (select la.id_area, ((st_area(la.geom))::decimal/1000000) area_surface
                 from ref_geo.l_areas la
-                where la.id_type=ref_geo.get_id_area_type('{}') and {}),
+                where la.id_type=ref_geo.get_id_area_type('{areas_type}') and {where}),
                 data as (
                 SELECT row_number() OVER () AS id, la.id_area,
                 ROUND(area_surface, 2) AS "Surface (km2)",
-                COUNT(*) filter (where {}) AS "Nb de données",
-                ROUND((COUNT(*) filter (where {})) / ROUND(area_surface, 2), 2) AS "Densité (Nb de données/km2)",
-                COUNT(DISTINCT cd_ref) filter (where id_rang='ES' and {}) AS "Nb d'espèces",
-                COUNT(DISTINCT observateur) filter (where {}) AS "Nb d'observateurs",
-                COUNT(DISTINCT date) filter (where {}) AS "Nb de dates",
-                COUNT(DISTINCT obs.id_synthese) FILTER (WHERE mortalite and {}) AS "Nb de données de mortalité",
-                string_agg(DISTINCT obs.nom_vern,', ') filter (where id_rang='ES' and {}) AS "Liste des espèces observées"
+                COUNT(*) filter (where {where_filter}) AS "Nb de données",
+                ROUND((COUNT(*) filter (where {where_filter})) / ROUND(area_surface, 2), 2) AS "Densité (Nb de données/km2)",
+                COUNT(DISTINCT cd_ref) filter (where id_rang='ES' and {where_filter}) AS "Nb d'espèces",
+                COUNT(DISTINCT observateur) filter (where {where_filter}) AS "Nb d'observateurs",
+                COUNT(DISTINCT date) filter (where {where_filter}) AS "Nb de dates",
+                COUNT(DISTINCT obs.id_synthese) FILTER (WHERE mortalite and {where_filter}) AS "Nb de données de mortalité",
+                string_agg(DISTINCT obs.nom_vern,', ') filter (where id_rang='ES' and {where_filter}) AS "Liste des espèces observées"
                 FROM prep la
                 LEFT JOIN gn_synthese.cor_area_synthese cor on la.id_area=cor.id_area
                 left JOIN src_lpodatas.v_c_observations_light obs on cor.id_synthese=obs.id_synthese
@@ -447,7 +447,7 @@ class SummaryMap(QgsProcessingAlgorithm):
                 , "Liste des espèces observées"
                 ,la.geom
                 from data join ref_geo.l_areas la on data.id_area=la.id_area
-                ORDER BY area_code""".format(areas_type, where,where_filter,where_filter,where_filter,where_filter,where_filter,where_filter,where_filter)        
+                ORDER BY area_code"""      
         #feedback.pushInfo(query)
         # Retrieve the boolean add_table
         add_table = self.parameterAsBool(parameters, self.ADD_TABLE, context)
