@@ -569,7 +569,7 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
                 x_label += 's'
             plt.xlabel(x_label)
             plt.ylabel(aggregation_type)
-            plt.title(f'{aggregation_type} {time_interval[0].lower() + time_interval[1:])}')
+            plt.title(f'{aggregation_type} {(time_interval[0].lower() + time_interval[1:])}')
             if output_histogram[-4:] != ".png":
                 output_histogram += ".png"
             plt.savefig(output_histogram)
