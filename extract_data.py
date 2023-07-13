@@ -400,7 +400,7 @@ class ExtractData(QgsProcessingAlgorithm):
         # Retrieve the output PostGIS layer name and format it
         layer_name = self.parameterAsString(parameters, self.OUTPUT_NAME, context)
         ts = datetime.now()
-        format_name = f"{layer_name} {str(self.ts.strftime('%Y%m%d_%H%M%S'))}"
+        format_name = f"{layer_name} {str(ts.strftime('%Y%m%d_%H%M%S'))}"
         # Retrieve the taxons filters
         groupe_taxo = [self.db_variables.value('groupe_taxo')[i] for i in (self.parameterAsEnums(parameters, self.GROUPE_TAXO, context))]
         regne = [self.db_variables.value('regne')[i] for i in (self.parameterAsEnums(parameters, self.REGNE, context))]
