@@ -362,7 +362,7 @@ class SummaryMap(QgsProcessingAlgorithm):
         # Retrieve the output PostGIS layer name and format it
         layer_name = self.parameterAsString(parameters, self.OUTPUT_NAME, context)
         ts = datetime.now()
-        format_name = f"{layer_name} {str(self.ts.strftime('%Y%m%d_%H%M%S'))}"
+        format_name = f"{layer_name} {str(ts.strftime('%Y%m%d_%H%M%S'))}"
         # Retrieve the areas type
         # areas_type = self.areas_variables[self.parameterAsEnum(parameters, self.AREAS_TYPE, context)]
         areas_types_codes = ["M0.5", "M1", "M5", "M10", "COM"]
