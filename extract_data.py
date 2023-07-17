@@ -186,20 +186,22 @@ class ExtractData(QgsProcessingAlgorithm):
         )
 
         ### TEST Source of data filters v2 ###
-        self.data_source = ["[SINP]","[LPO]", "[ORB]", "[Partenaire]"]
-        source_data_where = QgsProcessingParameterEnum(
+        ##self.data_source = ["[SINP]","[LPO]", "[ORB]", "[Partenaire]"]
+        #self.data_source = [self.db_variables.value("source_data")]
+        source_data = QgsProcessingParameterEnum(
             self.SOURCE_DATA,
             self.tr(""" <b style="color:#0a84db">FILTRES DES SOURCES DE DONNEES </b><br/> 
                         <b>7/</b> Cocher une ou plusieurs <u>sources</u> pour filtrer vos données d'observations. <br>
-                        <i style="color:#5b5b5b"><b>N.B.</b> : De base l'ensembles des sources HORS SINP est pris en compte"""),
-            #self.db_variables.value("source_data_where"),           
-            self.data_source,
-            defaultValue=[1,2,3],
+                        <i style="color:#5b5b5b"><b>N.B.</b> : De base l'ensembles des sources HORS SINP est pris en compte"""),          
+            #self.data_source,
+            self.db_variables.value("source_data"),
+            defaultValue=[0,1,2],
             allowMultiple=True,
             optional=False
         )
-        source_data_where.setFlags(source_data_where.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
-        self.addParameter(source_data_where)
+        source_data.setFlags(source_data.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        self.addParameter(source_data)
+
 
         ### TEST type de données géométrique ###
         self.data_geomtype = ["Point","LineString", "Polygon"]

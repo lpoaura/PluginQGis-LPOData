@@ -93,6 +93,14 @@ layer = QgsVectorLayer(uri.uri(), "group2_inpn", "postgres")
 for feature in layer.getFeatures():
     group2_inpn = feature[1]
 
+# SOURCE list
+source_query = """SELECT source, array_agg
+    FROM dbadmin.mv_source"""
+uri.setDataSource("", "("+source_query+")", None, "", "source")
+layer = QgsVectorLayer(uri.uri(), "source_data", "postgres")
+for feature in layer.getFeatures():
+    source_data = feature[1]
+
 # Add lists to QgsSettings
 db_variables = QgsSettings()
 #db_variables.setValue("areas_types", areas_types)
@@ -104,6 +112,7 @@ db_variables.setValue("ordre", ordre)
 db_variables.setValue("famille", famille)
 db_variables.setValue("group1_inpn", group1_inpn)
 db_variables.setValue("group2_inpn", group2_inpn)
+db_variables.setValue("source_data", source_data)
 
 # Add Plugin LPO menu
 
