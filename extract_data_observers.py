@@ -124,19 +124,8 @@ class ExtractDataObservers(QgsProcessingAlgorithm):
         """
 
         self.db_variables = QgsSettings()
-        self.period_variables = ["Pas de filtre temporel", "5 dernières années", "10 dernières années", "Date de début - Date de fin (à définir ci-dessous)"]
+        self.period_variables = ["Pas de filtre temporel", "5 dernières années", "10 dernières années","Cette année", "Date de début - Date de fin (à définir ci-dessous)"]
 
-        # Data base connection
-        # db_param = QgsProcessingParameterString(
-        #     self.DATABASE,
-        #     self.tr("""<b style="color:#0a84db">CONNEXION À LA BASE DE DONNÉES</b><br/>
-        #         <b>*1/</b> Sélectionnez votre <u>connexion</u> à la base de données LPO"""),
-        #     defaultValue='geonature_lpo'
-        # )
-        # db_param.setMetadata(
-        #     {'widget_wrapper': {'class': 'processing.gui.wrappers_postgis.ConnectionWidgetWrapper'}}
-        # )
-        # self.addParameter(db_param)
         self.addParameter(
             QgsProcessingParameterProviderConnection(
                 self.DATABASE,
@@ -146,37 +135,6 @@ class ExtractDataObservers(QgsProcessingAlgorithm):
                 defaultValue='geonature_lpo'
             )
         )
-
-        # # List of DB schemas
-        # schema_param = QgsProcessingParameterString(
-        #     self.SCHEMA,
-        #     self.tr('Schéma'),
-        #     defaultValue='public'
-        # )
-        # schema_param.setMetadata(
-        #     {
-        #         'widget_wrapper': {
-        #             'class': 'processing.gui.wrappers_postgis.SchemaWidgetWrapper',
-        #             'connection_param': self.DATABASE
-        #         }
-        #     }
-        # )
-        # self.addParameter(schema_param)
-
-        # # List of DB tables
-        # table_param = QgsProcessingParameterString(
-        #     self.TABLENAME,
-        #     self.tr('Table')
-        # )
-        # table_param.setMetadata(
-        #     {
-        #         'widget_wrapper': {
-        #             'class': 'processing.gui.wrappers_postgis.TableWidgetWrapper',
-        #             'schema_param': self.SCHEMA
-        #         }
-        #     }
-        # )
-        # self.addParameter(table_param)
 
         # Input vector layer = study area
         self.addParameter(

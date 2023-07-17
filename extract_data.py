@@ -121,19 +121,8 @@ class ExtractData(QgsProcessingAlgorithm):
         """
 
         self.db_variables = QgsSettings()
-        self.period_variables = ["Pas de filtre temporel", "5 dernières années", "10 dernières années", "Date de début - Date de fin (à définir ci-dessous)"]
+        self.period_variables = ["Pas de filtre temporel", "5 dernières années", "10 dernières années","Cette année", "Date de début - Date de fin (à définir ci-dessous)"]
 
-        # Data base connection
-        # db_param = QgsProcessingParameterString(
-        #     self.DATABASE,
-        #     self.tr("""<b style="color:#0a84db">CONNEXION À LA BASE DE DONNÉES</b><br/>
-        #         <b>*1/</b> Sélectionnez votre <u>connexion</u> à la base de données LPO"""),
-        #     defaultValue='geonature_lpo'
-        # )
-        # db_param.setMetadata(
-        #     {'widget_wrapper': {'class': 'processing.gui.wrappers_postgis.ConnectionWidgetWrapper'}}
-        # )
-        # self.addParameter(db_param)
         self.addParameter(
             QgsProcessingParameterProviderConnection(
                 self.DATABASE,
@@ -143,37 +132,6 @@ class ExtractData(QgsProcessingAlgorithm):
                 defaultValue='geonature_lpo'
             )
         )
-
-        # # List of DB schemas
-        # schema_param = QgsProcessingParameterString(
-        #     self.SCHEMA,
-        #     self.tr('Schéma'),
-        #     defaultValue='public'
-        # )
-        # schema_param.setMetadata(
-        #     {
-        #         'widget_wrapper': {
-        #             'class': 'processing.gui.wrappers_postgis.SchemaWidgetWrapper',
-        #             'connection_param': self.DATABASE
-        #         }
-        #     }
-        # )
-        # self.addParameter(schema_param)
-
-        # # List of DB tables
-        # table_param = QgsProcessingParameterString(
-        #     self.TABLENAME,
-        #     self.tr('Table')
-        # )
-        # table_param.setMetadata(
-        #     {
-        #         'widget_wrapper': {
-        #             'class': 'processing.gui.wrappers_postgis.TableWidgetWrapper',
-        #             'schema_param': self.SCHEMA
-        #         }
-        #     }
-        # )
-        # self.addParameter(table_param)
 
         # Input vector layer = study area
         self.addParameter(
@@ -186,14 +144,11 @@ class ExtractData(QgsProcessingAlgorithm):
         )
 
         ### TEST Source of data filters v2 ###
-        ##self.data_source = ["[SINP]","[LPO]", "[ORB]", "[Partenaire]"]
-        #self.data_source = [self.db_variables.value("source_data")]
         source_data_where = QgsProcessingParameterEnum(
             self.SOURCE_DATA,
             self.tr(""" <b style="color:#0a84db">FILTRES DES SOURCES DE DONNEES </b><br/> 
                         <b>7/</b> Cocher une ou plusieurs <u>sources</u> pour filtrer vos données d'observations. <br>
                         <i style="color:#5b5b5b"><b>N.B.</b> : De base l'ensembles des sources HORS SINP est pris en compte"""),          
-            #self.data_source,
             self.db_variables.value("source_data"),
             defaultValue=[0,1,2],
             allowMultiple=True,
@@ -209,8 +164,7 @@ class ExtractData(QgsProcessingAlgorithm):
             self.TYPE_GEOM,
             self.tr(""" <b style="color:#0a84db">FILTRES LE TYPE DE DONNEES </b><br/> 
                         <b>4/</b> selectionner le <u>type</u> de géometrie souhaitez. <br>
-                        <i style="color:#5b5b5b"><b>N.B.</b> : De base ce sont les données ponctuelles qui sont cochés"""),
-            #self.db_variables.value("geomtype_data_where"),           
+                        <i style="color:#5b5b5b"><b>N.B.</b> : De base ce sont les données ponctuelles qui sont cochés"""),        
             self.data_geomtype,
             defaultValue=[1],
             allowMultiple=False,
