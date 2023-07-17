@@ -188,7 +188,7 @@ class ExtractData(QgsProcessingAlgorithm):
         ### TEST Source of data filters v2 ###
         ##self.data_source = ["[SINP]","[LPO]", "[ORB]", "[Partenaire]"]
         #self.data_source = [self.db_variables.value("source_data")]
-        source_data = QgsProcessingParameterEnum(
+        source_data_where = QgsProcessingParameterEnum(
             self.SOURCE_DATA,
             self.tr(""" <b style="color:#0a84db">FILTRES DES SOURCES DE DONNEES </b><br/> 
                         <b>7/</b> Cocher une ou plusieurs <u>sources</u> pour filtrer vos données d'observations. <br>
@@ -199,8 +199,8 @@ class ExtractData(QgsProcessingAlgorithm):
             allowMultiple=True,
             optional=False
         )
-        source_data.setFlags(source_data.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
-        self.addParameter(source_data)
+        source_data_where.setFlags(source_data_where.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        self.addParameter(source_data_where)
 
 
         ### TEST type de données géométrique ###
@@ -418,7 +418,8 @@ class ExtractData(QgsProcessingAlgorithm):
         extra_where = self.parameterAsString(parameters, self.EXTRA_WHERE, context)
         
         # Retrieve the source 
-        source_data_where = [self.data_source[i] for i in (self.parameterAsEnums(parameters, self.SOURCE_DATA, context))]
+        #source_data_where = [self.data_source[i] for i in (self.parameterAsEnums(parameters, self.SOURCE_DATA, context))]
+        source_data_where = [self.db_variables.value('source_data')[i] for i in (self.parameterAsEnums(parameters, self.SOURCE_DATA, context))]
         source_where = construct_sql_source_filter(source_data_where)
 
         # Retrieve the type geom 
