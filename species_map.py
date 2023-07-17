@@ -103,7 +103,7 @@ class CarteParEspece(QDialog):
     def __init__(self, connection_name, parent=None):
         super().__init__(parent)
 
-        self.setWindowTitle("Carte par espèce(s)")
+        self.setWindowTitle("Carte par espèce")
 
         self.cbx_nom_vern = MyCheckableComboBox()
         self.cbx_nom_sci = MyCheckableComboBox()
@@ -116,7 +116,7 @@ class CarteParEspece(QDialog):
         rbtn_sci = QRadioButton("Nom scientifique")
         rbtn_vern = QRadioButton("Nom vernaculaire")
         ledt_search = QLineEdit()
-        ledt_search.setPlaceholderText("Espèce à rechercher")
+        ledt_search.setPlaceholderText("Espèce à rechercher (ne choisir qu'un taxon)")
 
         grp_box = QGroupBox()
         grp_box.setLayout(QHBoxLayout())
