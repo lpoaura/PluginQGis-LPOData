@@ -228,7 +228,8 @@ class CarteParEspece(QDialog):
                 ts.desc_source as source,
                 s.reference_biblio,
                 tcse.mortality as mortalite,
-                tcse.mortality_cause as mortalite_cause
+                tcse.mortality_cause as mortalite_cause,
+                s.id_nomenclature_observation_status = ref_nomenclatures.get_id_nomenclature('STATUT_OBS'::character varying, 'Pr'::character varying) AS is_present
                 from gn_synthese.synthese s 
                	join src_lpodatas.t_c_synthese_extended tcse on s.id_synthese =tcse.id_synthese
                	join taxonomie.mv_c_cor_vn_taxref cor on cor.cd_nom=s.cd_nom
