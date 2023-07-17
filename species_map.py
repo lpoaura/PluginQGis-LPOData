@@ -103,7 +103,7 @@ class CarteParEspece(QDialog):
     def __init__(self, connection_name, parent=None):
         super().__init__(parent)
 
-        self.setWindowTitle("Carte par espèce")
+        self.setWindowTitle("Carte par espèce(s)")
 
         self.cbx_nom_vern = MyCheckableComboBox()
         self.cbx_nom_sci = MyCheckableComboBox()
@@ -116,7 +116,7 @@ class CarteParEspece(QDialog):
         rbtn_sci = QRadioButton("Nom scientifique")
         rbtn_vern = QRadioButton("Nom vernaculaire")
         ledt_search = QLineEdit()
-        ledt_search.setPlaceholderText("Espèce à rechercher (ne choisir qu'un taxon)")
+        ledt_search.setPlaceholderText("Espèce à rechercher")
 
         grp_box = QGroupBox()
         grp_box.setLayout(QHBoxLayout())
@@ -208,7 +208,7 @@ class CarteParEspece(QDialog):
         connection = (
             QgsProviderRegistry.instance()
             .providerMetadata("postgres")
-            .createConnection("geonature_lpo")
+            .createConnection("gnlpoaura")
         )
         query = f"""SELECT s.id_synthese,
                 cor.vn_nom_sci as nom_sci,
@@ -257,5 +257,5 @@ def sanitizeName(txt):
     safename = re.sub(r"[óòôö]", "o", safename)
     safename = re.sub(r"[úùûü]", "u", safename)
     safename = re.sub(r"[ýỳŷÿ]", "y", safename)
-    safename = re.sub(r"[c]", "c", safename)
+    safename = re.sub(r"[ç]", "c", safename)
     return safename
