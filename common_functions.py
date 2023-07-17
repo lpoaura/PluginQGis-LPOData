@@ -4,9 +4,7 @@
 /***************************************************************************
         ScriptsLPO : common_functions.py
         -------------------
-        Date                 : 2020-04-16
-        Copyright            : (C) 2020 by Elsa Guilley (LPO AuRA)
-        Email                : lpo-aura@lpo.fr
+        Copyright            : (C) Collectif (LPO AuRA)
  ***************************************************************************/
 
 /***************************************************************************
@@ -19,9 +17,9 @@
  ***************************************************************************/
 """
 
-__author__ = 'Elsa Guilley (LPO AuRA)'
-__date__ = '2020-04-16'
-__copyright__ = '(C) 2020 by Elsa Guilley (LPO AuRA)'
+__author__ = 'Collectif (LPO AuRA)'
+__date__ = ''
+__copyright__ = '(C) Collectif (LPO AuRA)'
 
 # This will get replaced with a git SHA1 when you do a git archive
 __revision__ = '$Format:%H$'
@@ -47,15 +45,6 @@ def simplify_name(string):
         "&'([{|}])`^\/@+-=*°$£%§#.?!;:<>"
     )
     return string.lower().translate(translation_table)
-
-# def check_layer_geometry(layer):
-#     """
-#     Check if the input vector layer is a polygon layer.
-#     """
-#     if QgsWkbTypes.displayString(layer.wkbType()) not in ['Polygon', 'MultiPolygon']:
-#         iface.messageBar().pushMessage("Erreur", "La zone d'étude fournie n'est pas valide ! Veuillez sélectionner une couche vecteur de type POLYGONE.", level=Qgis.Critical, duration=10)
-#         raise QgsProcessingException("La zone d'étude fournie n'est pas valide ! Veuillez sélectionner une couche vecteur de type POLYGONE.")
-#     return None
 
 def check_layer_is_valid(feedback, layer):
     """
@@ -257,12 +246,6 @@ def load_layer(context, layer):
         plugin_lpo_group = root.insertGroup(0, 'Résultats plugin LPO')
     context.project().addMapLayer(layer, False)
     plugin_lpo_group.insertLayer(0, layer)
-    ### Variant
-    # context.temporaryLayerStore().addMapLayer(layer)
-    # context.addLayerToLoadOnCompletion(
-    #     layer.id(),
-    #     QgsProcessingContext.LayerDetails("Données d'observations", context.project(), self.OUTPUT)
-    # )
 
 def execute_sql_queries(context, feedback, connection, queries):
     """
