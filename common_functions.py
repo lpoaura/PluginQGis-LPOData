@@ -174,6 +174,10 @@ def construct_sql_datetime_filter(self, period_type_filter, timestamp, parameter
         end_year = int(timestamp.strftime('%Y'))
         start_year = end_year - 10
         datetime_where += f" and (date_an > {start_year} and date_an <= {end_year})"
+    elif period_type_filter == "Cette année":
+        end_date = timestamp.strftime('%d/%m/%Y')
+        start_date = timestamp.strftime('01/01/%Y') 
+        datetime_where += f" and (date >= '{start_date}'::date and date <= '{end_date}'::date)"
     elif period_type_filter == "Date de début - Date de fin (à définir ci-dessous)":
         # Retrieve the start and end dates
         start_date = self.parameterAsString(parameters, self.START_DATE, context)
@@ -182,7 +186,8 @@ def construct_sql_datetime_filter(self, period_type_filter, timestamp, parameter
             raise QgsProcessingException("Veuillez renseigner une date de fin postérieure ou égale à la date de début !")
         else:
             datetime_where += f" and (date >= '{start_date}'::date and date <= '{end_date}'::date)"
-    return datetime_where
+    return datetime_where         
+
 
 def construct_sql_select_data_per_time_interval(self, time_interval_param, start_year_param, end_year_param, aggregation_type_param, parameters, context):
     """

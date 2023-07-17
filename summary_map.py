@@ -132,21 +132,8 @@ class SummaryMap(QgsProcessingAlgorithm):
 
         self.db_variables = QgsSettings()
         self.areas_variables = ["Mailles 0.5*0.5", "Mailles 1*1", "Mailles 5*5", "Mailles 10*10", "Communes"]
-        self.period_variables = ["Pas de filtre temporel", "5 dernières années", "10 dernières années", "Date de début - Date de fin (à définir ci-dessous)"]
+        self.period_variables = ["Pas de filtre temporel", "5 dernières années", "10 dernières années","Cette année", "Date de début - Date de fin (à définir ci-dessous)"]
 
-        # Data base connection
-        # db_param = QgsProcessingParameterString(
-        #     self.DATABASE,
-        #     self.tr("""<b style="color:#0a84db">CONNEXION À LA BASE DE DONNÉES</b><br/>
-        #         <b>*1/</b> Sélectionnez votre <u>connexion</u> à la base de données LPO"""),
-        #     defaultValue='geonature_lpo'
-        # )
-        # db_param.setMetadata(
-        #     {
-        #         'widget_wrapper': {'class': 'processing.gui.wrappers_postgis.ConnectionWidgetWrapper'}
-        #     }
-        # )
-        # self.addParameter(db_param)
         self.addParameter(
             QgsProcessingParameterProviderConnection(
                 self.DATABASE,
@@ -414,7 +401,7 @@ class SummaryMap(QgsProcessingAlgorithm):
         # uri = postgis.uri_from_name(connection)
         uri = uri_from_name(connection)
         # Define the SQL query
-        query = f"""set random_page_cost to 4;
+        query = f"""/*set random_page_cost to 4;*/
                 with prep as (select la.id_area, ((st_area(la.geom))::decimal/1000000) area_surface
                 from ref_geo.l_areas la
                 where la.id_type=ref_geo.get_id_area_type('{areas_type}') and {where}),

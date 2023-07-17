@@ -138,22 +138,8 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
 
         self.db_variables = QgsSettings()
         self.taxonomic_ranks_variables = ["Groupes taxonomiques", "Règnes", "Phylum", "Classes", "Ordres", "Familles", "Groupes 1 INPN (regroupement vernaculaire du référentiel national - niveau 1)", "Groupes 2 INPN (regroupement vernaculaire du référentiel national - niveau 2)"]
-        self.period_variables = ["Pas de filtre temporel", "5 dernières années", "10 dernières années", "Date de début - Date de fin (à définir ci-dessous)"]
+        self.period_variables = ["Pas de filtre temporel", "5 dernières années", "10 dernières années","Cette année", "Date de début - Date de fin (à définir ci-dessous)"]
         histogram_variables = ["Pas d'histogramme", "Histogramme du nombre de données par taxon", "Histogramme du nombre d'espèces par taxon", "Histogramme du nombre d'observateurs par taxon", "Histogramme du nombre de dates par taxon", "Histogramme du nombre de données de mortalité par taxon"]
-
-        # Data base connection
-        # db_param = QgsProcessingParameterString(
-        #     self.DATABASE,
-        #     self.tr("""<b style="color:#0a84db">CONNEXION À LA BASE DE DONNÉES</b><br/>
-        #         <b>*1/</b> Sélectionnez votre <u>connexion</u> à la base de données LPO"""),
-        #     defaultValue='geonature_lpo'
-        # )
-        # db_param.setMetadata(
-        #     {
-        #         'widget_wrapper': {'class': 'processing.gui.wrappers_postgis.ConnectionWidgetWrapper'}
-        #     }
-        # )
-        # self.addParameter(db_param)
         self.addParameter(
             QgsProcessingParameterProviderConnection(
                 self.DATABASE,

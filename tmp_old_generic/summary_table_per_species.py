@@ -145,7 +145,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
         """
 
         self.db_variables = QgsSettings()
-        self.period_variables = ["Pas de filtre temporel", "5 dernières années", "10 dernières années", "Date de début - Date de fin (à définir ci-dessous)"]
+        self.period_variables = ["Pas de filtre temporel", "5 dernières années", "10 dernières années","Cette année", "Date de début - Date de fin (à définir ci-dessous)"]
 
         # Data base connection
         # db_param = QgsProcessingParameterString(
