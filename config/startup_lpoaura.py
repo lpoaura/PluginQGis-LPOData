@@ -94,9 +94,9 @@ for feature in layer.getFeatures():
     group2_inpn = feature[1]
 
 # SOURCE list
-source_query = """SELECT source, array_agg
-    FROM dbadmin.mv_source"""
-uri.setDataSource("", "("+source_query+")", None, "", "source")
+source_query = """SELECT rang, list_source
+                  FROM dbadmin.mv_source ms"""
+uri.setDataSource("", "("+source_query+")", None, "", "list_source")
 layer = QgsVectorLayer(uri.uri(), "source_data", "postgres")
 for feature in layer.getFeatures():
     source_data = feature[1]
