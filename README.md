@@ -13,8 +13,7 @@ Outre la structure de la base de données Géonature, il nécessite :
 
 La base de données sur laquelle les développements ont été faits dispose également des fonctionnalités de [gn_vn2synthese] (https://github.com/lpoaura/gn_vn2synthese).
 
-
-
+Pour permettre l'export des données formatées, il est nécessaire de disposer de la libraire `openpyxl`. Pour l'installer `py3_env` puis `python3 -m pip install --user openpyxl`.
 
 <img align="center" src="https://github.com/lpoaura/PluginQGis-LPOData/blob/develop_aura/icons/logo_lpo_aura.png">
 
