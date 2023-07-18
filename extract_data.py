@@ -346,19 +346,6 @@ class ExtractData(QgsProcessingAlgorithm):
             )
         )
 
-          
-       
-
-        group1_inpn = QgsProcessingParameterEnum(
-            self.GROUP1_INPN,
-            self.tr("- Groupe 1 INPN (regroupement vernaculaire du référentiel national - niveau 1) :"),
-            self.db_variables.value("group1_inpn"),
-            allowMultiple=True,
-            optional=True
-        )
-        group1_inpn.setFlags(group1_inpn.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
-        self.addParameter(group1_inpn)
-
     def processAlgorithm(self, parameters, context, feedback):
         """
         Here is where the processing itself takes place.
