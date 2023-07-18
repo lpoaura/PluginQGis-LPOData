@@ -4,9 +4,7 @@
 /***************************************************************************
         ScriptsLPO : summary_map.py
         -------------------
-        Date                 : 2020-04-16
-        Copyright            : (C) 2020 by Elsa Guilley (LPO AuRA)
-        Email                : lpo-aura@lpo.fr
+
  ***************************************************************************/
 
 /***************************************************************************
@@ -19,11 +17,9 @@
  ***************************************************************************/
 """
 
-__author__ = 'Elsa Guilley (LPO AuRA)'
-__date__ = '2020-04-16'
-__copyright__ = '(C) 2020 by Elsa Guilley (LPO AuRA)'
+__author__ = 'LPO AuRA'
+__date__ = '2020-2023'
 
-# This will get replaced with a git SHA1 when you do a git archive
 __revision__ = '$Format:%H$'
 
 import os
@@ -71,10 +67,6 @@ class DateTimeWidget(WidgetWrapper):
         return date_chosen.toString(Qt.ISODate)
 
 class SummaryMap(QgsProcessingAlgorithm):
-    """
-    This algorithm takes a connection to a data base and a vector polygons layer and
-    returns a summary non geometric PostGIS layer.
-    """
 
     # Constants used to refer to parameters and outputs
     DATABASE = 'DATABASE'
@@ -135,21 +127,8 @@ class SummaryMap(QgsProcessingAlgorithm):
 
         self.db_variables = QgsSettings()
         self.areas_variables = ["Mailles 0.5*0.5", "Mailles 1*1", "Mailles 5*5", "Mailles 10*10", "Communes"]
-        self.period_variables = ["Pas de filtre temporel", "5 dernières années", "10 dernières années", "Date de début - Date de fin (à définir ci-dessous)"]
+        self.period_variables = ["Pas de filtre temporel", "5 dernières années", "10 dernières années","Cette année", "Date de début - Date de fin (à définir ci-dessous)"]
 
-        # Data base connection
-        # db_param = QgsProcessingParameterString(
-        #     self.DATABASE,
-        #     self.tr("""<b style="color:#0a84db">CONNEXION À LA BASE DE DONNÉES</b><br/>
-        #         <b>*1/</b> Sélectionnez votre <u>connexion</u> à la base de données LPO"""),
-        #     defaultValue='geonature_lpo'
-        # )
-        # db_param.setMetadata(
-        #     {
-        #         'widget_wrapper': {'class': 'processing.gui.wrappers_postgis.ConnectionWidgetWrapper'}
-        #     }
-        # )
-        # self.addParameter(db_param)
         self.addParameter(
             QgsProcessingParameterProviderConnection(
                 self.DATABASE,
@@ -365,7 +344,7 @@ class SummaryMap(QgsProcessingAlgorithm):
         # Retrieve the output PostGIS layer name and format it
         layer_name = self.parameterAsString(parameters, self.OUTPUT_NAME, context)
         ts = datetime.now()
-        format_name = "{} {}".format(layer_name, str(ts.strftime('%Y%m%d_%H%M%S')))
+        format_name = f"{layer_name} {str(ts.strftime('%Y%m%d_%H%M%S'))}"
         # Retrieve the areas type
         # areas_type = self.areas_variables[self.parameterAsEnum(parameters, self.AREAS_TYPE, context)]
         areas_types_codes = ["M0.5", "M1", "M5", "M10", "COM"]
@@ -388,7 +367,7 @@ class SummaryMap(QgsProcessingAlgorithm):
         # Construct the sql array containing the study area's features geometry
         array_polygons = construct_sql_array_polygons(study_area)
         # Define the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer = map data
-        where = "ST_intersects(la.geom, ST_union({}))".format(array_polygons)
+        where = f"ST_intersects(la.geom, ST_union({array_polygons}))"
         # Define the "where" filter for selected data
         where_filter = "is_valid and is_present"
         # Define a dictionnary with the aggregated taxons filters and complete the "where" clause thanks to it
@@ -417,23 +396,40 @@ class SummaryMap(QgsProcessingAlgorithm):
         # uri = postgis.uri_from_name(connection)
         uri = uri_from_name(connection)
         # Define the SQL query
-        query = """SELECT row_number() OVER () AS id, area_name AS "Nom", area_code AS "Code", la.geom,
-                ROUND(ST_area(la.geom)::decimal/1000000, 2) AS "Surface (km2)",
-                COUNT(*) filter (where {}) AS "Nb de données",
-                ROUND((COUNT(*) filter (where {})) / ROUND(ST_area(la.geom)::decimal/1000000, 2), 2) AS "Densité (Nb de données/km2)",
-                COUNT(DISTINCT t.cd_ref) filter (where t.id_rang='ES' and {}) AS "Nb d'espèces",
-                COUNT(DISTINCT observateur) filter (where {}) AS "Nb d'observateurs",
-                COUNT(DISTINCT date) filter (where {}) AS "Nb de dates",
-                SUM(CASE WHEN mortalite THEN 1 ELSE 0 END) filter (where {}) AS "Nb de données de mortalité",
-                string_agg(DISTINCT obs.nom_vern,', ') filter (where t.id_rang='ES' and {}) AS "Liste des espèces observées"
-            FROM ref_geo.l_areas la
-            LEFT JOIN gn_synthese.cor_area_synthese cor on la.id_area=cor.id_area
-            LEFT JOIN src_lpodatas.v_c_observations obs on cor.id_synthese=obs.id_synthese
-            LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
-            WHERE la.id_type=(SELECT id_type FROM ref_geo.bib_areas_types WHERE type_code = '{}') and {}
-            GROUP BY area_name, area_code, la.geom
-            ORDER BY area_code""".format(where_filter, where_filter, where_filter, where_filter, where_filter, where_filter, where_filter, areas_type, where)
-        #feedback.pushInfo(query)
+        query = f"""/*set random_page_cost to 4;*/
+                with prep as (select la.id_area, ((st_area(la.geom))::decimal/1000000) area_surface
+                from ref_geo.l_areas la
+                where la.id_type=ref_geo.get_id_area_type('{areas_type}') and {where}),
+                data as (
+                SELECT row_number() OVER () AS id, la.id_area,
+                ROUND(area_surface, 2) AS "Surface (km2)",
+                COUNT(*) filter (where {where_filter}) AS "Nb de données",
+                ROUND((COUNT(*) filter (where {where_filter})) / ROUND(area_surface, 2), 2) AS "Densité (Nb de données/km2)",
+                COUNT(DISTINCT cd_ref) filter (where id_rang='ES' and {where_filter}) AS "Nb d'espèces",
+                COUNT(DISTINCT observateur) filter (where {where_filter}) AS "Nb d'observateurs",
+                COUNT(DISTINCT date) filter (where {where_filter}) AS "Nb de dates",
+                COUNT(DISTINCT obs.id_synthese) FILTER (WHERE mortalite and {where_filter}) AS "Nb de données de mortalité",
+                string_agg(DISTINCT obs.nom_vern,', ') filter (where id_rang='ES' and {where_filter}) AS "Liste des espèces observées"
+                FROM prep la
+                LEFT JOIN gn_synthese.cor_area_synthese cor on la.id_area=cor.id_area
+                left JOIN src_lpodatas.v_c_observations_light obs on cor.id_synthese=obs.id_synthese
+                GROUP BY la.id_area, la.area_surface
+                )
+                select 
+                data.id
+                , la.area_name
+                , la.area_code
+                , "Surface (km2)"
+                , 	"Nb de données"
+                , "Densité (Nb de données/km2)"
+                , "Nb d'espèces"
+                , "Nb d'observateurs"
+                ,"Nb de dates"
+                , "Nb de données de mortalité"
+                , "Liste des espèces observées"
+                ,la.geom
+                from data join ref_geo.l_areas la on data.id_area=la.id_area
+                ORDER BY area_code"""      
         # Retrieve the boolean add_table
         add_table = self.parameterAsBool(parameters, self.ADD_TABLE, context)
         if add_table:

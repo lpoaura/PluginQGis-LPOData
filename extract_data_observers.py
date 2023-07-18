@@ -2,9 +2,11 @@
 
 """
 /***************************************************************************
-        ScriptsLPO : extract_data.py
+        ScriptsLPO : extract_data_observers.py
         -------------------
-
+        Date                 : 2020-04-16
+        Copyright            : (C) 2020 by Elsa Guilley (LPO AuRA)
+        Email                : lpo-aura@lpo.fr
  ***************************************************************************/
 
 /***************************************************************************
@@ -17,10 +19,10 @@
  ***************************************************************************/
 """
 
-__author__ = 'LPO AuRA'
-__date__ = '2020-2023'
+__author__ = 'Elsa Guilley (LPO AuRA)'
+__date__ = '2020-04-16'
+__copyright__ = '(C) 2020 by Elsa Guilley (LPO AuRA)'
 
-# This will get replaced with a git SHA1 when you do a git archive
 __revision__ = '$Format:%H$'
 
 import os
@@ -31,9 +33,8 @@ from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtCore import Qt, QCoreApplication, QDate
 from qgis.PyQt.QtWidgets import QDateEdit
 from processing.gui.wrappers import WidgetWrapper
-#from qgis.gui import QgsScaleWidget
 
-from qgis.core import (QgsProcessing,   
+from qgis.core import (QgsProcessing,
                        QgsProcessingAlgorithm,
                        QgsSettings,
                        QgsProcessingParameterProviderConnection,
@@ -44,9 +45,6 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterDefinition,
                        QgsVectorLayer,
                        QgsEditorWidgetSetup)
-
-
-# from processing.tools import postgis
 from .qgis_processing_postgis import uri_from_name
 from .common_functions import check_layer_is_valid, construct_sql_array_polygons, construct_sql_taxons_filter, construct_sql_source_filter,construct_sql_geom_type_filter, construct_sql_datetime_filter, load_layer, format_layer_export
 
@@ -69,16 +67,10 @@ class DateTimeWidget(WidgetWrapper):
         date_chosen = self._combo.dateTime()
         return date_chosen.toString(Qt.ISODate)
 
-class ExtractData(QgsProcessingAlgorithm):
-    """
-    This algorithm takes a connection to a data base and a vector polygons layer and
-    returns an intersected points PostGIS layer.
-    """
+class ExtractDataObservers(QgsProcessingAlgorithm):
 
     # Constants used to refer to parameters and outputs
     DATABASE = 'DATABASE'
-    #SCHEMA = 'SCHEMA'
-    #TABLENAME = 'TABLENAME'
     STUDY_AREA = 'STUDY_AREA'
     GROUPE_TAXO = 'GROUPE_TAXO'
     REGNE = 'REGNE'
@@ -98,10 +90,10 @@ class ExtractData(QgsProcessingAlgorithm):
     TYPE_GEOM = 'TYPE_GEOM'
 
     def name(self):
-        return 'ExtractData'
+        return 'ExtractDataObservers'
 
     def displayName(self):
-        return "Extraction de données d'observation"
+        return "Extraction de données d'observation (avec id observateurs - long)"
 
     def icon(self):
         return QIcon(os.path.join(pluginPath, 'icons', 'extract_data.png'))
@@ -136,8 +128,6 @@ class ExtractData(QgsProcessingAlgorithm):
             )
         )
 
-
-
         # Input vector layer = study area
         self.addParameter(
             QgsProcessingParameterFeatureSource(
@@ -145,40 +135,33 @@ class ExtractData(QgsProcessingAlgorithm):
                 self.tr("""<b style="color:#0a84db">ZONE D'ÉTUDE</b><br/>
                     <b>*2/</b> Sélectionnez votre <u>zone d'étude</u>, à partir de laquelle seront extraites les données d'observations"""),
                 [QgsProcessing.TypeVectorPolygon]
-            )        
+            )
         )
 
-#        # Input vector layer = study area
-#        self.addParameter(
-#            QgsScaleWidget(
-#                self.STUDY_AREA2,
-#                self.tr("""<b style="color:#0a84db">ZONE D'ÉTUDE</b><br/>
-#                    <b>*2/</b> Sélectionnez votre <u>zone d'étude</u>, à partir de laquelle seront extraites les données d'observations"""),
-#                [QgsProcessing.TypeVectorPolygon])
-#            )
-
-        ### Source of data filters ###
+        ### TEST Source of data filters v2 ###
+        self.data_source = ["[SINP]","[LPO]", "[ORB]", "[Partenaire]"]
         source_data_where = QgsProcessingParameterEnum(
             self.SOURCE_DATA,
             self.tr(""" <b style="color:#0a84db">FILTRES DES SOURCES DE DONNEES </b><br/> 
                         <b>7/</b> Cocher une ou plusieurs <u>sources</u> pour filtrer vos données d'observations. <br>
-                        <i style="color:#5b5b5b"><b>N.B.</b> : De base l'ensembles des sources HORS SINP est pris en compte"""),          
-            self.db_variables.value("source_data"),
-            defaultValue=[0,1,2],
+                        <i style="color:#5b5b5b"><b>N.B.</b> : De base l'ensembles des sources HORS SINP est pris en compte"""),
+            #self.db_variables.value("source_data_where"),           
+            self.data_source,
+            defaultValue=[1,2,3],
             allowMultiple=True,
             optional=False
         )
         source_data_where.setFlags(source_data_where.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(source_data_where)
 
-
-        ### Gestion des différents types de géométries ###
+        ### choix des géométries ###
         self.data_geomtype = ["Point","LineString", "Polygon"]
         geomtype_data_where = QgsProcessingParameterEnum(
             self.TYPE_GEOM,
             self.tr(""" <b style="color:#0a84db">FILTRES LE TYPE DE DONNEES </b><br/> 
                         <b>4/</b> selectionner le <u>type</u> de géometrie souhaitez. <br>
-                        <i style="color:#5b5b5b"><b>N.B.</b> : De base ce sont les données ponctuelles qui sont cochés"""),        
+                        <i style="color:#5b5b5b"><b>N.B.</b> : De base ce sont les données ponctuelles qui sont cochés"""),
+            #self.db_variables.value("geomtype_data_where"),           
             self.data_geomtype,
             defaultValue=[1],
             allowMultiple=False,
@@ -373,8 +356,7 @@ class ExtractData(QgsProcessingAlgorithm):
         extra_where = self.parameterAsString(parameters, self.EXTRA_WHERE, context)
         
         # Retrieve the source 
-        #source_data_where = [self.data_source[i] for i in (self.parameterAsEnums(parameters, self.SOURCE_DATA, context))]
-        source_data_where = [self.db_variables.value('source_data')[i] for i in (self.parameterAsEnums(parameters, self.SOURCE_DATA, context))]
+        source_data_where = [self.data_source[i] for i in (self.parameterAsEnums(parameters, self.SOURCE_DATA, context))]
         source_where = construct_sql_source_filter(source_data_where)
 
         # Retrieve the type geom 
@@ -385,7 +367,7 @@ class ExtractData(QgsProcessingAlgorithm):
         # Construct the sql array containing the study area's features geometry
         array_polygons = construct_sql_array_polygons(study_area)
         # Define the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer = biodiversity data
-        where = f"is_valid and ST_intersects(geom, ST_union({array_polygons}))"
+        where = f"is_valid and ST_within(geom, ST_union({array_polygons}))"
         # Define a dictionnary with the aggregated taxons filters and complete the "where" clause thanks to it
         taxons_filters = {
             "groupe_taxo": groupe_taxo,
@@ -416,9 +398,11 @@ class ExtractData(QgsProcessingAlgorithm):
         # uri = postgis.uri_from_name(connection)
         uri = uri_from_name(connection)
         # Define the SQL query
-        query = f"""SELECT obs.*
+        query = f"""SELECT obs.*, (r.champs_addi ->'from_vn')->>'id_universal' as id_observateur
         FROM src_lpodatas.v_c_observations obs
+        join gn_synthese.synthese s on s.id_synthese=obs.id_synthese
         LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
+        left join utilisateurs.t_roles r on s.id_digitiser=r.id_role
         WHERE {where}"""
         # Format the URI with the query
         uri.setDataSource("", "("+query+")", "geom", "", "id_synthese")
@@ -466,4 +450,4 @@ class ExtractData(QgsProcessingAlgorithm):
         return QCoreApplication.translate('Processing', string)
 
     def createInstance(self):
-        return ExtractData()
+        return ExtractDataObservers()

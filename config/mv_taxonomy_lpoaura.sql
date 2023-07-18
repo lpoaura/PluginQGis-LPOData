@@ -75,3 +75,25 @@ GRANT ALL ON TABLE dbadmin.mv_taxonomy TO advanced_user;
 GRANT SELECT ON TABLE dbadmin.mv_taxonomy TO commons;
 GRANT SELECT ON TABLE dbadmin.mv_taxonomy TO qgis_shared;
 GRANT INSERT, DELETE, UPDATE, SELECT ON TABLE dbadmin.mv_taxonomy TO readonly;
+
+-- VM pour améliorer les performances de v_c_observations
+
+CREATE MATERIALIZED VIEW taxonomie.mv_c_cor_vn_taxref_synt
+TABLESPACE pg_default
+AS SELECT mv_c_cor_vn_taxref.cd_nom,
+    string_agg(DISTINCT mv_c_cor_vn_taxref.vn_nom_fr, ', '::text) AS vn_nom_fr
+   FROM taxonomie.mv_c_cor_vn_taxref
+  GROUP BY mv_c_cor_vn_taxref.cd_nom
+WITH DATA;
+
+-- View indexes:
+CREATE INDEX mv_c_cor_vn_taxref_synt_cd_nom_idx ON taxonomie.mv_c_cor_vn_taxref_synt USING btree (cd_nom);
+
+
+-- Permissions
+
+ALTER TABLE taxonomie.mv_c_cor_vn_taxref_synt OWNER TO dbadmin;
+GRANT ALL ON TABLE taxonomie.mv_c_cor_vn_taxref_synt TO postgres;
+GRANT ALL ON TABLE taxonomie.mv_c_cor_vn_taxref_synt TO dbadmin;
+GRANT SELECT ON TABLE taxonomie.mv_c_cor_vn_taxref_synt TO dt;
+GRANT ALL ON TABLE taxonomie.mv_c_cor_vn_taxref_synt TO advanced_user;

@@ -1,24 +1,13 @@
 from qgis.utils import iface
 
 from qgis.core import (Qgis, QgsVectorLayer, QgsSettings, QgsProviderRegistry, QgsDataSourceUri, QgsProviderConnectionException, QgsProcessingException)
-# from processing.tools import postgis
 
-# uri = postgis.uri_from_name("geonature_lpo")
 try:
     postgres_metadata = QgsProviderRegistry.instance().providerMetadata('postgres')
-    connection = postgres_metadata.createConnection("gnlpoaura")
+    connection = postgres_metadata.createConnection("geonature_lpo")
 except QgsProviderConnectionException:
     raise QgsProcessingException(self.tr('Could not retrieve connection details for {}').format(connection))
 uri = QgsDataSourceUri(connection.uri())
-#iface.messageBar().pushMessage("Connexion : {}".format(uri.connectionInfo()))
-
-# # Areas_types list
-# areas_types_query = """SELECT id_type, type_name FROM ref_geo.bib_areas_types"""
-# uri.setDataSource("", "("+areas_types_query+")", None, "", "id_type")
-# layer = QgsVectorLayer(uri.uri(), "areas_types", "postgres")
-# areas_types = []
-# for feature in layer.getFeatures():
-#     areas_types = areas_types + [feature[1]]
 
 # Groupe_taxo list
 groupe_taxo_query = """SELECT rang, liste
@@ -93,6 +82,14 @@ layer = QgsVectorLayer(uri.uri(), "group2_inpn", "postgres")
 for feature in layer.getFeatures():
     group2_inpn = feature[1]
 
+# SOURCE list
+source_query = """SELECT rang, list_source
+                  FROM dbadmin.mv_source ms"""
+uri.setDataSource("", "("+source_query+")", None, "", "list_source")
+layer = QgsVectorLayer(uri.uri(), "source_data", "postgres")
+for feature in layer.getFeatures():
+    source_data = feature[1]
+
 # Add lists to QgsSettings
 db_variables = QgsSettings()
 #db_variables.setValue("areas_types", areas_types)
@@ -104,6 +101,7 @@ db_variables.setValue("ordre", ordre)
 db_variables.setValue("famille", famille)
 db_variables.setValue("group1_inpn", group1_inpn)
 db_variables.setValue("group2_inpn", group2_inpn)
+db_variables.setValue("source_data", source_data)
 
 # Add Plugin LPO menu
 

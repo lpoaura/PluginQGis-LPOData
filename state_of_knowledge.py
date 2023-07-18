@@ -4,9 +4,6 @@
 /***************************************************************************
         ScriptsLPO : state_of_knowledge.py
         -------------------
-        Date                 : 2020-04-16
-        Copyright            : (C) 2020 by Elsa Guilley (LPO AuRA)
-        Email                : lpo-aura@lpo.fr
  ***************************************************************************/
 
 /***************************************************************************
@@ -19,9 +16,8 @@
  ***************************************************************************/
 """
 
-__author__ = 'Elsa Guilley (LPO AuRA)'
-__date__ = '2020-04-16'
-__copyright__ = '(C) 2020 by Elsa Guilley (LPO AuRA)'
+__author__ = 'LPO AuRA'
+__date__ = '2020-2023'
 
 # This will get replaced with a git SHA1 when you do a git archive
 __revision__ = '$Format:%H$'
@@ -74,11 +70,6 @@ class DateTimeWidget(WidgetWrapper):
         return date_chosen.toString(Qt.ISODate)
 
 class StateOfKnowledge(QgsProcessingAlgorithm):
-    """
-    This algorithm takes a connection to a data base and a vector polygons layer and
-    returns a summary non geometric PostGIS layer.
-    """
-
     # Constants used to refer to parameters and outputs
     DATABASE = 'DATABASE'
     STUDY_AREA = 'STUDY_AREA'
@@ -142,22 +133,8 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
 
         self.db_variables = QgsSettings()
         self.taxonomic_ranks_variables = ["Groupes taxonomiques", "Règnes", "Phylum", "Classes", "Ordres", "Familles", "Groupes 1 INPN (regroupement vernaculaire du référentiel national - niveau 1)", "Groupes 2 INPN (regroupement vernaculaire du référentiel national - niveau 2)"]
-        self.period_variables = ["Pas de filtre temporel", "5 dernières années", "10 dernières années", "Date de début - Date de fin (à définir ci-dessous)"]
+        self.period_variables = ["Pas de filtre temporel", "5 dernières années", "10 dernières années","Cette année", "Date de début - Date de fin (à définir ci-dessous)"]
         histogram_variables = ["Pas d'histogramme", "Histogramme du nombre de données par taxon", "Histogramme du nombre d'espèces par taxon", "Histogramme du nombre d'observateurs par taxon", "Histogramme du nombre de dates par taxon", "Histogramme du nombre de données de mortalité par taxon"]
-
-        # Data base connection
-        # db_param = QgsProcessingParameterString(
-        #     self.DATABASE,
-        #     self.tr("""<b style="color:#0a84db">CONNEXION À LA BASE DE DONNÉES</b><br/>
-        #         <b>*1/</b> Sélectionnez votre <u>connexion</u> à la base de données LPO"""),
-        #     defaultValue='geonature_lpo'
-        # )
-        # db_param.setMetadata(
-        #     {
-        #         'widget_wrapper': {'class': 'processing.gui.wrappers_postgis.ConnectionWidgetWrapper'}
-        #     }
-        # )
-        # self.addParameter(db_param)
         self.addParameter(
             QgsProcessingParameterProviderConnection(
                 self.DATABASE,
@@ -397,7 +374,7 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
         # Retrieve the output PostGIS layer name and format it
         layer_name = self.parameterAsString(parameters, self.OUTPUT_NAME, context)
         ts = datetime.now()
-        format_name = "{} {}".format(layer_name, str(ts.strftime('%Y%m%d_%H%M%S')))
+        format_name = f"{layer_name} {str(ts.strftime('%Y%m%d_%H%M%S'))}"
         # Retrieve the taxonomic rank
         taxonomic_ranks_labels = ["Groupe taxo", "Règne", "Phylum", "Classe", "Ordre", "Famille", "Groupe 1 INPN", "Groupe 2 INPN"]
         taxonomic_ranks_db = ["groupe_taxo", "regne", "phylum", "classe", "ordre", "famille", "obs.group1_inpn", "obs.group2_inpn"]
@@ -428,7 +405,7 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
         # Construct the sql array containing the study area's features geometry
         array_polygons = construct_sql_array_polygons(study_area)
         # Define the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer = summary table
-        where = "is_valid and is_present and ST_within(obs.geom, ST_union({}))".format(array_polygons)
+        where = f"is_valid and is_present and ST_within(obs.geom, ST_union({array_polygons}))"
         # Define a dictionnary with the aggregated taxons filters and complete the "where" clause thanks to it
         taxons_filters = {
             "groupe_taxo": groupe_taxo,
@@ -455,37 +432,35 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
         # uri = postgis.uri_from_name(connection)
         uri = uri_from_name(connection)
         # Define the SQL query
-        query = """WITH obs AS (
+        query = f"""WITH obs AS (
             SELECT obs.*
-            FROM src_lpodatas.v_c_observations obs
-            LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
-            WHERE {}),
+            FROM src_lpodatas.v_c_observations_light obs
+            WHERE {where}),
         communes AS (
             SELECT DISTINCT obs.id_synthese, la.area_name
             FROM obs
-            LEFT JOIN gn_synthese.cor_area_synthese cor ON obs.id_synthese = cor.id_synthese
+            JOIN gn_synthese.cor_area_synthese cor ON obs.id_synthese = cor.id_synthese
             JOIN ref_geo.l_areas la ON cor.id_area = la.id_area
-            WHERE la.id_type = (SELECT id_type FROM ref_geo.bib_areas_types WHERE type_code = 'COM')),
+            WHERE la.id_type = (SELECT ref_geo.get_id_area_type('COM'))),
         total_count AS (
             SELECT COUNT(*) AS total_count
             FROM obs)
-        SELECT row_number() OVER () AS id, COALESCE({}, 'Pas de correspondance taxref') AS "{}", {}
+        SELECT row_number() OVER () AS id, COALESCE({taxonomic_rank_db}, 'Pas de correspondance taxref') AS "{taxonomic_rank_label}", {'groupe_taxo AS "Groupe taxo", ' if taxonomic_rank_label in ['Ordre', 'Famille'] else ""}
             COUNT(*) AS "Nb de données",
             ROUND(COUNT(*)::decimal/total_count, 4)*100 AS "Nb données / Nb données TOTAL (%)",
-            COUNT(DISTINCT t.cd_ref) FILTER (WHERE t.id_rang='ES') AS "Nb d'espèces",
+            COUNT(DISTINCT obs.cd_ref) FILTER (WHERE id_rang='ES') AS "Nb d'espèces",
             COUNT(DISTINCT observateur) AS "Nb d'observateurs", 
             COUNT(DISTINCT date) AS "Nb de dates",
-            SUM(CASE WHEN mortalite THEN 1 ELSE 0 END) AS "Nb de données de mortalité",
+            COUNT(DISTINCT obs.id_synthese) FILTER (WHERE mortalite) AS "Nb de données de mortalité",
             max(nombre_total) AS "Nb d'individus max",
             min (date_an) AS "Année première obs", max(date_an) AS "Année dernière obs",
-            string_agg(DISTINCT obs.nom_vern,', ') FILTER (WHERE t.id_rang='ES') AS "Liste des espèces",
+            string_agg(DISTINCT obs.nom_vern,', ') FILTER (WHERE id_rang='ES') AS "Liste des espèces",
             string_agg(DISTINCT com.area_name,', ') AS "Communes",
             string_agg(DISTINCT obs.source,', ') AS "Sources"
         FROM total_count, obs
-        LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom=t.cd_nom
         LEFT JOIN communes com ON obs.id_synthese = com.id_synthese
-        GROUP BY {}{}, total_count 
-        ORDER BY {}{}""".format(where, taxonomic_rank_db, taxonomic_rank_label, 'groupe_taxo AS "Groupe taxo", ' if taxonomic_rank_label in ['Ordre', 'Famille'] else "", "groupe_taxo, " if taxonomic_rank_label in ['Ordre', 'Famille'] else "", taxonomic_rank_db, "groupe_taxo, " if taxonomic_rank_label in ['Ordre', 'Famille'] else "", taxonomic_rank_db)
+        GROUP BY {"groupe_taxo, " if taxonomic_rank_label in ['Ordre', 'Famille'] else ""}{taxonomic_rank_db}, total_count 
+        ORDER BY {"groupe_taxo, " if taxonomic_rank_label in ['Ordre', 'Famille'] else ""}{taxonomic_rank_db}"""
         #feedback.pushInfo(query)
         # Retrieve the boolean add_table
         add_table = self.parameterAsBool(parameters, self.ADD_TABLE, context)
@@ -537,7 +512,7 @@ class StateOfKnowledge(QgsProcessingAlgorithm):
             plt.xticks(rotation='vertical')
             plt.xlabel(self.taxonomic_ranks_variables[self.parameterAsEnum(parameters, self.TAXONOMIC_RANK, context)])
             plt.ylabel(histogram_option.replace("Nb", "Nombre"))
-            plt.title('{} par {}'.format(histogram_option.replace("Nb", "Nombre"), taxonomic_rank_label[0].lower() + taxonomic_rank_label[1:].replace("taxo", "taxonomique")))
+            plt.title(f'{histogram_option.replace("Nb", "Nombre")} par {taxonomic_rank_label[0].lower() + taxonomic_rank_label[1:].replace("taxo", "taxonomique")}')
             if output_histogram[-4:] != ".png":
                 output_histogram += ".png"
             plt.savefig(output_histogram)

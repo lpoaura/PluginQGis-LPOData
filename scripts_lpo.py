@@ -4,9 +4,7 @@
 /***************************************************************************
         ScriptsLPO : scripts_lpo.py
         -------------------
-        Date                 : 2020-04-16 / 2021-12-07
-        Copyright            : (C) 2020 by Elsa Guilley (LPO AuRA)
-        Email                : auvergne-rhone-alpes@lpo.fr
+
  ***************************************************************************/
 
 /***************************************************************************
@@ -19,9 +17,8 @@
  ***************************************************************************/
 """
 
-__author__ = "Elsa Guilley (LPO AuRA)"
-__date__ = "2020-04-16"
-__copyright__ = "(C) 2020 by Elsa Guilley (LPO AuRA)"
+__author__ = 'LPO AuRA'
+__date__ = '2020-2023'
 
 # This will get replaced with a git SHA1 when you do a git archive
 __revision__ = "$Format:%H$"

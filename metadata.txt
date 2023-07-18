@@ -8,10 +8,10 @@
 name=Traitements de la LPO AuRA
 qgisMinimumVersion=3.16
 
-description=Scripts processing for LPO
-about=Provide a brief description of the plugin and its purpose.
+description=Scripts de la LPO pour l'analyse de données
+about=Scripts développés par la LPO pour analyser les données naturalistes contenues dans une base Géonature, alimentée notamment par Visionature.
 
-version=1.0.4
+version=1.99
 author=collectif (LPO AuRA)
 email=webadmin.aura@lpo.fr
 
@@ -42,7 +42,7 @@ deprecated=False
 tags=LPO AuRA, données, analyse, traitements, Python, PostGIS
 
 homepage=https://github.com/lpoaura/PluginQGis-LPOData
-icon=icons/logo_LPO.png
+icon=icons/logo_lpo_aura_carre.png
 
 # Since QGIS 3.8, a comma separated list of plugins to be installed
 # (or upgraded) can be specified.

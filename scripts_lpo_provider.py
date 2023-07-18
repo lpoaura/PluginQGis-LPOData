@@ -4,9 +4,7 @@
 /***************************************************************************
         ScriptsLPO : scripts_lpo_provider.py
         -------------------
-        Date                 : 2020-04-16
-        Copyright            : (C) 2020 by Elsa Guilley (LPO AuRA)
-        Email                : lpo-aura@lpo.fr
+
  ***************************************************************************/
 
 /***************************************************************************
@@ -19,9 +17,8 @@
  ***************************************************************************/
 """
 
-__author__ = 'Elsa Guilley (LPO AuRA)'
-__date__ = '2020-04-16'
-__copyright__ = '(C) 2020 by Elsa Guilley (LPO AuRA)'
+__author__ = 'LPO AuRA'
+__date__ = '2020-2023'
 
 # This will get replaced with a git SHA1 when you do a git archive
 __revision__ = '$Format:%H$'
@@ -31,10 +28,12 @@ from qgis.PyQt.QtGui import QIcon
 
 from qgis.core import QgsProcessingProvider
 from .extract_data import ExtractData
+from .extract_data_observers import ExtractDataObservers
 from .summary_table_per_species import SummaryTablePerSpecies
 from .summary_table_per_time_interval import SummaryTablePerTimeInterval
 from .state_of_knowledge import StateOfKnowledge
 from .summary_map import SummaryMap
+
 
 pluginPath = os.path.dirname(__file__)
 
@@ -82,7 +81,7 @@ class ScriptsLPOProvider(QgsProcessingProvider):
         """
         Loads all algorithms belonging to this provider.
         """
-        algorithms = [ExtractData(), SummaryTablePerSpecies(), SummaryTablePerTimeInterval(), StateOfKnowledge(), SummaryMap()]
+        algorithms = [ExtractData(),ExtractDataObservers(), SummaryTablePerSpecies(), SummaryTablePerTimeInterval(), StateOfKnowledge(), SummaryMap()]
         for algo in algorithms:
             self.addAlgorithm(algo)
 
