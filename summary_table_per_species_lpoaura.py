@@ -124,7 +124,8 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
             <li>Nombre de dates</li>
             <li>Nombre de données de mortalité</li>
             <li>LR France</li>
-            <li>LR régionale</li>
+            <li>LR Rhône-Alpes</li>
+            <li>LR Auvergne</li>
             <li>Directive Habitats</li>
             <li>Directive Oiseaux</li>
             <li>Protection nationale</li>
@@ -418,7 +419,8 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         , COUNT(DISTINCT obs.date)                      AS nb_dates
                         , SUM(CASE WHEN mortalite THEN 1 ELSE 0 END)    AS nb_mortalite
                         , st.lr_france
-                        , st.lr_r
+                        , st.lr_ra
+                        , st.lr_auv
                         , st.n2k
                         , st.prot_nat as protection_nat
                         , st.conv_berne
@@ -439,7 +441,8 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         , obs.cd_ref
                         , r.nom_rang
                         , st.lr_france
-                        , st.lr_r
+                        , st.lr_ra
+                        , st.lr_auv
                         , st.n2k
                         , st.prot_nat
                         , st.conv_berne
@@ -457,7 +460,8 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         , nb_dates                                          AS "Nb de dates"
                         , nb_mortalite                                      AS "Nb de données de mortalité"
                         , lr_france                                         AS "LR France"
-                        , lr_r                                              AS "LR régionale"
+                        , lr_ra                                              AS "LR Rhône-Alpes"
+                        , lr_auv                                             AS "LR Auvergne"
                         , n2k                                           AS "Natura 2000"
                         , protection_nat                                    AS "Protection nationale"
                         , conv_berne                                        AS "Convention de Berne"
