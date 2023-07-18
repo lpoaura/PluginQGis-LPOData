@@ -31,8 +31,9 @@ from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtCore import Qt, QCoreApplication, QDate
 from qgis.PyQt.QtWidgets import QDateEdit
 from processing.gui.wrappers import WidgetWrapper
+#from qgis.gui import QgsScaleWidget
 
-from qgis.core import (QgsProcessing,
+from qgis.core import (QgsProcessing,   
                        QgsProcessingAlgorithm,
                        QgsSettings,
                        QgsProcessingParameterProviderConnection,
@@ -43,6 +44,8 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterDefinition,
                        QgsVectorLayer,
                        QgsEditorWidgetSetup)
+
+
 # from processing.tools import postgis
 from .qgis_processing_postgis import uri_from_name
 from .common_functions import check_layer_is_valid, construct_sql_array_polygons, construct_sql_taxons_filter, construct_sql_source_filter,construct_sql_geom_type_filter, construct_sql_datetime_filter, load_layer, format_layer_export
@@ -133,6 +136,8 @@ class ExtractData(QgsProcessingAlgorithm):
             )
         )
 
+
+
         # Input vector layer = study area
         self.addParameter(
             QgsProcessingParameterFeatureSource(
@@ -140,10 +145,19 @@ class ExtractData(QgsProcessingAlgorithm):
                 self.tr("""<b style="color:#0a84db">ZONE D'ÉTUDE</b><br/>
                     <b>*2/</b> Sélectionnez votre <u>zone d'étude</u>, à partir de laquelle seront extraites les données d'observations"""),
                 [QgsProcessing.TypeVectorPolygon]
-            )
+            )        
         )
 
-        ### TEST Source of data filters v2 ###
+#        # Input vector layer = study area
+#        self.addParameter(
+#            QgsScaleWidget(
+#                self.STUDY_AREA2,
+#                self.tr("""<b style="color:#0a84db">ZONE D'ÉTUDE</b><br/>
+#                    <b>*2/</b> Sélectionnez votre <u>zone d'étude</u>, à partir de laquelle seront extraites les données d'observations"""),
+#                [QgsProcessing.TypeVectorPolygon])
+#            )
+
+        ### Source of data filters ###
         source_data_where = QgsProcessingParameterEnum(
             self.SOURCE_DATA,
             self.tr(""" <b style="color:#0a84db">FILTRES DES SOURCES DE DONNEES </b><br/> 
