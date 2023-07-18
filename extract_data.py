@@ -158,7 +158,7 @@ class ExtractData(QgsProcessingAlgorithm):
         self.addParameter(source_data_where)
 
 
-        ### TEST type de données géométrique ###
+        ### Gestion des différents types de géométries ###
         self.data_geomtype = ["Point","LineString", "Polygon"]
         geomtype_data_where = QgsProcessingParameterEnum(
             self.TYPE_GEOM,
@@ -419,8 +419,6 @@ class ExtractData(QgsProcessingAlgorithm):
         FROM src_lpodatas.v_c_observations obs
         LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
         WHERE {where}"""
-        ## old test : WHERE st_geometrytype(obs.geom) = 'ST_Point' AND {}""".format(where)
-        #feedback.pushInfo(query)
         # Format the URI with the query
         uri.setDataSource("", "("+query+")", "geom", "", "id_synthese")
 

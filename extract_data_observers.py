@@ -23,7 +23,6 @@ __author__ = 'Elsa Guilley (LPO AuRA)'
 __date__ = '2020-04-16'
 __copyright__ = '(C) 2020 by Elsa Guilley (LPO AuRA)'
 
-# This will get replaced with a git SHA1 when you do a git archive
 __revision__ = '$Format:%H$'
 
 import os
@@ -46,7 +45,6 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterDefinition,
                        QgsVectorLayer,
                        QgsEditorWidgetSetup)
-# from processing.tools import postgis
 from .qgis_processing_postgis import uri_from_name
 from .common_functions import check_layer_is_valid, construct_sql_array_polygons, construct_sql_taxons_filter, construct_sql_source_filter,construct_sql_geom_type_filter, construct_sql_datetime_filter, load_layer, format_layer_export
 
@@ -70,15 +68,9 @@ class DateTimeWidget(WidgetWrapper):
         return date_chosen.toString(Qt.ISODate)
 
 class ExtractDataObservers(QgsProcessingAlgorithm):
-    """
-    This algorithm takes a connection to a data base and a vector polygons layer and
-    returns an intersected points PostGIS layer.
-    """
 
     # Constants used to refer to parameters and outputs
     DATABASE = 'DATABASE'
-    #SCHEMA = 'SCHEMA'
-    #TABLENAME = 'TABLENAME'
     STUDY_AREA = 'STUDY_AREA'
     GROUPE_TAXO = 'GROUPE_TAXO'
     REGNE = 'REGNE'
@@ -162,7 +154,7 @@ class ExtractDataObservers(QgsProcessingAlgorithm):
         source_data_where.setFlags(source_data_where.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(source_data_where)
 
-        ### TEST type de données géométrique ###
+        ### choix des géométries ###
         self.data_geomtype = ["Point","LineString", "Polygon"]
         geomtype_data_where = QgsProcessingParameterEnum(
             self.TYPE_GEOM,
@@ -425,8 +417,6 @@ class ExtractDataObservers(QgsProcessingAlgorithm):
         LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
         left join utilisateurs.t_roles r on s.id_digitiser=r.id_role
         WHERE {where}"""
-        ## old test : WHERE st_geometrytype(obs.geom) = 'ST_Point' AND {}""".format(where)
-        #feedback.pushInfo(query)
         # Format the URI with the query
         uri.setDataSource("", "("+query+")", "geom", "", "id_synthese")
 

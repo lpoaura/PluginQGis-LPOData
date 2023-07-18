@@ -70,11 +70,6 @@ class DateTimeWidget(WidgetWrapper):
         return date_chosen.toString(Qt.ISODate)
 
 class StateOfKnowledge(QgsProcessingAlgorithm):
-    """
-    This algorithm takes a connection to a data base and a vector polygons layer and
-    returns a summary non geometric PostGIS layer.
-    """
-
     # Constants used to refer to parameters and outputs
     DATABASE = 'DATABASE'
     STUDY_AREA = 'STUDY_AREA'

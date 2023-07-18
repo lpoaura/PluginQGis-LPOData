@@ -20,7 +20,6 @@
 __author__ = 'LPO AuRA'
 __date__ = '2020-2023'
 
-# This will get replaced with a git SHA1 when you do a git archive
 __revision__ = '$Format:%H$'
 
 import os
@@ -68,10 +67,6 @@ class DateTimeWidget(WidgetWrapper):
         return date_chosen.toString(Qt.ISODate)
 
 class SummaryMap(QgsProcessingAlgorithm):
-    """
-    This algorithm takes a connection to a data base and a vector polygons layer and
-    returns a summary non geometric PostGIS layer.
-    """
 
     # Constants used to refer to parameters and outputs
     DATABASE = 'DATABASE'
@@ -435,7 +430,6 @@ class SummaryMap(QgsProcessingAlgorithm):
                 ,la.geom
                 from data join ref_geo.l_areas la on data.id_area=la.id_area
                 ORDER BY area_code"""      
-        #feedback.pushInfo(query)
         # Retrieve the boolean add_table
         add_table = self.parameterAsBool(parameters, self.ADD_TABLE, context)
         if add_table:

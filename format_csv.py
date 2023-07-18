@@ -9,19 +9,11 @@
 ##### 1 - Import des librairies                     #
 #####################################################
 
-# Il faudra sûrement via notre systeme de MAJ ajouter la librarie openpyxl
-# Possibilité de le faire à la main via : 
-# py3_env
-# python3 -m pip install --user openpyxl
-
 from openpyxl import Workbook
 from openpyxl.styles import PatternFill, Font, Alignment, Border, Side #, Color
 import csv
 import os, webbrowser
 import re
-#from openpyxl.formatting import Rule
-#from openpyxl.styles.differential import DifferentialStyle
-#from openpyxl.formatting.rule import ColorScaleRule, CellIsRule, FormulaRule
 from qgis.core import QgsProject
 from qgis.PyQt.QtCore import NULL
 from qgis.gui import QgsMessageBar
@@ -104,8 +96,6 @@ yellowFill = PatternFill(start_color='ffed00', end_color='ffed00',fill_type='sol
 beigeFill = PatternFill(start_color='faf2c7', end_color='faf2c7',fill_type='solid')
 greenFill = PatternFill(start_color='78b747', end_color='78b747',fill_type='solid')
 grey2Fill = PatternFill(start_color='d4d4d4', end_color='d4d4d4',fill_type='solid')
-# grey1Fill = PatternFill(start_color='EE1111', end_color='EE1111',fill_type='solid')
-# whiteFill = PatternFill(start_color='EE1111', end_color='EE1111',fill_type='solid')
 
 ## Définition de la fonction d'application des couleurs selon le statut
 def color_statut_style(x):
@@ -148,7 +138,7 @@ for col in ws["1:1"]:
         ref_statut = range_statut.column_letter+":"+range_statut.column_letter
         color_statut_style(ref_statut)
 
-##### 3.3 - Style générale des colonnes
+##### 3.3 - Style général des colonnes
 
 ## Mise en gras des noms de colonnes
 col_name_font = Font(bold=True, italic=False,  vertAlign=None, color='ffffff',size=12)
