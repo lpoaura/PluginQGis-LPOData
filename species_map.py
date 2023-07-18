@@ -208,7 +208,7 @@ class CarteParEspece(QDialog):
         connection = (
             QgsProviderRegistry.instance()
             .providerMetadata("postgres")
-            .createConnection("gnlpoaura")
+            .createConnection("geonature_lpo")
         )
         query = f"""SELECT s.id_synthese,
                 cor.vn_nom_sci as nom_sci,
