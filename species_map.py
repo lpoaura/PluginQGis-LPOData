@@ -218,7 +218,7 @@ class CarteParEspece(QDialog):
                 s.count_max as nombre_total,
                 tcse.details::character varying AS details,
                 tcse.bird_breed_code as oiso_code_nidif,
-                tcse.bird_breed_status as oiso_statut_nidif,
+                tcse.breed_status as statut_repro,
                 s.the_geom_local::geometry(Point,2154) AS geom,
                 s.comment_description as commentaires,
                 tcse.behaviour::character varying as comportement,
@@ -241,7 +241,7 @@ class CarteParEspece(QDialog):
         uri.setDataSource("", "(" + query + ")", "geom", "", "id_synthese")
         with OverrideCursor(Qt.WaitCursor):
             layer = QgsVectorLayer(uri.uri(), "Espèces", "postgres")
-            layer.loadNamedStyle(str(Path(__file__).parent / "styles" / "bird_reproduction.qml"))
+            layer.loadNamedStyle(str(Path(__file__).parent / "styles" / "reproduction.qml"))
             QgsProject.instance().addMapLayer(layer)
 
         super().accept()
