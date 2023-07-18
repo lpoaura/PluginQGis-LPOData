@@ -54,5 +54,4 @@ AS SELECT s.id_synthese,
    FROM gn_synthese.synthese s
      LEFT JOIN src_lpodatas.t_c_synthese_extended se ON s.id_synthese = se.id_synthese
      JOIN gn_synthese.t_sources ts ON s.id_source = ts.id_source
-     LEFT JOIN taxonomie.mv_c_cor_vn_taxref cor ON cor.cd_nom = s.cd_nom AND cor.cd_nom IS NOT NULL
-  WHERE st_geometrytype(s.the_geom_local) = 'ST_Point'::text;
+     LEFT JOIN taxonomie.mv_c_cor_vn_taxref cor ON cor.cd_nom = s.cd_nom AND cor.cd_nom IS NOT NULL;
