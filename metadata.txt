@@ -11,7 +11,7 @@ qgisMinimumVersion=3.16
 description=Scripts de la LPO pour l'analyse de données
 about=Scripts développés par la LPO pour analyser les données naturalistes contenues dans une base Géonature, alimentée notamment par Visionature.
 
-version=1.99
+version=2.0
 author=collectif (LPO AuRA)
 email=webadmin.aura@lpo.fr
 
