@@ -219,7 +219,7 @@ class CarteParEspece(QDialog):
                 tcse.details::character varying AS details,
                 tcse.bird_breed_code as oiso_code_nidif,
                 tcse.breed_status as statut_repro,
-                s.the_geom_local::geometry(Point,2154) AS geom,
+                s.the_geom_local AS geom,
                 s.comment_description as commentaires,
                 tcse.behaviour::character varying as comportement,
                 tcse.geo_accuracy as precision,
