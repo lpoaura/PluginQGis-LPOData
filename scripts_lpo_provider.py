@@ -68,7 +68,7 @@ class ScriptsLPOProvider(QgsProcessingProvider):
         Should return a QIcon which is used for your provider inside
         the Processing toolbox.
         """
-        return QIcon(os.path.join(pluginPath, 'icons', 'logo_LPO.png'))
+        return QIcon(os.path.join(pluginPath, 'icons', 'logo_lpo_aura.png'))
 
     def unload(self):
         """
