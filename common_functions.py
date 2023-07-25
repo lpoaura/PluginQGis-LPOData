@@ -140,14 +140,19 @@ def construct_sql_geom_type_filter(source_dict):
     """
     Construct the sql "where" clause with source filters.
     """
+
+    geomtypes = {
+        "Point": "'ST_Point','ST_MultiPoint'",
+        "LineString": "'ST_LineString','ST_MultiLineString'",
+        "Polygon": "'ST_Polygon','ST_MultiPolygon'",
+    }
     geomtype_where = " and ("
     for value in source_dict:
         if len(source_dict) == 1:
-            geomtype_where += f"type_geom ILIKE  '%{str(value)}%' )"
-            return geomtype_where  
-        else:
-            geomtype_where += "type_geom ILIKE '%point%' )"
+            geomtype_where += f"type_geom IN ({geomtypes[value]}))"
             return geomtype_where
+    geomtype_where += f"type_geom IN ({geomtypes['Point']}))"
+    return geomtype_where
 
 
 def construct_sql_datetime_filter(self, period_type_filter, timestamp, parameters, context):
