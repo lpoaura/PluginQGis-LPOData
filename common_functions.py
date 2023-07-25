@@ -140,14 +140,19 @@ def construct_sql_geom_type_filter(source_dict):
     """
     Construct the sql "where" clause with source filters.
     """
+
+    geomtypes = {
+        "Point": "'ST_Point','ST_MultiPoint'",
+        "LineString": "'ST_LineString','ST_MultiLineString'",
+        "Polygon": "'ST_Polygon','ST_MultiPolygon'",
+    }
     geomtype_where = " and ("
     for value in source_dict:
         if len(source_dict) == 1:
-            geomtype_where += f"type_geom ILIKE  '%{str(value)}%' )"
-            return geomtype_where  
-        else:
-            geomtype_where += "type_geom ILIKE '%point%' )"
+            geomtype_where += f"type_geom IN ({geomtypes[value]}))"
             return geomtype_where
+    geomtype_where += f"type_geom IN ({geomtypes['Point']}))"
+    return geomtype_where
 
 
 def construct_sql_datetime_filter(self, period_type_filter, timestamp, parameters, context):
@@ -164,9 +169,10 @@ def construct_sql_datetime_filter(self, period_type_filter, timestamp, parameter
         start_year = end_year - 10
         datetime_where += f" and (date_an > {start_year} and date_an <= {end_year})"
     elif period_type_filter == "Cette année":
-        end_date = timestamp.strftime('%d/%m/%Y')
-        start_date = timestamp.strftime('01/01/%Y') 
-        datetime_where += f" and (date >= '{start_date}'::date and date <= '{end_date}'::date)"
+        year = int(timestamp.strftime('%Y'))
+       # start_date = timestamp.strftime('01/01/%Y') 
+       # datetime_where += f" and (date >= '{start_date}'::date and date <= '{end_date}'::date)"
+        datetime_where += f" and (date_an = {year})"
     elif period_type_filter == "Date de début - Date de fin (à définir ci-dessous)":
         # Retrieve the start and end dates
         start_date = self.parameterAsString(parameters, self.START_DATE, context)
