@@ -401,7 +401,7 @@ class ExtractDataObservers(QgsProcessingAlgorithm):
         query = f"""SELECT obs.*, (r.champs_addi ->'from_vn')->>'id_universal' as id_observateur
         FROM src_lpodatas.v_c_observations obs
         join gn_synthese.synthese s on s.id_synthese=obs.id_synthese
-        LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
+        LEFT JOIN taxonomie.taxref t ON obs.cd_nom = t.cd_nom
         left join utilisateurs.t_roles r on s.id_digitiser=r.id_role
         WHERE {where}"""
         # Format the URI with the query
