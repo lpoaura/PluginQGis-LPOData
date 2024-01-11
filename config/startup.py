@@ -1,3 +1,8 @@
+"""Qgis STARTUP script
+Must be copied in QGIS root config directory 
+(e.g. ~/.local/share/QGIS/QGIS3/)
+"""
+
 from qgis.utils import iface
 
 from qgis.core import (Qgis, QgsVectorLayer, QgsSettings, QgsProviderRegistry, QgsDataSourceUri, QgsProviderConnectionException, QgsProcessingException)
