@@ -410,6 +410,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         --selection des données + statut
                         SELECT
                          obs.cd_ref
+                        , obs.vn_id
                         , r.nom_rang
                         , groupe_taxo
                         , string_agg(distinct obs.nom_vern, ', ') nom_vern
@@ -438,6 +439,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         left join taxonomie.mv_c_statut st on st.cd_ref=obs.cd_ref
                        GROUP BY
                          groupe_taxo
+                        , obs.vn_id
                         , obs.cd_ref
                         , r.nom_rang
                         , st.lr_france
@@ -450,6 +452,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                     synthese AS (
                         SELECT DISTINCT
                          d.cd_ref
+                        , vn_id
                         , nom_rang                                          AS "Rang"
                         , d.groupe_taxo              AS "Groupe taxo"
                         , nom_vern                                          AS "Nom vernaculaire"
@@ -474,7 +477,7 @@ class SummaryTablePerSpecies(QgsProcessingAlgorithm):
                         , sources                                           AS "Sources"
                         FROM total_count, data d
                         LEFT JOIN atlas_code ac ON d.max_hierarchy_atlas_code = ac.hierarchy
-                        ORDER BY groupe_taxo, nom_vern)
+                        ORDER BY groupe_taxo, vn_id, nom_vern)
                     SELECT row_number() OVER () AS id, *
                     FROM synthese"""
         #feedback.pushInfo(query)
