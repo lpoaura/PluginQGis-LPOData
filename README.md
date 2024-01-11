@@ -9,7 +9,9 @@ Outre la structure de la base de données Géonature, il nécessite :
 - la présence de vues matérialisées dans le schéma `taxonomie` (sql dans le dossier config)
 - la création du schéma `dbadmin` et de vues matérialisées (sql dans le dossier config)
 - la création du schéma `src_lpodatas` et des vues associées (sql dans le dossier config)
-- la présence du fichier `startup.py`.
+- la présence du fichier `startup.py` dans le dossier racine de configuration de QGIS:
+    - Linux: `~/.local/share/QGIS/QGIS3/`
+    - Windows: `%AppData%/QGIS/QGIS3/`
 
 La base de données sur laquelle les développements ont été faits dispose également des fonctionnalités de [gn_vn2synthese] (https://github.com/lpoaura/gn_vn2synthese).
 
