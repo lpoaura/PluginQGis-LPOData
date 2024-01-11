@@ -16,11 +16,6 @@
  ***************************************************************************/
 """
 
-__author__ = 'LPO AuRA'
-__date__ = '2020-2023'
-
-# This will get replaced with a git SHA1 when you do a git archive
-__revision__ = '$Format:%H$'
 
 import os
 from qgis.utils import iface
@@ -30,24 +25,36 @@ import matplotlib.pyplot as plt
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtCore import QCoreApplication
 
-from qgis.core import (QgsProcessing,
-                       QgsProcessingAlgorithm,
-                       QgsSettings,
-                       QgsProcessingParameterProviderConnection,
-                       QgsProcessingParameterString,
-                       QgsProcessingParameterFeatureSource,
-                       QgsProcessingParameterNumber,
-                       QgsProcessingParameterEnum,
-                       QgsProcessingOutputVectorLayer,
-                       QgsProcessingParameterBoolean,
-                       QgsProcessingParameterFileDestination,
-                       QgsProcessingParameterDefinition,
-                       QgsVectorLayer,
-                       QgsProcessingException,
-                       QgsAction)
+from qgis.core import (
+    QgsProcessing,
+    QgsProcessingAlgorithm,
+    QgsSettings,
+    QgsProcessingParameterProviderConnection,
+    QgsProcessingParameterString,
+    QgsProcessingParameterFeatureSource,
+    QgsProcessingParameterNumber,
+    QgsProcessingParameterEnum,
+    QgsProcessingOutputVectorLayer,
+    QgsProcessingParameterBoolean,
+    QgsProcessingParameterFileDestination,
+    QgsProcessingParameterDefinition,
+    QgsVectorLayer,
+    QgsProcessingException,
+    QgsAction,
+)
+
 # from processing.tools import postgis
 from .qgis_processing_postgis import uri_from_name
-from .common_functions import simplify_name, check_layer_is_valid, construct_sql_select_data_per_time_interval, construct_sql_array_polygons, construct_queries_list, construct_sql_taxons_filter, load_layer, execute_sql_queries
+from .common_functions import (
+    simplify_name,
+    check_layer_is_valid,
+    construct_sql_select_data_per_time_interval,
+    construct_sql_array_polygons,
+    construct_queries_list,
+    construct_sql_taxons_filter,
+    load_layer,
+    execute_sql_queries,
+)
 
 pluginPath = os.path.dirname(__file__)
 
@@ -59,55 +66,57 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
     """
 
     # Constants used to refer to parameters and outputs
-    DATABASE = 'DATABASE'
-    STUDY_AREA = 'STUDY_AREA'
-    TIME_INTERVAL = 'TIME_INTERVAL'
-    ADD_FIVE_YEARS = 'ADD_FIVE_YEARS'
-    TEST = 'TEST'
-    START_MONTH = 'START_MONTH'
-    START_YEAR = 'START_YEAR'
-    END_MONTH = 'END_MONTH'
-    END_YEAR = 'END_YEAR'
-    TAXONOMIC_RANK = 'TAXONOMIC_RANK'
-    AGG = 'AGG'
-    GROUPE_TAXO = 'GROUPE_TAXO'
-    REGNE = 'REGNE'
-    PHYLUM = 'PHYLUM'
-    CLASSE = 'CLASSE'
-    ORDRE = 'ORDRE'
-    FAMILLE = 'FAMILLE'
-    GROUP1_INPN = 'GROUP1_INPN'
-    GROUP2_INPN = 'GROUP2_INPN'
-    EXTRA_WHERE = 'EXTRA_WHERE'
-    OUTPUT = 'OUTPUT'
-    OUTPUT_NAME = 'OUTPUT_NAME'
-    ADD_TABLE = 'ADD_TABLE'
-    OUTPUT_HISTOGRAM = 'OUTPUT_HISTOGRAM'
-    ADD_HISTOGRAM = 'ADD_HISTOGRAM'
+    DATABASE = "DATABASE"
+    STUDY_AREA = "STUDY_AREA"
+    TIME_INTERVAL = "TIME_INTERVAL"
+    ADD_FIVE_YEARS = "ADD_FIVE_YEARS"
+    TEST = "TEST"
+    START_MONTH = "START_MONTH"
+    START_YEAR = "START_YEAR"
+    END_MONTH = "END_MONTH"
+    END_YEAR = "END_YEAR"
+    TAXONOMIC_RANK = "TAXONOMIC_RANK"
+    AGG = "AGG"
+    GROUPE_TAXO = "GROUPE_TAXO"
+    REGNE = "REGNE"
+    PHYLUM = "PHYLUM"
+    CLASSE = "CLASSE"
+    ORDRE = "ORDRE"
+    FAMILLE = "FAMILLE"
+    GROUP1_INPN = "GROUP1_INPN"
+    GROUP2_INPN = "GROUP2_INPN"
+    EXTRA_WHERE = "EXTRA_WHERE"
+    OUTPUT = "OUTPUT"
+    OUTPUT_NAME = "OUTPUT_NAME"
+    ADD_TABLE = "ADD_TABLE"
+    OUTPUT_HISTOGRAM = "OUTPUT_HISTOGRAM"
+    ADD_HISTOGRAM = "ADD_HISTOGRAM"
 
     def name(self):
-        return 'SummaryTablePerTime Interval'
+        return "SummaryTablePerTime Interval"
 
     def displayName(self):
-        return 'Tableau de synthèse par intervalle de temps'
+        return "Tableau de synthèse par intervalle de temps"
 
     def icon(self):
-        return QIcon(os.path.join(pluginPath, 'icons', 'table.png'))
+        return QIcon(os.path.join(pluginPath, "icons", "table.png"))
 
     def groupId(self):
-        return 'summary_tables'
+        return "summary_tables"
 
     def group(self):
-        return 'Tableaux de synthèse'
+        return "Tableaux de synthèse"
 
     def shortDescription(self):
-        return self.tr("""<font style="font-size:18px"><b>Besoin d'aide ?</b> Vous pouvez vous référer au <b>Wiki</b> accessible sur ce lien : <a href="https://github.com/lpoaura/PluginQGis-LPOData/wiki" target="_blank">https://github.com/lpoaura/PluginQGis-LPOData/wiki</a>.</font><br/><br/>
+        return self.tr(
+            """<font style="font-size:18px"><b>Besoin d'aide ?</b> Vous pouvez vous référer au <b>Wiki</b> accessible sur ce lien : <a href="https://github.com/lpoaura/PluginQGis-LPOData/wiki" target="_blank">https://github.com/lpoaura/PluginQGis-LPOData/wiki</a>.</font><br/><br/>
             Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données LPO,  d'obtenir un <b>tableau bilan</b> (couche PostgreSQL)...
             <ul><li>par année <u>ou</u> par mois (au choix)</li>
             <li>et par espèce <u>ou</u> par groupe taxonomique (au choix)</li></ul>
             ... basé sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones) et selon une période de votre choix.
             <b style='color:#952132'>Les données d'absence sont exclues de ce traitement.</b><br/><br/>
-            <font style='color:#0a84db'><u>IMPORTANT</u> : Les <b>étapes indispensables</b> sont marquées d'une <b>étoile *</b> avant leur numéro. Prenez le temps de lire <u>attentivement</U> les instructions pour chaque étape, et particulièrement les</font> <font style ='color:#952132'>informations en rouge</font> <font style='color:#0a84db'>!</font>""")
+            <font style='color:#0a84db'><u>IMPORTANT</u> : Les <b>étapes indispensables</b> sont marquées d'une <b>étoile *</b> avant leur numéro. Prenez le temps de lire <u>attentivement</U> les instructions pour chaque étape, et particulièrement les</font> <font style ='color:#952132'>informations en rouge</font> <font style='color:#0a84db'>!</font>"""
+        )
 
     def initAlgorithm(self, config=None):
         """
@@ -118,7 +127,20 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
         self.ts = datetime.now()
         self.db_variables = QgsSettings()
         self.interval_variables = ["Par année", "Par mois"]
-        self.months_names_variables = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"]
+        self.months_names_variables = [
+            "Janvier",
+            "Février",
+            "Mars",
+            "Avril",
+            "Mai",
+            "Juin",
+            "Juillet",
+            "Août",
+            "Septembre",
+            "Octobre",
+            "Novembre",
+            "Décembre",
+        ]
         self.taxonomic_ranks_variables = ["Espèces", "Groupes taxonomiques"]
         self.agg_variables = ["Nombre de données", "Nombre d'espèces"]
 
@@ -138,10 +160,12 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterProviderConnection(
                 self.DATABASE,
-                self.tr("""<b style="color:#0a84db">CONNEXION À LA BASE DE DONNÉES</b><br/>
-                    <b>*1/</b> Sélectionnez votre <u>connexion</u> à la base de données LPO"""),
-                'postgres',
-                defaultValue='geonature_lpo'
+                self.tr(
+                    """<b style="color:#0a84db">CONNEXION À LA BASE DE DONNÉES</b><br/>
+                    <b>*1/</b> Sélectionnez votre <u>connexion</u> à la base de données LPO"""
+                ),
+                "postgres",
+                defaultValue="geonature_lpo",
             )
         )
 
@@ -149,25 +173,29 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterFeatureSource(
                 self.STUDY_AREA,
-                self.tr("""<b style="color:#0a84db">ZONE D'ÉTUDE</b><br/>
-                    <b>*2/</b> Sélectionnez votre <u>zone d'étude</u>, à partir de laquelle seront extraits les résultats"""),
-                [QgsProcessing.TypeVectorPolygon]
+                self.tr(
+                    """<b style="color:#0a84db">ZONE D'ÉTUDE</b><br/>
+                    <b>*2/</b> Sélectionnez votre <u>zone d'étude</u>, à partir de laquelle seront extraits les résultats"""
+                ),
+                [QgsProcessing.TypeVectorPolygon],
             )
         )
 
         ### Time interval and period ###
         time_interval = QgsProcessingParameterEnum(
             self.TIME_INTERVAL,
-            self.tr("""<b style="color:#0a84db">AGRÉGATION TEMPORELLE ET PÉRIODE</b><br/>
-                <b>*3/</b> Sélectionnez l'<u>agrégation temporelle</u> qui vous intéresse"""),
+            self.tr(
+                """<b style="color:#0a84db">AGRÉGATION TEMPORELLE ET PÉRIODE</b><br/>
+                <b>*3/</b> Sélectionnez l'<u>agrégation temporelle</u> qui vous intéresse"""
+            ),
             self.interval_variables,
-            allowMultiple=False
+            allowMultiple=False,
         )
         time_interval.setMetadata(
             {
-                'widget_wrapper': {
-                    'useCheckBoxes': True,
-                    'columns': len(self.interval_variables)
+                "widget_wrapper": {
+                    "useCheckBoxes": True,
+                    "columns": len(self.interval_variables),
                 }
             }
         )
@@ -175,30 +203,31 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
 
         add_five_years = QgsProcessingParameterEnum(
             self.ADD_FIVE_YEARS,
-            self.tr("""<b>4/</b> <u style="color:#952132">Si (et seulement si !)</u> vous avez sélectionné l'<u>agrégation <b>Par année</b></u> :<br/> cochez la case ci-dessous si vous souhaitez ajouter des colonnes dîtes "bilan" par intervalle de 5 ans.<br/>
-            <i style="color:#952132"><b>N.B.</b> : En cochant cette case, vous devez vous assurer de renseigner une période en années (cf. <b>*5/</b>) qui soit <b>divisible par 5</b>.<br/> Exemple : 2011 - 2020.</i>"""),
-            ['Oui, je souhaite ajouter des colonnes dîtes "bilan" par intervalle de 5 ans'],
+            self.tr(
+                """<b>4/</b> <u style="color:#952132">Si (et seulement si !)</u> vous avez sélectionné l'<u>agrégation <b>Par année</b></u> :<br/> cochez la case ci-dessous si vous souhaitez ajouter des colonnes dîtes "bilan" par intervalle de 5 ans.<br/>
+            <i style="color:#952132"><b>N.B.</b> : En cochant cette case, vous devez vous assurer de renseigner une période en années (cf. <b>*5/</b>) qui soit <b>divisible par 5</b>.<br/> Exemple : 2011 - 2020.</i>"""
+            ),
+            [
+                'Oui, je souhaite ajouter des colonnes dîtes "bilan" par intervalle de 5 ans'
+            ],
             allowMultiple=True,
-            optional=True
+            optional=True,
         )
         add_five_years.setMetadata(
-            {
-                'widget_wrapper': {
-                    'useCheckBoxes': True,
-                    'columns': 1
-                }
-            }
+            {"widget_wrapper": {"useCheckBoxes": True, "columns": 1}}
         )
         self.addParameter(add_five_years)
 
         self.addParameter(
             QgsProcessingParameterEnum(
                 self.START_MONTH,
-                self.tr("""<b>*5/</b> Sélectionnez la <u>période</u> qui vous intéresse<br/>
-                    - Mois de début <i style="color:#952132">(nécessaire seulement si vous avez sélectionné l'agrégation <b>Par mois</b>)</i> :"""),
+                self.tr(
+                    """<b>*5/</b> Sélectionnez la <u>période</u> qui vous intéresse<br/>
+                    - Mois de début <i style="color:#952132">(nécessaire seulement si vous avez sélectionné l'agrégation <b>Par mois</b>)</i> :"""
+                ),
                 self.months_names_variables,
                 allowMultiple=False,
-                optional=True
+                optional=True,
             )
         )
 
@@ -209,17 +238,19 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
                 QgsProcessingParameterNumber.Integer,
                 defaultValue=2010,
                 minValue=1800,
-                maxValue=int(self.ts.strftime('%Y'))
+                maxValue=int(self.ts.strftime("%Y")),
             )
         )
 
         self.addParameter(
             QgsProcessingParameterEnum(
                 self.END_MONTH,
-                self.tr("""- Mois de fin <i style="color:#952132">(nécessaire seulement si vous avez sélectionné l'agrégation <b>Par mois</b>)</i> :"""),
+                self.tr(
+                    """- Mois de fin <i style="color:#952132">(nécessaire seulement si vous avez sélectionné l'agrégation <b>Par mois</b>)</i> :"""
+                ),
                 self.months_names_variables,
                 allowMultiple=False,
-                optional=True
+                optional=True,
             )
         )
 
@@ -228,25 +259,27 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
                 self.END_YEAR,
                 self.tr("- *Année de fin :"),
                 QgsProcessingParameterNumber.Integer,
-                defaultValue=self.ts.strftime('%Y'),
+                defaultValue=self.ts.strftime("%Y"),
                 minValue=1800,
-                maxValue=int(self.ts.strftime('%Y'))
+                maxValue=int(self.ts.strftime("%Y")),
             )
         )
 
         # Taxonomic rank
         taxonomic_rank = QgsProcessingParameterEnum(
             self.TAXONOMIC_RANK,
-            self.tr("""<b style="color:#0a84db">RANG TAXONOMIQUE</b><br/>
-                <b>*6/</b> Sélectionnez le <u>rang taxonomique</u> qui vous intéresse"""),
+            self.tr(
+                """<b style="color:#0a84db">RANG TAXONOMIQUE</b><br/>
+                <b>*6/</b> Sélectionnez le <u>rang taxonomique</u> qui vous intéresse"""
+            ),
             self.taxonomic_ranks_variables,
-            allowMultiple=False
+            allowMultiple=False,
         )
         taxonomic_rank.setMetadata(
             {
-                'widget_wrapper': {
-                    'useCheckBoxes': True,
-                    'columns': len(self.taxonomic_ranks_variables)
+                "widget_wrapper": {
+                    "useCheckBoxes": True,
+                    "columns": len(self.taxonomic_ranks_variables),
                 }
             }
         )
@@ -255,18 +288,20 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
         # Aggregation type
         aggregation_type = QgsProcessingParameterEnum(
             self.AGG,
-            self.tr("""<b style="color:#0a84db">AGRÉGATION DES RÉSULTATS</b><br/>
+            self.tr(
+                """<b style="color:#0a84db">AGRÉGATION DES RÉSULTATS</b><br/>
                 <b>*7/</b> Sélectionnez le <u>type d'agrégation</u> qui vous intéresse pour les résultats<br/>
-                <i style="color:#952132"><b>N.B.</b> : Si vous avez choisi <b>Espèces</b> pour le rang taxonomique, <b>Nombre de données</b> sera utilisé <b>par défaut</b></i>"""),
+                <i style="color:#952132"><b>N.B.</b> : Si vous avez choisi <b>Espèces</b> pour le rang taxonomique, <b>Nombre de données</b> sera utilisé <b>par défaut</b></i>"""
+            ),
             self.agg_variables,
             allowMultiple=False,
-            defaultValue="Nombre de données"
+            defaultValue="Nombre de données",
         )
         aggregation_type.setMetadata(
             {
-                'widget_wrapper': {
-                    'useCheckBoxes': True,
-                    'columns': len(self.agg_variables)
+                "widget_wrapper": {
+                    "useCheckBoxes": True,
+                    "columns": len(self.agg_variables),
                 }
             }
         )
@@ -276,13 +311,15 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterEnum(
                 self.GROUPE_TAXO,
-                self.tr("""<b style="color:#0a84db">FILTRES DE REQUÊTAGE</b><br/>
+                self.tr(
+                    """<b style="color:#0a84db">FILTRES DE REQUÊTAGE</b><br/>
                     <b>8/</b> Si cela vous intéresse, vous pouvez sélectionner un/plusieurs <u>taxon(s)</u> dans la liste déroulante suivante (à choix multiples)<br/> pour filtrer vos données d'observations. <u>Sinon</u>, vous pouvez ignorer cette étape.<br/>
                     <i style="color:#952132"><b>N.B.</b> : D'autres filtres taxonomiques sont disponibles dans les paramètres avancés (plus bas, juste avant l'enregistrement des résultats).</i><br/>
-                    - Groupes taxonomiques :"""),
+                    - Groupes taxonomiques :"""
+                ),
                 self.db_variables.value("groupe_taxo"),
                 allowMultiple=True,
-                optional=True
+                optional=True,
             )
         )
 
@@ -291,7 +328,7 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
             self.tr("- Règnes :"),
             self.db_variables.value("regne"),
             allowMultiple=True,
-            optional=True
+            optional=True,
         )
         regne.setFlags(regne.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(regne)
@@ -301,7 +338,7 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
             self.tr("- Phylum :"),
             self.db_variables.value("phylum"),
             allowMultiple=True,
-            optional=True
+            optional=True,
         )
         phylum.setFlags(phylum.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(phylum)
@@ -311,7 +348,7 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
             self.tr("- Classe :"),
             self.db_variables.value("classe"),
             allowMultiple=True,
-            optional=True
+            optional=True,
         )
         classe.setFlags(classe.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(classe)
@@ -321,7 +358,7 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
             self.tr("- Ordre :"),
             self.db_variables.value("ordre"),
             allowMultiple=True,
-            optional=True
+            optional=True,
         )
         ordre.setFlags(ordre.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(ordre)
@@ -331,47 +368,61 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
             self.tr("- Famille :"),
             self.db_variables.value("famille"),
             allowMultiple=True,
-            optional=True
+            optional=True,
         )
-        famille.setFlags(famille.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        famille.setFlags(
+            famille.flags() | QgsProcessingParameterDefinition.FlagAdvanced
+        )
         self.addParameter(famille)
 
         group1_inpn = QgsProcessingParameterEnum(
             self.GROUP1_INPN,
-            self.tr("- Groupe 1 INPN (regroupement vernaculaire du référentiel national - niveau 1) :"),
+            self.tr(
+                "- Groupe 1 INPN (regroupement vernaculaire du référentiel national - niveau 1) :"
+            ),
             self.db_variables.value("group1_inpn"),
             allowMultiple=True,
-            optional=True
+            optional=True,
         )
-        group1_inpn.setFlags(group1_inpn.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        group1_inpn.setFlags(
+            group1_inpn.flags() | QgsProcessingParameterDefinition.FlagAdvanced
+        )
         self.addParameter(group1_inpn)
 
         group2_inpn = QgsProcessingParameterEnum(
             self.GROUP2_INPN,
-            self.tr("- Groupe 2 INPN (regroupement vernaculaire du référentiel national - niveau 2) :"),
+            self.tr(
+                "- Groupe 2 INPN (regroupement vernaculaire du référentiel national - niveau 2) :"
+            ),
             self.db_variables.value("group2_inpn"),
             allowMultiple=True,
-            optional=True
+            optional=True,
         )
-        group2_inpn.setFlags(group2_inpn.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        group2_inpn.setFlags(
+            group2_inpn.flags() | QgsProcessingParameterDefinition.FlagAdvanced
+        )
         self.addParameter(group2_inpn)
 
         # Extra "where" conditions
         extra_where = QgsProcessingParameterString(
             self.EXTRA_WHERE,
-            self.tr("""Vous pouvez ajouter des <u>conditions "where"</u> supplémentaires dans l'encadré suivant, en langage SQL <b style="color:#952132">(commencez par <i>and</i>)</b>"""),
+            self.tr(
+                """Vous pouvez ajouter des <u>conditions "where"</u> supplémentaires dans l'encadré suivant, en langage SQL <b style="color:#952132">(commencez par <i>and</i>)</b>"""
+            ),
             multiLine=True,
-            optional=True
+            optional=True,
         )
-        extra_where.setFlags(extra_where.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        extra_where.setFlags(
+            extra_where.flags() | QgsProcessingParameterDefinition.FlagAdvanced
+        )
         self.addParameter(extra_where)
 
         # Output PostGIS layer = summary table
         self.addOutput(
             QgsProcessingOutputVectorLayer(
                 self.OUTPUT,
-                self.tr('Couche en sortie'),
-                QgsProcessing.TypeVectorAnyGeometry
+                self.tr("Couche en sortie"),
+                QgsProcessing.TypeVectorAnyGeometry,
             )
         )
 
@@ -379,9 +430,11 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterString(
                 self.OUTPUT_NAME,
-                self.tr("""<b style="color:#0a84db">PARAMÉTRAGE DES RESULTATS EN SORTIE</b><br/>
-                    <b>*9/</b> Définissez un <u>nom</u> pour votre couche PostGIS"""),
-                self.tr("Tableau synthèse temps")
+                self.tr(
+                    """<b style="color:#0a84db">PARAMÉTRAGE DES RESULTATS EN SORTIE</b><br/>
+                    <b>*9/</b> Définissez un <u>nom</u> pour votre couche PostGIS"""
+                ),
+                self.tr("Tableau synthèse temps"),
             )
         )
 
@@ -389,38 +442,41 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterBoolean(
                 self.ADD_TABLE,
-                self.tr("Enregistrer les résultats en sortie dans une nouvelle table PostgreSQL"),
-                False
+                self.tr(
+                    "Enregistrer les résultats en sortie dans une nouvelle table PostgreSQL"
+                ),
+                False,
             )
         )
 
         ### Histogram ###
         add_histogram = QgsProcessingParameterEnum(
             self.ADD_HISTOGRAM,
-            self.tr("""<b>10/</b> Cochez la case ci-dessous si vous souhaitez <u>exporter</u> les résultats sous la forme d'un <u>histogramme</u> du total par<br/> pas de temps choisi."""),
-            ["Oui, je souhaite exporter les résultats sous la forme d'un histogramme du total par pas de temps choisi"],
+            self.tr(
+                """<b>10/</b> Cochez la case ci-dessous si vous souhaitez <u>exporter</u> les résultats sous la forme d'un <u>histogramme</u> du total par<br/> pas de temps choisi."""
+            ),
+            [
+                "Oui, je souhaite exporter les résultats sous la forme d'un histogramme du total par pas de temps choisi"
+            ],
             allowMultiple=True,
-            optional=True
+            optional=True,
         )
         add_histogram.setMetadata(
-            {
-                'widget_wrapper': {
-                    'useCheckBoxes': True,
-                    'columns': 1
-                }
-            }
+            {"widget_wrapper": {"useCheckBoxes": True, "columns": 1}}
         )
         self.addParameter(add_histogram)
 
         self.addParameter(
             QgsProcessingParameterFileDestination(
                 self.OUTPUT_HISTOGRAM,
-                self.tr("""<b style="color:#0a84db">ENREGISTREMENT DES RESULTATS</b><br/>
+                self.tr(
+                    """<b style="color:#0a84db">ENREGISTREMENT DES RESULTATS</b><br/>
                 <b>11/</b> <u style="color:#952132">Si (et seulement si !)</u> vous avez sélectionné l'export sous forme d'<u>histogramme</u>, veuillez renseigner un emplacement<br/> pour l'enregistrer sur votre ordinateur (au format image). <u>Dans le cas contraire</u>, vous pouvez ignorer cette étape.<br/>
-                <font style='color:#06497a'><u>Aide</u> : Cliquez sur le bouton [...] puis sur 'Enregistrer vers un fichier...'</font>"""),
-                self.tr('image PNG (*.png)'),
+                <font style='color:#06497a'><u>Aide</u> : Cliquez sur le bouton [...] puis sur 'Enregistrer vers un fichier...'</font>"""
+                ),
+                self.tr("image PNG (*.png)"),
                 optional=True,
-                createByDefault=False
+                createByDefault=False,
             )
         )
 
@@ -436,39 +492,83 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
         layer_name = self.parameterAsString(parameters, self.OUTPUT_NAME, context)
         format_name = f"{layer_name} {str(self.ts.strftime('%Y%m%d_%H%M%S'))}"
         # Retrieve the time interval
-        time_interval = self.interval_variables[self.parameterAsEnum(parameters, self.TIME_INTERVAL, context)]
+        time_interval = self.interval_variables[
+            self.parameterAsEnum(parameters, self.TIME_INTERVAL, context)
+        ]
         # Retrieve the period
         start_year = self.parameterAsInt(parameters, self.START_YEAR, context)
         end_year = self.parameterAsInt(parameters, self.END_YEAR, context)
         if end_year < start_year:
-            raise QgsProcessingException("Veuillez renseigner une année de fin postérieure à l'année de début !")
+            raise QgsProcessingException(
+                "Veuillez renseigner une année de fin postérieure à l'année de début !"
+            )
         # Retrieve the taxonomic rank
-        taxonomic_rank = self.taxonomic_ranks_variables[self.parameterAsEnum(parameters, self.TAXONOMIC_RANK, context)]
+        taxonomic_rank = self.taxonomic_ranks_variables[
+            self.parameterAsEnum(parameters, self.TAXONOMIC_RANK, context)
+        ]
         # Retrieve the aggregation type
-        aggregation_type = 'Nombre de données'
-        if taxonomic_rank == 'Groupes taxonomiques':
-            aggregation_type = self.agg_variables[self.parameterAsEnum(parameters, self.AGG, context)]            
+        aggregation_type = "Nombre de données"
+        if taxonomic_rank == "Groupes taxonomiques":
+            aggregation_type = self.agg_variables[
+                self.parameterAsEnum(parameters, self.AGG, context)
+            ]
         # Retrieve the taxons filters
-        groupe_taxo = [self.db_variables.value('groupe_taxo')[i] for i in (self.parameterAsEnums(parameters, self.GROUPE_TAXO, context))]
-        regne = [self.db_variables.value('regne')[i] for i in (self.parameterAsEnums(parameters, self.REGNE, context))]
-        phylum = [self.db_variables.value('phylum')[i] for i in (self.parameterAsEnums(parameters, self.PHYLUM, context))]
-        classe = [self.db_variables.value('classe')[i] for i in (self.parameterAsEnums(parameters, self.CLASSE, context))]
-        ordre = [self.db_variables.value('ordre')[i] for i in (self.parameterAsEnums(parameters, self.ORDRE, context))]
-        famille = [self.db_variables.value('famille')[i] for i in (self.parameterAsEnums(parameters, self.FAMILLE, context))]
-        group1_inpn = [self.db_variables.value('group1_inpn')[i] for i in (self.parameterAsEnums(parameters, self.GROUP1_INPN, context))]
-        group2_inpn = [self.db_variables.value('group2_inpn')[i] for i in (self.parameterAsEnums(parameters, self.GROUP2_INPN, context))]
+        groupe_taxo = [
+            self.db_variables.value("groupe_taxo")[i]
+            for i in (self.parameterAsEnums(parameters, self.GROUPE_TAXO, context))
+        ]
+        regne = [
+            self.db_variables.value("regne")[i]
+            for i in (self.parameterAsEnums(parameters, self.REGNE, context))
+        ]
+        phylum = [
+            self.db_variables.value("phylum")[i]
+            for i in (self.parameterAsEnums(parameters, self.PHYLUM, context))
+        ]
+        classe = [
+            self.db_variables.value("classe")[i]
+            for i in (self.parameterAsEnums(parameters, self.CLASSE, context))
+        ]
+        ordre = [
+            self.db_variables.value("ordre")[i]
+            for i in (self.parameterAsEnums(parameters, self.ORDRE, context))
+        ]
+        famille = [
+            self.db_variables.value("famille")[i]
+            for i in (self.parameterAsEnums(parameters, self.FAMILLE, context))
+        ]
+        group1_inpn = [
+            self.db_variables.value("group1_inpn")[i]
+            for i in (self.parameterAsEnums(parameters, self.GROUP1_INPN, context))
+        ]
+        group2_inpn = [
+            self.db_variables.value("group2_inpn")[i]
+            for i in (self.parameterAsEnums(parameters, self.GROUP2_INPN, context))
+        ]
         # Retrieve the extra "where" conditions
         extra_where = self.parameterAsString(parameters, self.EXTRA_WHERE, context)
         # Retrieve the histogram parameter
         add_histogram = self.parameterAsEnums(parameters, self.ADD_HISTOGRAM, context)
         if len(add_histogram) > 0:
-            output_histogram = self.parameterAsFileOutput(parameters, self.OUTPUT_HISTOGRAM, context)
+            output_histogram = self.parameterAsFileOutput(
+                parameters, self.OUTPUT_HISTOGRAM, context
+            )
             if output_histogram == "":
-                raise QgsProcessingException("Veuillez renseigner un emplacement pour enregistrer votre histogramme !")
+                raise QgsProcessingException(
+                    "Veuillez renseigner un emplacement pour enregistrer votre histogramme !"
+                )
 
         ### CONSTRUCT "SELECT" CLAUSE (SQL) ###
         # Select data according to the time interval and the period
-        select_data, x_var = construct_sql_select_data_per_time_interval(self, time_interval, start_year, end_year, aggregation_type, parameters, context)
+        select_data, x_var = construct_sql_select_data_per_time_interval(
+            self,
+            time_interval,
+            start_year,
+            end_year,
+            aggregation_type,
+            parameters,
+            context,
+        )
         # Select species info (optional)
         select_species_info = """/*source_id_sp, */obs.cd_nom, obs.cd_ref, nom_rang as "Rang", groupe_taxo AS "Groupe taxo",
             obs.nom_vern AS "Nom vernaculaire", nom_sci AS "Nom scientifique\""""
@@ -488,7 +588,7 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
             "ordre": ordre,
             "famille": famille,
             "obs.group1_inpn": group1_inpn,
-            "obs.group2_inpn": group2_inpn
+            "obs.group2_inpn": group2_inpn,
         }
         taxons_where = construct_sql_taxons_filter(taxons_filters)
         where += taxons_where
@@ -496,7 +596,11 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
         where += " " + extra_where
         ### CONSTRUCT "GROUP BY" CLAUSE (SQL) ###
         # Group by species (optional)
-        group_by_species = "/*source_id_sp, */obs.cd_nom, obs.cd_ref, nom_rang, nom_sci, obs.nom_vern, " if taxonomic_rank == 'Espèces' else ""
+        group_by_species = (
+            "/*source_id_sp, */obs.cd_nom, obs.cd_ref, nom_rang, nom_sci, obs.nom_vern, "
+            if taxonomic_rank == "Espèces"
+            else ""
+        )
 
         ### EXECUTE THE SQL QUERY ###
         # Retrieve the data base connection name
@@ -511,7 +615,7 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
             WHERE {where}
             GROUP BY {group_by_species}groupe_taxo
             ORDER BY groupe_taxo{ ", obs.nom_vern" if taxonomic_rank == 'Espèces' else ""}"""
-        #feedback.pushInfo(query)
+        # feedback.pushInfo(query)
         # Retrieve the boolean add_table
         add_table = self.parameterAsBool(parameters, self.ADD_TABLE, context)
         if add_table:
@@ -525,7 +629,7 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
             uri.setDataSource(None, table_name, None, "", "id")
         else:
             # Format the URI with the query
-            uri.setDataSource("", "("+query+")", None, "", "id")
+            uri.setDataSource("", "(" + query + ")", None, "", "id")
 
         ### GET THE OUTPUT LAYER ###
         # Retrieve the output PostGIS layer = summary table
@@ -535,14 +639,30 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
         # Load the PostGIS layer
         load_layer(context, self.layer_summary)
         # Add action to layer
-        with open(os.path.join(pluginPath, 'format_csv.py'), 'r') as file:
+        with open(os.path.join(pluginPath, "format_csv.py"), "r") as file:
             action_code = file.read()
-        action = QgsAction(QgsAction.GenericPython, 'Exporter la couche sous format Excel dans mon dossier utilisateur avec la mise en forme adaptée', action_code, os.path.join(pluginPath, 'icons', 'excel.png'), False, 'Exporter sous format Excel', {'Layer'})
+        action = QgsAction(
+            QgsAction.GenericPython,
+            "Exporter la couche sous format Excel dans mon dossier utilisateur avec la mise en forme adaptée",
+            action_code,
+            os.path.join(pluginPath, "icons", "excel.png"),
+            False,
+            "Exporter sous format Excel",
+            {"Layer"},
+        )
         self.layer_summary.actions().addAction(action)
         # JOKE
-        with open(os.path.join(pluginPath, 'joke.py'), 'r') as file:
+        with open(os.path.join(pluginPath, "joke.py"), "r") as file:
             joke_action_code = file.read()
-        joke_action = QgsAction(QgsAction.GenericPython, 'Rédiger mon rapport', joke_action_code, os.path.join(pluginPath, 'icons', 'logo_LPO.png'), False, 'Rédiger mon rapport', {'Layer'})
+        joke_action = QgsAction(
+            QgsAction.GenericPython,
+            "Rédiger mon rapport",
+            joke_action_code,
+            os.path.join(pluginPath, "icons", "logo_LPO.png"),
+            False,
+            "Rédiger mon rapport",
+            {"Layer"},
+        )
         self.layer_summary.actions().addAction(joke_action)
 
         ### CONSTRUCT THE HISTOGRAM ###
@@ -563,17 +683,19 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
                 plt.figure(figsize=(40, 16))
                 plt.subplots_adjust(bottom=0.2, left=0.03, right=0.97)
             plt.bar(range(len(x_var)), y_var, tick_label=x_var)
-            plt.xticks(rotation='vertical')
-            x_label = time_interval.split(' ')[1].title()
-            if x_label[-1] != 's':
-                x_label += 's'
+            plt.xticks(rotation="vertical")
+            x_label = time_interval.split(" ")[1].title()
+            if x_label[-1] != "s":
+                x_label += "s"
             plt.xlabel(x_label)
             plt.ylabel(aggregation_type)
-            plt.title(f'{aggregation_type} {(time_interval[0].lower() + time_interval[1:])}')
+            plt.title(
+                f"{aggregation_type} {(time_interval[0].lower() + time_interval[1:])}"
+            )
             if output_histogram[-4:] != ".png":
                 output_histogram += ".png"
             plt.savefig(output_histogram)
-            #plt.show()
+            # plt.show()
 
         return {self.OUTPUT: self.layer_summary.id()}
 
@@ -585,7 +707,7 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
         return {}
 
     def tr(self, string):
-        return QCoreApplication.translate('Processing', string)
+        return QCoreApplication.translate("Processing", string)
 
     def createInstance(self):
         return SummaryTablePerTimeInterval()

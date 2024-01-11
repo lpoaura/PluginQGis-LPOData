@@ -18,7 +18,7 @@
 """
 
 __author__ = 'LPO AuRA'
-__date__ = '2020-2023'
+__date__ = '2020-2024'
 
 # This will get replaced with a git SHA1 when you do a git archive
 __revision__ = '$Format:%H$'
@@ -47,27 +47,12 @@ from qgis.core import (QgsProcessing,
 
 
 # from processing.tools import postgis
+from .custom_widgets import DateTimeWidget
 from .qgis_processing_postgis import uri_from_name
 from .common_functions import check_layer_is_valid, construct_sql_array_polygons, construct_sql_taxons_filter, construct_sql_source_filter,construct_sql_geom_type_filter, construct_sql_datetime_filter, load_layer, format_layer_export
 
 pluginPath = os.path.dirname(__file__)
 
-
-class DateTimeWidget(WidgetWrapper):
-    """
-    QDateTimeEdit widget with calendar pop up
-    """
-
-    def createWidget(self):
-        self._combo = QDateEdit()
-        self._combo.setCalendarPopup(True)
-        today = QDate.currentDate()
-        self._combo.setDate(today)
-        return self._combo
-
-    def value(self):
-        date_chosen = self._combo.dateTime()
-        return date_chosen.toString(Qt.ISODate)
 
 class ExtractData(QgsProcessingAlgorithm):
     """

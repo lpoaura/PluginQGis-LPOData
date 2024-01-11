@@ -45,27 +45,11 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterDefinition,
                        QgsVectorLayer,
                        QgsEditorWidgetSetup)
+from .custom_widgets import DateTimeWidget
 from .qgis_processing_postgis import uri_from_name
 from .common_functions import check_layer_is_valid, construct_sql_array_polygons, construct_sql_taxons_filter, construct_sql_source_filter,construct_sql_geom_type_filter, construct_sql_datetime_filter, load_layer, format_layer_export
 
 pluginPath = os.path.dirname(__file__)
-
-
-class DateTimeWidget(WidgetWrapper):
-    """
-    QDateTimeEdit widget with calendar pop up
-    """
-
-    def createWidget(self):
-        self._combo = QDateEdit()
-        self._combo.setCalendarPopup(True)
-        today = QDate.currentDate()
-        self._combo.setDate(today)
-        return self._combo
-
-    def value(self):
-        date_chosen = self._combo.dateTime()
-        return date_chosen.toString(Qt.ISODate)
 
 class ExtractDataObservers(QgsProcessingAlgorithm):
 

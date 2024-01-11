@@ -31,7 +31,8 @@ from qgis.PyQt.QtCore import QVariant
 from qgis.core import (QgsWkbTypes,
                        QgsField,
                        QgsProcessingException,
-                       Qgis)
+                       Qgis,
+                       QgsMessageLog)
 import processing
 
 
@@ -101,18 +102,18 @@ def construct_sql_taxons_filter(taxons_dict):
     """
     Construct the sql "where" clause with taxons filters.
     """
-    taxons_where = " and ("
+    taxons_where = None
+    QgsMessageLog.logMessage(str(taxons_dict))
     for key, value in taxons_dict.items():
         if len(value) > 0:
             if len(value) == 1:
                 taxons_where += f"{key} = '{value[0]}' or "
             else:
                 taxons_where += f"{key} in {str(tuple(value))} or "
-    if taxons_where != " and (":
+    if taxons_where:
         taxons_where = taxons_where[:len(taxons_where)-4] + ")"
         return taxons_where
-    else:
-        return ""
+
 
 
 def construct_sql_source_filter(source_dict):
@@ -159,20 +160,14 @@ def construct_sql_datetime_filter(self, period_type_filter, timestamp, parameter
     """
     Construct the sql "where" clause with the datetime filter.
     """
-    datetime_where = ""
-    if period_type_filter == "5 dernières années":
+    datetime_where = None
+    if period_type_filter in ("5 dernières années","10 dernières années"):
         end_year = int(timestamp.strftime('%Y'))
-        start_year = end_year - 5
-        datetime_where += f" and (date_an > {start_year} and date_an <= {end_year})"
-    elif period_type_filter == "10 dernières années":
-        end_year = int(timestamp.strftime('%Y'))
-        start_year = end_year - 10
-        datetime_where += f" and (date_an > {start_year} and date_an <= {end_year})"
+        start_year = end_year - int(period_type_filter.split()[0])
+        datetime_where = f" and (date_an > {start_year} and date_an <= {end_year})"
     elif period_type_filter == "Cette année":
         year = int(timestamp.strftime('%Y'))
-       # start_date = timestamp.strftime('01/01/%Y') 
-       # datetime_where += f" and (date >= '{start_date}'::date and date <= '{end_date}'::date)"
-        datetime_where += f" and (date_an = {year})"
+        datetime_where = f" and (date_an = {year})"
     elif period_type_filter == "Date de début - Date de fin (à définir ci-dessous)":
         # Retrieve the start and end dates
         start_date = self.parameterAsString(parameters, self.START_DATE, context)
@@ -180,8 +175,8 @@ def construct_sql_datetime_filter(self, period_type_filter, timestamp, parameter
         if end_date < start_date:
             raise QgsProcessingException("Veuillez renseigner une date de fin postérieure ou égale à la date de début !")
         else:
-            datetime_where += f" and (date >= '{start_date}'::date and date <= '{end_date}'::date)"
-    return datetime_where         
+            datetime_where = f" and (date >= '{start_date}'::date and date <= '{end_date}'::date)"
+    return datetime_where
 
 
 def construct_sql_select_data_per_time_interval(self, time_interval_param, start_year_param, end_year_param, aggregation_type_param, parameters, context):

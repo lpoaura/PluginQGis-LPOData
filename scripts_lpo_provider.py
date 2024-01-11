@@ -18,7 +18,7 @@
 """
 
 __author__ = 'LPO AuRA'
-__date__ = '2020-2023'
+__date__ = '2020-2024'
 
 # This will get replaced with a git SHA1 when you do a git archive
 __revision__ = '$Format:%H$'
