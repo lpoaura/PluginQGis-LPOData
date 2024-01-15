@@ -19,34 +19,46 @@
 
 
 import os
-from qgis.utils import iface
 from datetime import datetime
 
-from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtCore import Qt, QCoreApplication, QDate
-from qgis.PyQt.QtWidgets import QDateEdit
 from processing.gui.wrappers import WidgetWrapper
+from qgis.core import (
+    QgsAction,
+    QgsProcessing,
+    QgsProcessingAlgorithm,
+    QgsProcessingOutputVectorLayer,
+    QgsProcessingParameterBoolean,
+    QgsProcessingParameterDefinition,
+    QgsProcessingParameterEnum,
+    QgsProcessingParameterFeatureSource,
+    QgsProcessingParameterProviderConnection,
+    QgsProcessingParameterString,
+    QgsSettings,
+    QgsVectorLayer,
+)
+from qgis.PyQt.QtCore import QCoreApplication, QDate, Qt
+from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtWidgets import QDateEdit
+from qgis.utils import iface
 
-from qgis.core import (QgsProcessing,
-                       QgsProcessingAlgorithm,
-                       QgsSettings,
-                       QgsProcessingParameterProviderConnection,
-                       QgsProcessingParameterString,
-                       QgsProcessingParameterFeatureSource,
-                       QgsProcessingParameterEnum,
-                       QgsProcessingOutputVectorLayer,
-                       QgsProcessingParameterBoolean,
-                       QgsProcessingParameterDefinition,
-                       QgsVectorLayer,
-                       QgsAction)
+from .common_functions import (
+    check_layer_is_valid,
+    construct_queries_list,
+    construct_sql_array_polygons,
+    construct_sql_datetime_filter,
+    construct_sql_taxons_filter,
+    execute_sql_queries,
+    load_layer,
+    simplify_name,
+)
+
 # from processing.tools import postgis
 from .custom_widgets import DateTimeWidget
-from .qgis_processing_postgis import uri_from_name
-from .common_functions import simplify_name, check_layer_is_valid, construct_sql_array_polygons, construct_queries_list, construct_sql_taxons_filter, construct_sql_datetime_filter, load_layer, execute_sql_queries
-
 from .generic_classes import BaseQgsProcessingAlgorithm
+from .qgis_processing_postgis import uri_from_name
 
 pluginPath = os.path.dirname(__file__)
+
 
 class SummaryTablePerSpecies(BaseQgsProcessingAlgorithm):
     """
@@ -56,24 +68,24 @@ class SummaryTablePerSpecies(BaseQgsProcessingAlgorithm):
 
     # Constants used to refer to parameters and outputs
 
-
     def name(self):
-        return 'SummaryTablePerSpecies'
+        return "SummaryTablePerSpecies"
 
     def displayName(self):
-        return 'Tableau de synthèse par espèce'
+        return "Tableau de synthèse par espèce"
 
     def icon(self):
-        return QIcon(os.path.join(pluginPath, 'icons', 'table.png'))
+        return QIcon(os.path.join(pluginPath, "icons", "table.png"))
 
     def groupId(self):
-        return 'summary_tables'
+        return "summary_tables"
 
     def group(self):
-        return 'Tableaux de synthèse'
+        return "Tableaux de synthèse"
 
     def shortDescription(self):
-        return self.tr("""<font style="font-size:18px"><b>Besoin d'aide ?</b> Vous pouvez vous référer au <b>Wiki</b> accessible sur ce lien : <a href="https://github.com/lpoaura/PluginQGis-LPOData/wiki" target="_blank">https://github.com/lpoaura/PluginQGis-LPOData/wiki</a>.</font><br/><br/>
+        return self.tr(
+            """<font style="font-size:18px"><b>Besoin d'aide ?</b> Vous pouvez vous référer au <b>Wiki</b> accessible sur ce lien : <a href="https://github.com/lpoaura/PluginQGis-LPOData/wiki" target="_blank">https://github.com/lpoaura/PluginQGis-LPOData/wiki</a>.</font><br/><br/>
             Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données LPO, d'obtenir un <b>tableau de synthèse</b> par espèce (couche PostgreSQL) basé sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones).
             <b style='color:#952132'>Les données d'absence sont exclues de ce traitement.</b><br/><br/>
             <b>Pour chaque espèce</b> observée dans la zone d'étude considérée, le tableau fournit les informations suivantes :
@@ -100,7 +112,8 @@ class SummaryTablePerSpecies(BaseQgsProcessingAlgorithm):
             <li>Année de la dernière observation</li>
             <li>Liste des communes</li>
             <li>Liste des sources VisioNature</li></ul><br/>
-            <font style='color:#0a84db'><u>IMPORTANT</u> : Les <b>étapes indispensables</b> sont marquées d'une <b>étoile *</b> avant leur numéro. Prenez le temps de lire <u>attentivement</U> les instructions pour chaque étape, et particulièrement les</font> <font style ='color:#952132'>informations en rouge</font> <font style='color:#0a84db'>!</font>""")
+            <font style='color:#0a84db'><u>IMPORTANT</u> : Les <b>étapes indispensables</b> sont marquées d'une <b>étoile *</b> avant leur numéro. Prenez le temps de lire <u>attentivement</U> les instructions pour chaque étape, et particulièrement les</font> <font style ='color:#952132'>informations en rouge</font> <font style='color:#0a84db'>!</font>"""
+        )
 
     def initAlgorithm(self, _config=None):
         """
@@ -109,23 +122,26 @@ class SummaryTablePerSpecies(BaseQgsProcessingAlgorithm):
         """
         super().initAlgorithm(_config)
 
-
         # Extra "where" conditions
         extra_where = QgsProcessingParameterString(
             self.EXTRA_WHERE,
-            self.tr("""Vous pouvez ajouter des <u>conditions "where"</u> supplémentaires dans l'encadré suivant, en langage SQL <b style="color:#952132">(commencez par <i>and</i>)</b>"""),
+            self.tr(
+                """Vous pouvez ajouter des <u>conditions "where"</u> supplémentaires dans l'encadré suivant, en langage SQL <b style="color:#952132">(commencez par <i>and</i>)</b>"""
+            ),
             multiLine=True,
-            optional=True
+            optional=True,
         )
-        extra_where.setFlags(extra_where.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        extra_where.setFlags(
+            extra_where.flags() | QgsProcessingParameterDefinition.FlagAdvanced
+        )
         self.addParameter(extra_where)
 
         # Output PostGIS layer = summary table
         self.addOutput(
             QgsProcessingOutputVectorLayer(
                 self.OUTPUT,
-                self.tr('Couche en sortie'),
-                QgsProcessing.TypeVectorAnyGeometry
+                self.tr("Couche en sortie"),
+                QgsProcessing.TypeVectorAnyGeometry,
             )
         )
 
@@ -133,9 +149,11 @@ class SummaryTablePerSpecies(BaseQgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterString(
                 self.OUTPUT_NAME,
-                self.tr("""<b style="color:#0a84db">PARAMÉTRAGE DES RESULTATS EN SORTIE</b><br/>
-                    <b>*5/</b> Définissez un <u>nom</u> pour votre nouvelle couche PostGIS"""),
-                self.tr("Tableau synthèse espèces")
+                self.tr(
+                    """<b style="color:#0a84db">PARAMÉTRAGE DES RESULTATS EN SORTIE</b><br/>
+                    <b>*5/</b> Définissez un <u>nom</u> pour votre nouvelle couche PostGIS"""
+                ),
+                self.tr("Tableau synthèse espèces"),
             )
         )
 
@@ -143,8 +161,10 @@ class SummaryTablePerSpecies(BaseQgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterBoolean(
                 self.ADD_TABLE,
-                self.tr("Enregistrer les résultats en sortie dans une nouvelle table PostgreSQL"),
-                False
+                self.tr(
+                    "Enregistrer les résultats en sortie dans une nouvelle table PostgreSQL"
+                ),
+                False,
             )
         )
 
@@ -161,16 +181,42 @@ class SummaryTablePerSpecies(BaseQgsProcessingAlgorithm):
         ts = datetime.now()
         format_name = f"{layer_name} {str(ts.strftime('%Y%m%d_%H%M%S'))}"
         # Retrieve the taxons filters
-        groupe_taxo = [self.db_variables.value('groupe_taxo')[i] for i in (self.parameterAsEnums(parameters, self.GROUPE_TAXO, context))]
-        regne = [self.db_variables.value('regne')[i] for i in (self.parameterAsEnums(parameters, self.REGNE, context))]
-        phylum = [self.db_variables.value('phylum')[i] for i in (self.parameterAsEnums(parameters, self.PHYLUM, context))]
-        classe = [self.db_variables.value('classe')[i] for i in (self.parameterAsEnums(parameters, self.CLASSE, context))]
-        ordre = [self.db_variables.value('ordre')[i] for i in (self.parameterAsEnums(parameters, self.ORDRE, context))]
-        famille = [self.db_variables.value('famille')[i] for i in (self.parameterAsEnums(parameters, self.FAMILLE, context))]
-        group1_inpn = [self.db_variables.value('group1_inpn')[i] for i in (self.parameterAsEnums(parameters, self.GROUP1_INPN, context))]
-        group2_inpn = [self.db_variables.value('group2_inpn')[i] for i in (self.parameterAsEnums(parameters, self.GROUP2_INPN, context))]
+        groupe_taxo = [
+            self.db_variables.value("groupe_taxo")[i]
+            for i in (self.parameterAsEnums(parameters, self.GROUPE_TAXO, context))
+        ]
+        regne = [
+            self.db_variables.value("regne")[i]
+            for i in (self.parameterAsEnums(parameters, self.REGNE, context))
+        ]
+        phylum = [
+            self.db_variables.value("phylum")[i]
+            for i in (self.parameterAsEnums(parameters, self.PHYLUM, context))
+        ]
+        classe = [
+            self.db_variables.value("classe")[i]
+            for i in (self.parameterAsEnums(parameters, self.CLASSE, context))
+        ]
+        ordre = [
+            self.db_variables.value("ordre")[i]
+            for i in (self.parameterAsEnums(parameters, self.ORDRE, context))
+        ]
+        famille = [
+            self.db_variables.value("famille")[i]
+            for i in (self.parameterAsEnums(parameters, self.FAMILLE, context))
+        ]
+        group1_inpn = [
+            self.db_variables.value("group1_inpn")[i]
+            for i in (self.parameterAsEnums(parameters, self.GROUP1_INPN, context))
+        ]
+        group2_inpn = [
+            self.db_variables.value("group2_inpn")[i]
+            for i in (self.parameterAsEnums(parameters, self.GROUP2_INPN, context))
+        ]
         # Retrieve the datetime filter
-        period_type = self.period_variables[self.parameterAsEnum(parameters, self.PERIOD, context)]
+        period_type = self.period_variables[
+            self.parameterAsEnum(parameters, self.PERIOD, context)
+        ]
         # Retrieve the extra "where" conditions
         extra_where = self.parameterAsString(parameters, self.EXTRA_WHERE, context)
 
@@ -188,12 +234,14 @@ class SummaryTablePerSpecies(BaseQgsProcessingAlgorithm):
             "ordre": ordre,
             "famille": famille,
             "obs.group1_inpn": group1_inpn,
-            "obs.group2_inpn": group2_inpn
+            "obs.group2_inpn": group2_inpn,
         }
         taxons_where = construct_sql_taxons_filter(taxons_filters)
         where += taxons_where
         # Complete the "where" clause with the datetime filter
-        datetime_where = construct_sql_datetime_filter(self, period_type, ts, parameters, context)
+        datetime_where = construct_sql_datetime_filter(
+            self, period_type, ts, parameters, context
+        )
         where += datetime_where
         # Complete the "where" clause with the extra conditions
         where += " " + extra_where
@@ -301,7 +349,7 @@ class SummaryTablePerSpecies(BaseQgsProcessingAlgorithm):
                         ORDER BY groupe_taxo, vn_id, nom_vern)
                     SELECT row_number() OVER () AS id, *
                     FROM synthese"""
-        #feedback.pushInfo(query)
+        # feedback.pushInfo(query)
         # Retrieve the boolean add_table
         add_table = self.parameterAsBool(parameters, self.ADD_TABLE, context)
         if add_table:
@@ -315,7 +363,7 @@ class SummaryTablePerSpecies(BaseQgsProcessingAlgorithm):
             uri.setDataSource(None, table_name, None, "", "id")
         else:
             # Format the URI with the query
-            uri.setDataSource("", "("+query+")", None, "", "id")
+            uri.setDataSource("", "(" + query + ")", None, "", "id")
 
         ### GET THE OUTPUT LAYER ###
         # Retrieve the output PostGIS layer = summary table
@@ -325,14 +373,30 @@ class SummaryTablePerSpecies(BaseQgsProcessingAlgorithm):
         # Load the PostGIS layer
         load_layer(context, self.layer_summary)
         # Add action to layer
-        with open(os.path.join(pluginPath, 'format_csv.py'), 'r') as file:
+        with open(os.path.join(pluginPath, "format_csv.py"), "r") as file:
             action_code = file.read()
-        action = QgsAction(QgsAction.GenericPython, 'Exporter la couche sous format Excel dans mon dossier utilisateur avec la mise en forme adaptée', action_code, os.path.join(pluginPath, 'icons', 'excel.png'), False, 'Exporter sous format Excel', {'Layer'})
+        action = QgsAction(
+            QgsAction.GenericPython,
+            "Exporter la couche sous format Excel dans mon dossier utilisateur avec la mise en forme adaptée",
+            action_code,
+            os.path.join(pluginPath, "icons", "excel.png"),
+            False,
+            "Exporter sous format Excel",
+            {"Layer"},
+        )
         self.layer_summary.actions().addAction(action)
         # JOKE
-        with open(os.path.join(pluginPath, 'joke.py'), 'r') as file:
+        with open(os.path.join(pluginPath, "joke.py"), "r") as file:
             joke_action_code = file.read()
-        joke_action = QgsAction(QgsAction.GenericPython, 'Rédiger mon rapport', joke_action_code, os.path.join(pluginPath, 'icons', 'logo_LPO.png'), False, 'Rédiger mon rapport', {'Layer'})
+        joke_action = QgsAction(
+            QgsAction.GenericPython,
+            "Rédiger mon rapport",
+            joke_action_code,
+            os.path.join(pluginPath, "icons", "logo_LPO.png"),
+            False,
+            "Rédiger mon rapport",
+            {"Layer"},
+        )
         self.layer_summary.actions().addAction(joke_action)
 
         return {self.OUTPUT: self.layer_summary.id()}
@@ -345,7 +409,7 @@ class SummaryTablePerSpecies(BaseQgsProcessingAlgorithm):
         return {}
 
     def tr(self, string):
-        return QCoreApplication.translate('Processing', string)
+        return QCoreApplication.translate("Processing", string)
 
     def createInstance(self):
         return SummaryTablePerSpecies()

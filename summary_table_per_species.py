@@ -19,32 +19,29 @@
 
 
 import os
-from qgis.utils import iface
 from datetime import datetime
 
-from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtCore import Qt, QCoreApplication, QDate
-from qgis.PyQt.QtWidgets import QDateEdit
-from processing.gui.wrappers import WidgetWrapper
-
 from qgis.core import (
-    QgsProcessing,
-    QgsProcessingAlgorithm,
-    QgsSettings,
-    QgsProcessingParameterProviderConnection,
-    QgsProcessingParameterString,
-    QgsProcessingParameterFeatureSource,
-    QgsProcessingParameterEnum,
-    QgsProcessingOutputVectorLayer,
-    QgsProcessingParameterBoolean,
-    QgsProcessingParameterDefinition,
-    QgsVectorLayer,
     QgsAction,
+    QgsVectorLayer,
+    QgsMessageLog
 )
+from qgis.PyQt.QtCore import QCoreApplication
+from qgis.PyQt.QtGui import QIcon
+from qgis.utils import iface
+
+from .common_functions import (
+    construct_sql_array_polygons,
+    construct_sql_taxons_filter,
+    construct_sql_datetime_filter,
+    load_layer,
+    check_layer_is_valid
+)
+from .generic_classes import BaseQgsProcessingAlgorithm
 
 # from processing.tools import postgis
 from .qgis_processing_postgis import uri_from_name
-from .generic_classes import BaseQgsProcessingAlgorithm
+
 
 pluginPath = os.path.dirname(__file__)
 
@@ -54,6 +51,7 @@ class SummaryTablePerSpecies(BaseQgsProcessingAlgorithm):
     This algorithm takes a connection to a data base and a vector polygons layer and
     returns a summary non geometric PostGIS layer.
     """
+
     output_name = "Tableau synthèse espèces"
 
     def name(self):
@@ -158,7 +156,11 @@ class SummaryTablePerSpecies(BaseQgsProcessingAlgorithm):
         # Construct the sql array containing the study area's features geometry
         array_polygons = construct_sql_array_polygons(study_area)
         # Define the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer = summary table
-        where = f"""is_valid and is_present and ST_intersects(obs.geom, ST_union({array_polygons}))"""
+        filters = [
+            "is_valid",
+            "is_present",
+            f"ST_intersects(obs.geom, ST_union({array_polygons}))",
+        ]
         # Define a dictionnary with the aggregated taxons filters and complete the "where" clause thanks to it
         taxons_filters = {
             "groupe_taxo": groupe_taxo,
@@ -171,14 +173,17 @@ class SummaryTablePerSpecies(BaseQgsProcessingAlgorithm):
             "obs.group2_inpn": group2_inpn,
         }
         taxons_where = construct_sql_taxons_filter(taxons_filters)
-        where += taxons_where
+        filters.append(taxons_where)
         # Complete the "where" clause with the datetime filter
         datetime_where = construct_sql_datetime_filter(
             self, period_type, ts, parameters, context
         )
-        where += datetime_where
+        filters.append(datetime_where)
         # Complete the "where" clause with the extra conditions
-        where += " " + extra_where
+        
+        filters.append(extra_where)
+
+        where = " AND ".join(filters)
 
         ### EXECUTE THE SQL QUERY ###
         # Retrieve the data base connection name
@@ -280,6 +285,7 @@ class SummaryTablePerSpecies(BaseQgsProcessingAlgorithm):
                         ORDER BY groupe_taxo,vn_id, nom_vern)
                     SELECT row_number() OVER () AS id, *
                     FROM synthese"""
+        QgsMessageLog.logMessage(query)
         # feedback.pushInfo(query)
         # Retrieve the boolean add_table
         add_table = self.parameterAsBool(parameters, self.ADD_TABLE, context)

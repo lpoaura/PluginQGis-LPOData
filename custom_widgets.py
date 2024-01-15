@@ -1,16 +1,14 @@
-
 import os
 
-from qgis.PyQt.QtCore import Qt,  QDate
-from qgis.PyQt.QtWidgets import QDateEdit
 from processing.gui.wrappers import WidgetWrapper
+from qgis.PyQt.QtCore import QDate, Qt
+from qgis.PyQt.QtWidgets import QDateEdit
 
 
 class DateTimeWidget(WidgetWrapper):
     """
     QDateTimeEdit widget with calendar pop up
     """
-
 
     def createWidget(self):
         self._combo = QDateEdit()

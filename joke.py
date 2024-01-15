@@ -1,7 +1,8 @@
 """Fake news"""
 
+from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QLabel, QSizePolicy, QVBoxLayout
 from qgis.gui import QgsMessageBar
-from PyQt5.QtWidgets import QDialog, QSizePolicy, QLabel, QDialogButtonBox, QVBoxLayout
+
 
 class JokeDialog(QDialog):
     def __init__(self):
@@ -17,6 +18,7 @@ class JokeDialog(QDialog):
         self.layout().addWidget(message)
         self.layout().addWidget(self.buttonbox)
         self.layout().addWidget(self.bar)
+
 
 jokeDialog = JokeDialog()
 jokeDialog.show()

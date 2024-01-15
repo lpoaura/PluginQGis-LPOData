@@ -1,24 +1,23 @@
-import re
 import json
+import re
 from pathlib import Path
 
+from qgis.core import QgsDataSourceUri, QgsProject, QgsProviderRegistry, QgsVectorLayer
 from qgis.gui import QgsCheckableComboBox
-from qgis.core import QgsVectorLayer, QgsProviderRegistry, QgsDataSourceUri, QgsProject
-from qgis.utils import OverrideCursor
-
+from qgis.PyQt.QtCore import QEvent, QSortFilterProxyModel, Qt
+from qgis.PyQt.QtGui import QStandardItem, QStandardItemModel
 from qgis.PyQt.QtWidgets import (
-    QMessageBox,
-    QDialog,
     QComboBox,
-    QVBoxLayout,
-    QLineEdit,
-    QHBoxLayout,
+    QDialog,
     QDialogButtonBox,
-    QRadioButton,
     QGroupBox,
+    QHBoxLayout,
+    QLineEdit,
+    QMessageBox,
+    QRadioButton,
+    QVBoxLayout,
 )
-from qgis.PyQt.QtGui import QStandardItemModel, QStandardItem
-from qgis.PyQt.QtCore import Qt, QSortFilterProxyModel, QEvent
+from qgis.utils import OverrideCursor
 
 
 class MyCheckableComboBox(QComboBox):

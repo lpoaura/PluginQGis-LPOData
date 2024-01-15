@@ -20,9 +20,9 @@
  This script initializes the plugin, making it known to QGIS.
 """
 
-__author__ = 'Elsa Guilley (LPO AuRA)'
-__date__ = '2020-04-16'
-__copyright__ = '(C) 2020 by Elsa Guilley (LPO AuRA)'
+__author__ = "Elsa Guilley (LPO AuRA)"
+__date__ = "2020-04-16"
+__copyright__ = "(C) 2020 by Elsa Guilley (LPO AuRA)"
 
 from .scripts_lpo import ScriptsLPOPlugin
 

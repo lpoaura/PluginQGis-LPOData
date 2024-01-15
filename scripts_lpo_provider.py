@@ -17,29 +17,28 @@
  ***************************************************************************/
 """
 
-__author__ = 'LPO AuRA'
-__date__ = '2020-2024'
+__author__ = "LPO AuRA"
+__date__ = "2020-2024"
 
 # This will get replaced with a git SHA1 when you do a git archive
-__revision__ = '$Format:%H$'
+__revision__ = "$Format:%H$"
 
 import os
-from qgis.PyQt.QtGui import QIcon
 
 from qgis.core import QgsProcessingProvider
+from qgis.PyQt.QtGui import QIcon
+
 from .extract_data import ExtractData
 from .extract_data_observers import ExtractDataObservers
-from .summary_table_per_species import SummaryTablePerSpecies
-from .summary_table_per_time_interval import SummaryTablePerTimeInterval
 from .state_of_knowledge import StateOfKnowledge
 from .summary_map import SummaryMap
-
+from .summary_table_per_species import SummaryTablePerSpecies
+from .summary_table_per_time_interval import SummaryTablePerTimeInterval
 
 pluginPath = os.path.dirname(__file__)
 
 
 class ScriptsLPOProvider(QgsProcessingProvider):
-
     def __init__(self):
         """
         Default constructor.
@@ -52,7 +51,7 @@ class ScriptsLPOProvider(QgsProcessingProvider):
         string should be a unique, short, character only string, eg "qgis" or
         "gdal". This string should not be localised.
         """
-        return 'scriptsLPO'
+        return "scriptsLPO"
 
     def name(self):
         """
@@ -61,14 +60,14 @@ class ScriptsLPOProvider(QgsProcessingProvider):
 
         This string should be short (e.g. "Lastools") and localised.
         """
-        return self.tr('Traitements de la LPO')
+        return self.tr("Traitements de la LPO")
 
     def icon(self):
         """
         Should return a QIcon which is used for your provider inside
         the Processing toolbox.
         """
-        return QIcon(os.path.join(pluginPath, 'icons', 'logo_lpo_aura_carre.png'))
+        return QIcon(os.path.join(pluginPath, "icons", "logo_lpo_aura_carre.png"))
 
     def unload(self):
         """
@@ -81,15 +80,22 @@ class ScriptsLPOProvider(QgsProcessingProvider):
         """
         Loads all algorithms belonging to this provider.
         """
-        algorithms = [ExtractData(),ExtractDataObservers(), SummaryTablePerSpecies(), SummaryTablePerTimeInterval(), StateOfKnowledge(), SummaryMap()]
+        algorithms = [
+            ExtractData(),
+            ExtractDataObservers(),
+            SummaryTablePerSpecies(),
+            SummaryTablePerTimeInterval(),
+            StateOfKnowledge(),
+            SummaryMap(),
+        ]
         for algo in algorithms:
             self.addAlgorithm(algo)
 
-    #def longName(self):
+        # def longName(self):
         """
         Returns the a longer version of the provider name, which can include
         extra details such as version numbers. E.g. "Lastools LIDAR tools
         (version 2.2.1)". This string should be localised. The default
         implementation returns the same string as name().
         """
-        #return self.name()
+        # return self.name()

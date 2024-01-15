@@ -16,45 +16,33 @@
  *                                                                         *
  ***************************************************************************/
 """
-import os
 import json
-from qgis.utils import iface
+import os
 from datetime import datetime
 
-from qgis.PyQt.QtGui import QIcon
+from qgis.core import (QgsMessageLog,  # QgsProcessingParameterDefinition,
+                       QgsProcessing, QgsProcessingAlgorithm,
+                       QgsProcessingParameterBoolean,
+                       QgsProcessingParameterEnum,
+                       QgsProcessingParameterFeatureSink,
+                       QgsProcessingParameterFeatureSource,
+                       QgsProcessingParameterProviderConnection,
+                       QgsProcessingParameterString, QgsSettings,
+                       QgsVectorLayer)
 from qgis.PyQt.QtCore import QCoreApplication
+from qgis.PyQt.QtGui import QIcon
+from qgis.utils import iface
 
-from qgis.core import (
-    QgsProcessing,
-    QgsProcessingAlgorithm,
-    QgsSettings,
-    QgsProcessingParameterProviderConnection,
-    QgsProcessingParameterString,
-    QgsProcessingParameterFeatureSource,
-    QgsProcessingParameterEnum,
-    QgsProcessingParameterBoolean,
-    QgsProcessingParameterFeatureSink,
-    # QgsProcessingParameterDefinition,
-    QgsVectorLayer,
-    QgsMessageLog,
-)
-
+from .common_functions import (check_layer_is_valid, construct_queries_list,
+                               construct_sql_array_polygons,
+                               construct_sql_datetime_filter,
+                               construct_sql_taxons_filter,
+                               execute_sql_queries, format_layer_export,
+                               load_layer, simplify_name)
+from .custom_widgets import DateTimeWidget
+from .generic_classes import BaseQgsProcessingAlgorithm
 # from processing.tools import postgis
 from .qgis_processing_postgis import uri_from_name
-from .common_functions import (
-    simplify_name,
-    check_layer_is_valid,
-    construct_sql_array_polygons,
-    construct_queries_list,
-    construct_sql_taxons_filter,
-    construct_sql_datetime_filter,
-    load_layer,
-    execute_sql_queries,
-    format_layer_export,
-)
-
-from .generic_classes import BaseQgsProcessingAlgorithm
-from .custom_widgets import DateTimeWidget
 
 pluginPath = os.path.dirname(__file__)
 

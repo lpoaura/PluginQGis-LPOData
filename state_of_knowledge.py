@@ -17,47 +17,48 @@
 """
 
 import os
-from qgis.utils import iface
 from datetime import datetime
+
 import matplotlib.pyplot as plt
-
-from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtCore import Qt, QCoreApplication, QDate
-from qgis.PyQt.QtWidgets import QDateEdit
 from processing.gui.wrappers import WidgetWrapper
-
 from qgis.core import (
+    QgsAction,
     QgsProcessing,
     QgsProcessingAlgorithm,
-    QgsSettings,
-    QgsProcessingParameterProviderConnection,
-    QgsProcessingParameterString,
-    QgsProcessingParameterFeatureSource,
-    QgsProcessingParameterEnum,
+    QgsProcessingException,
     QgsProcessingOutputVectorLayer,
     QgsProcessingParameterBoolean,
-    QgsProcessingParameterFileDestination,
     QgsProcessingParameterDefinition,
+    QgsProcessingParameterEnum,
+    QgsProcessingParameterFeatureSource,
+    QgsProcessingParameterFileDestination,
+    QgsProcessingParameterProviderConnection,
+    QgsProcessingParameterString,
+    QgsSettings,
     QgsVectorLayer,
-    QgsProcessingException,
-    QgsAction,
+)
+from qgis.PyQt.QtCore import QCoreApplication, QDate, Qt
+from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtWidgets import QDateEdit
+from qgis.utils import iface
+
+from .common_functions import (
+    check_layer_is_valid,
+    construct_queries_list,
+    construct_sql_array_polygons,
+    construct_sql_datetime_filter,
+    construct_sql_taxons_filter,
+    execute_sql_queries,
+    load_layer,
+    simplify_name,
 )
 
 # from processing.tools import postgis
 from .custom_widgets import DateTimeWidget
 from .qgis_processing_postgis import uri_from_name
-from .common_functions import (
-    simplify_name,
-    check_layer_is_valid,
-    construct_sql_array_polygons,
-    construct_queries_list,
-    construct_sql_taxons_filter,
-    construct_sql_datetime_filter,
-    load_layer,
-    execute_sql_queries,
-)
 
 pluginPath = os.path.dirname(__file__)
+
 
 class StateOfKnowledge(QgsProcessingAlgorithm):
     # Constants used to refer to parameters and outputs

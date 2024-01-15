@@ -18,16 +18,16 @@
 """
 
 
+import inspect
 import os
 import sys
-import inspect
 
 from qgis.core import QgsApplication
 from qgis.PyQt.QtWidgets import QAction, QMenu
+
+from .qgis_processing_postgis import get_connection_name
 from .scripts_lpo_provider import ScriptsLPOProvider
 from .species_map import CarteParEspece
-from .qgis_processing_postgis import get_connection_name
-
 
 cmd_folder = os.path.split(inspect.getfile(inspect.currentframe()))[0]
 

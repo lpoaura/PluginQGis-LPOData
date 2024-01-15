@@ -48,7 +48,7 @@ class DbError(Exception):
 
 def uri_from_name(conn_name):
     settings = QgsSettings()
-    settings.beginGroup(u"/PostgreSQL/connections/%s" % conn_name)
+    settings.beginGroup("/PostgreSQL/connections/%s" % conn_name)
 
     if not settings.contains("database"):  # non-existent entry?
         raise QgsProcessingException(
@@ -399,7 +399,7 @@ class GeoDB(object):
             self._exec_sql(c, sql)
 
             # Merge geometry info to "items"
-            for (i, geo_item) in enumerate(c.fetchall()):
+            for i, geo_item in enumerate(c.fetchall()):
                 if geo_item[7]:
                     items[i] = geo_item
 
@@ -703,11 +703,14 @@ class GeoDB(object):
 
         # Update geometry_columns if PostGIS is enabled
         if self.has_postgis:
-            sql = "UPDATE geometry_columns SET f_geometry_column='%s' \
-                   WHERE f_geometry_column='%s' AND f_table_name='%s'" % (
-                self._quote_unicode(new_name),
-                self._quote_unicode(name),
-                self._quote_unicode(table),
+            sql = (
+                "UPDATE geometry_columns SET f_geometry_column='%s' \
+                   WHERE f_geometry_column='%s' AND f_table_name='%s'"
+                % (
+                    self._quote_unicode(new_name),
+                    self._quote_unicode(name),
+                    self._quote_unicode(table),
+                )
             )
             if schema is not None:
                 sql += " AND f_table_schema='%s'" % self._quote(schema)
@@ -810,7 +813,7 @@ class GeoDB(object):
 
     def create_spatial_index(self, table, schema=None, geom_column="the_geom"):
         table_name = self._table_name(schema, table)
-        idx_name = self._quote(u"sidx_%s_%s" % (table, geom_column))
+        idx_name = self._quote("sidx_%s_%s" % (table, geom_column))
         sql = 'CREATE INDEX "%s" ON %s USING GIST(%s)' % (
             idx_name,
             table_name,
@@ -947,7 +950,7 @@ class GeoDB(object):
             return identifier
 
         # It's needed - let's quote it (and double the double-quotes)
-        return u'"%s"' % identifier.replace('"', '""')
+        return '"%s"' % identifier.replace('"', '""')
 
     def _quote_unicode(self, txt):
         """Make the string safe - replace ' with ''."""
@@ -960,7 +963,7 @@ class GeoDB(object):
         if not schema:
             return self._quote(table)
         else:
-            return u'"%s"."%s"' % (self._quote(schema), self._quote(table))
+            return '"%s"."%s"' % (self._quote(schema), self._quote(table))
 
 
 def get_connection_name():
@@ -977,7 +980,6 @@ def get_connection_name():
 
 # For debugging / testing
 if __name__ == "__main__":
-
     db = GeoDB(host="localhost", dbname="gis", user="gisak", passwd="g")
     print(db.list_schemas())
     print("==========")
