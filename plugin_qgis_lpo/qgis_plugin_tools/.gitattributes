@@ -1,0 +1,10 @@
+.gitattributes export-ignore
+.gitignore export-ignore
+.github export-ignore
+README.md export-ignore
+infrastructure/plugin_maker.py export-ignore
+infrastructure/creator.py export-ignore
+infrastructure/plugin_creator.py export-ignore
+infrastructure/template export-ignore
+testing export-ignore
+docs export-ignore
