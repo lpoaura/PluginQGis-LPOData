@@ -58,9 +58,7 @@ class SummaryMap(BaseProcessingAlgorithm):
         self._display_name = "Carte de synthèse"
         self._group_id = "Map"
         self._group = "Cartes"
-        self._short_help_string = "Short help string"
-        self._icon = None
-        self._short_description = """<font style="font-size:18px"><b>Besoin d'aide ?</b> Vous pouvez vous référer au <b>Wiki</b> accessible sur ce lien : <a href="https://github.com/lpoaura/PluginQGis-LPOData/wiki" target="_blank">https://github.com/lpoaura/PluginQGis-LPOData/wiki</a>.</font><br/><br/>
+        self._short_help_string = """<font style="font-size:18px"><b>Besoin d'aide ?</b> Vous pouvez vous référer au <b>Wiki</b> accessible sur ce lien : <a href="https://github.com/lpoaura/PluginQGis-LPOData/wiki" target="_blank">https://github.com/lpoaura/PluginQGis-LPOData/wiki</a>.</font><br/><br/>
             Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données LPO, de générer une <b>carte de synthèse</b> (couche PostGIS de type polygones) par maille ou par commune (au choix) basée sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones). <b style='color:#952132'>Les données d'absence sont exclues de ce traitement.</b><br/><br/>
             <b>Pour chaque entité géographique</b>, la table attributaire de la nouvelle couche fournit les informations suivantes :
             <ul><li>Code de l'entité</li>
@@ -74,6 +72,8 @@ class SummaryMap(BaseProcessingAlgorithm):
             <li>Liste des espèces observées</li></ul><br/>
             Vous pouvez ensuite modifier la <b>symbologie</b> de la couche comme bon vous semble, en fonction du critère de votre choix.<br/><br/>
             <font style='color:#0a84db'><u>IMPORTANT</u> : Les <b>étapes indispensables</b> sont marquées d'une <b>étoile *</b> avant leur numéro. Prenez le temps de lire <u>attentivement</u> les instructions pour chaque étape, et particulièrement les</font> <font style ='color:#952132'>informations en rouge</font> <font style='color:#0a84db'>!</font>"""
+        self._icon = "map.png"
+        self._short_description = ""
         self._is_map_layer = True
         self._query = """/*set random_page_cost to 4;*/
 WITH prep AS (SELECT la.id_area, ((st_area(la.geom))::DECIMAL / 1000000) area_surface
@@ -84,13 +84,13 @@ WITH prep AS (SELECT la.id_area, ((st_area(la.geom))::DECIMAL / 1000000) area_su
      data AS (SELECT row_number() OVER ()   AS id,
                      la.id_area,
                      round(area_surface, 2) AS "Surface (km2)",
-                     count(*) FILTER (WHERE {where_filter}) AS "Nb de données",
-                            ROUND(COUNT(*) / ROUND(area_surface, 2), 2) AS "Densité (Nb de données/km2)",
-                            COUNT(DISTINCT cd_ref) FILTER (WHERE id_rang='ES') AS "Nb d'espèces",
-                            COUNT(DISTINCT observateur)  AS "Nb d'observateurs",
-                            COUNT(DISTINCT DATE) AS "Nb de dates",
-                            COUNT(DISTINCT obs.id_synthese) FILTER (WHERE mortalite) AS "Nb de données de mortalité",
-                            string_agg(DISTINCT obs.nom_vern,', ') FILTER (WHERE id_rang='ES') AS "Liste des espèces observées"
+                     count(*) AS "Nb de données",
+                     ROUND(COUNT(*) / ROUND(area_surface, 2), 2) AS "Densité (Nb de données/km2)",
+                     COUNT(DISTINCT cd_ref) FILTER (WHERE id_rang='ES') AS "Nb d'espèces",
+                     COUNT(DISTINCT observateur)  AS "Nb d'observateurs",
+                     COUNT(DISTINCT DATE) AS "Nb de dates",
+                     COUNT(DISTINCT obs.id_synthese) FILTER (WHERE mortalite) AS "Nb de données de mortalité",
+                     string_agg(DISTINCT obs.nom_vern,', ') FILTER (WHERE id_rang='ES') AS "Liste des espèces observées"
 FROM prep la
     LEFT JOIN gn_synthese.cor_area_synthese cor
 ON la.id_area=cor.id_area

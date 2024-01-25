@@ -79,7 +79,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         self._group = "Cartes"
         self._short_help_string = ""
         self._short_description = ""
-        self._icon = None
+        self._icon: str
 
         # processAlgorithm settings
         self._is_map_layer = False
@@ -128,7 +128,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         return QCoreApplication.translate("Processing", string)
 
     def createInstance(self):  # noqa N802
-        return ProcessingAlgorithm()
+        return QgsProcessingAlgorithm()
 
     def name(self) -> str:
         """
@@ -163,6 +163,10 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         should be localised.
         """
         return self.tr(self._group)
+
+    def icon(self) -> QIcon:
+        """Icon script"""
+        return QIcon(os.path.join(plugin_path, os.pardir, "icons", self._icon))
 
     def shortHelpString(self) -> str:  # noqa N802
         """
@@ -440,8 +444,8 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             self._uri.setDataSource("", f"({self._query})", "geom", "", "id")
 
         self._layer = QgsVectorLayer(self._uri.uri(), self._format_name, "postgres")
-        check_layer_is_valid(feedback, self._layer_map)
-        load_layer(context, self._layer_map)
+        check_layer_is_valid(feedback, self._layer)
+        load_layer(context, self._layer)
 
         if self._is_map_layer:
             new_fields = format_layer_export(self._layer)
