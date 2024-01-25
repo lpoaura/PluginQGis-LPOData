@@ -35,7 +35,6 @@ from qgis.PyQt.QtCore import QCoreApplication
 from qgis.PyQt.QtGui import QIcon
 from qgis.utils import iface
 
-from ..commons.generics import BaseQgsProcessingAlgorithm
 from ..commons.helpers import (
     check_layer_is_valid,
     construct_queries_list,
@@ -46,6 +45,7 @@ from ..commons.helpers import (
     load_layer,
     simplify_name,
 )
+from .processing_algorithm import BaseProcessingAlgorithm
 
 # from processing.tools import postgis
 from .qgis_processing_postgis import uri_from_name
@@ -53,7 +53,7 @@ from .qgis_processing_postgis import uri_from_name
 plugin_path = os.path.dirname(__file__)
 
 
-class SummaryTablePerSpecies(BaseQgsProcessingAlgorithm):
+class SummaryTablePerSpecies(BaseProcessingAlgorithm):
     """
     This algorithm takes a connection to a data base and a vector polygons layer and
     returns a summary non geometric PostGIS layer.

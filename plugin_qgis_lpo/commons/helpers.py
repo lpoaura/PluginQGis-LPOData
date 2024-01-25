@@ -23,6 +23,7 @@ __copyright__ = "(C) Collectif (LPO AuRA)"
 
 # This will get replaced with a git SHA1 when you do a git archive
 __revision__ = "$Format:%H$"
+from typing import Dict, Optional
 
 import processing
 from qgis.core import QgsField, QgsMessageLog, QgsProcessingException, QgsWkbTypes
@@ -104,20 +105,18 @@ def construct_queries_list(table_name, main_query):
     return queries
 
 
-def construct_sql_taxons_filter(taxons_dict):
+def construct_sql_taxons_filter(taxons_dict: Dict) -> Optional[str]:
     """
     Construct the sql "where" clause with taxons filters.
     """
     rank_filters = []
     for key, value in taxons_dict.items():
-        if len(value) > 0:
-            if len(value) == 1:
-                rank_filters.append(f"{key} = '{value[0]}'")
-            else:
-                rank_filters.append(f"{key} in {str(tuple(value))}")
+        if value:
+            rank_filters.append(f"{key} in {str(tuple(value))}")
     if len(rank_filters) > 0:
         taxons_where = f"({' or '.join(rank_filters)})"
         return taxons_where
+    return None
 
 
 def construct_sql_source_filter(source_dict):

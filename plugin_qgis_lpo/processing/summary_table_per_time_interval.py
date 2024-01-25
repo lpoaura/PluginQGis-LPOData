@@ -53,6 +53,7 @@ from ..commons.helpers import (
     load_layer,
     simplify_name,
 )
+from .processing_algorithm import BaseProcessingAlgorithm
 
 # from processing.tools import postgis
 from .qgis_processing_postgis import uri_from_name
@@ -60,7 +61,7 @@ from .qgis_processing_postgis import uri_from_name
 plugin_path = os.path.dirname(__file__)
 
 
-class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
+class SummaryTablePerTimeInterval(BaseProcessingAlgorithm):
     """
     This algorithm takes a connection to a data base and a vector polygons layer and
     returns a summary non geometric PostGIS layer.
@@ -615,7 +616,7 @@ class SummaryTablePerTimeInterval(QgsProcessingAlgorithm):
             LEFT JOIN taxonomie.bib_taxref_rangs r ON obs.id_rang = r.id_rang
             WHERE {where}
             GROUP BY {group_by_species}groupe_taxo
-            ORDER BY groupe_taxo{ ", obs.nom_vern" if taxonomic_rank == 'Espèces' else ""}"""
+            ORDER BY groupe_taxo{ ", obs.nom_vern" if taxonomic_rank == 'Espèces' else ''}"""
         # feedback.pushInfo(query)
         # Retrieve the boolean add_table
         add_table = self.parameterAsBool(parameters, self.ADD_TABLE, context)

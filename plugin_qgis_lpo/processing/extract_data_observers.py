@@ -356,54 +356,8 @@ class ExtractDataObservers(QgsProcessingAlgorithm):
         """
         Here is where the processing itself takes place.
         """
-
-        ### RETRIEVE PARAMETERS ###
-        # Retrieve the input vector layer = study area
-        study_area = self.parameterAsSource(parameters, self.STUDY_AREA, context)
-        # Retrieve the output PostGIS layer name and format it
-        layer_name = self.parameterAsString(parameters, self.OUTPUT_NAME, context)
-        ts = datetime.now()
-        format_name = f"{layer_name} {str(ts.strftime('%Y%m%d_%H%M%S'))}"
-        # Retrieve the taxons filters
-        groupe_taxo = [
-            self.db_variables.value("groupe_taxo")[i]
-            for i in (self.parameterAsEnums(parameters, self.GROUPE_TAXO, context))
-        ]
-        regne = [
-            self.db_variables.value("regne")[i]
-            for i in (self.parameterAsEnums(parameters, self.REGNE, context))
-        ]
-        phylum = [
-            self.db_variables.value("phylum")[i]
-            for i in (self.parameterAsEnums(parameters, self.PHYLUM, context))
-        ]
-        classe = [
-            self.db_variables.value("classe")[i]
-            for i in (self.parameterAsEnums(parameters, self.CLASSE, context))
-        ]
-        ordre = [
-            self.db_variables.value("ordre")[i]
-            for i in (self.parameterAsEnums(parameters, self.ORDRE, context))
-        ]
-        famille = [
-            self.db_variables.value("famille")[i]
-            for i in (self.parameterAsEnums(parameters, self.FAMILLE, context))
-        ]
-        group1_inpn = [
-            self.db_variables.value("group1_inpn")[i]
-            for i in (self.parameterAsEnums(parameters, self.GROUP1_INPN, context))
-        ]
-        group2_inpn = [
-            self.db_variables.value("group2_inpn")[i]
-            for i in (self.parameterAsEnums(parameters, self.GROUP2_INPN, context))
-        ]
-        # Retrieve the datetime filter
-        period_type = self.period_variables[
-            self.parameterAsEnum(parameters, self.PERIOD, context)
-        ]
+        super().processAlgorithm(parameters, context, feedback)
         # Retrieve the extra "where" conditions
-        extra_where = self.parameterAsString(parameters, self.EXTRA_WHERE, context)
-
         # Retrieve the source
         source_data_where = [
             self.data_source[i]
@@ -424,17 +378,6 @@ class ExtractDataObservers(QgsProcessingAlgorithm):
         # Define the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer = biodiversity data
         where = f"is_valid and ST_within(geom, ST_union({array_polygons}))"
         # Define a dictionnary with the aggregated taxons filters and complete the "where" clause thanks to it
-        taxons_filters = {
-            "groupe_taxo": groupe_taxo,
-            "regne": regne,
-            "phylum": phylum,
-            "classe": classe,
-            "ordre": ordre,
-            "famille": famille,
-            "obs.group1_inpn": group1_inpn,
-            "obs.group2_inpn": group2_inpn,
-        }
-        taxons_where = construct_sql_taxons_filter(taxons_filters)
         where += taxons_where
         # Complete the "where" clause with the datetime filter
         datetime_where = construct_sql_datetime_filter(
