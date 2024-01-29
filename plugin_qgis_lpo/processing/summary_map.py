@@ -16,38 +16,12 @@
  *                                                                         *
  ***************************************************************************/
 """
-import json
-import os
-from datetime import datetime
 from typing import Dict
 
-from qgis.core import QgsMessageLog  # QgsProcessingParameterDefinition,
-from qgis.core import QgsProcessingParameterEnum, QgsVectorLayer
-from qgis.PyQt.QtCore import QCoreApplication
-from qgis.PyQt.QtGui import QIcon
-from qgis.utils import iface
-
-from ..commons.helpers import (
-    check_layer_is_valid,
-    construct_queries_list,
-    construct_sql_array_polygons,
-    construct_sql_datetime_filter,
-    construct_sql_taxons_filter,
-    execute_sql_queries,
-    format_layer_export,
-    load_layer,
-    simplify_name,
-)
 from .processing_algorithm import BaseProcessingAlgorithm
-
-# from processing.tools import postgis
-from .qgis_processing_postgis import uri_from_name
-
-plugin_path = os.path.dirname(__file__)
 
 
 class SummaryMap(BaseProcessingAlgorithm):
-    layer_map = None
     return_geo_agg = True
 
     # Constants used to refer to parameters and outputs
@@ -112,16 +86,6 @@ SELECT data.id
 FROM data
          JOIN ref_geo.l_areas la ON data.id_area = la.id_area
 ORDER BY area_code"""
-
-    def postProcessAlgorithm(self, _context, _feedback) -> Dict:  # noqa N802
-        # Open the attribute table of the PostGIS layer
-        iface.showAttributeTable(self.layer_map)
-        iface.setActiveLayer(self.layer_map)
-
-        return {}
-
-    def tr(self, string: str) -> str:
-        return QCoreApplication.translate("Processing", string)
 
     def createInstance(self):  # noqa N802
         return SummaryMap()

@@ -6,9 +6,11 @@ import os
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+import matplotlib.pyplot as plt
 from qgis.core import (
     QgsAction,
     QgsDataSourceUri,
+    QgsMessageLog,
     QgsProcessing,
     QgsProcessingAlgorithm,
     QgsProcessingContext,
@@ -18,6 +20,7 @@ from qgis.core import (
     QgsProcessingParameterEnum,
     QgsProcessingParameterFeatureSink,
     QgsProcessingParameterFeatureSource,
+    QgsProcessingParameterFileDestination,
     QgsProcessingParameterProviderConnection,
     QgsProcessingParameterString,
     QgsSettings,
@@ -25,6 +28,7 @@ from qgis.core import (
 )
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.PyQt.QtGui import QIcon
+from qgis.utils import iface
 
 from ..commons.helpers import (
     check_layer_is_valid,
@@ -52,22 +56,32 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
 
     DATABASE = "DATABASE"
     STUDY_AREA = "STUDY_AREA"
+    TAXONOMIC_RANK = "TAXONOMIC_RANK"
     AREAS_TYPE = "AREAS_TYPE"
     GROUPE_TAXO = "GROUPE_TAXO"
-    REGNE = "REGNE"
-    PHYLUM = "PHYLUM"
-    CLASSE = "CLASSE"
-    ORDRE = "ORDRE"
-    FAMILLE = "FAMILLE"
-    GROUP1_INPN = "GROUP1_INPN"
-    GROUP2_INPN = "GROUP2_INPN"
+    # REGNE = "REGNE"
+    # PHYLUM = "PHYLUM"
+    # CLASSE = "CLASSE"
+    # ORDRE = "ORDRE"
+    # FAMILLE = "FAMILLE"
+    # GROUP1_INPN = "GROUP1_INPN"
+    # GROUP2_INPN = "GROUP2_INPN"
     PERIOD = "PERIOD"
     START_DATE = "START_DATE"
     END_DATE = "END_DATE"
+    TIME_INTERVAL = "TIME_INTERVAL"
+    ADD_FIVE_YEARS = "ADD_FIVE_YEARS"
+    TEST = "TEST"
+    START_MONTH = "START_MONTH"
+    START_YEAR = "START_YEAR"
+    END_MONTH = "END_MONTH"
+    END_YEAR = "END_YEAR"
     EXTRA_WHERE = "EXTRA_WHERE"
     OUTPUT = "OUTPUT"
     OUTPUT_NAME = "OUTPUT_NAME"
     ADD_TABLE = "ADD_TABLE"
+    OUTPUT_HISTOGRAM = "OUTPUT_HISTOGRAM"
+    HISTOGRAM_OPTIONS = "HISTOGRAM_OPTIONS"
 
     def __init__(self) -> None:
         super().__init__()
@@ -84,6 +98,9 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         # processAlgorithm settings
         self._is_map_layer = False
         self._is_table_layer = False
+        self._has_time_interval_form = False
+        self._has_histogram_form = False
+        self._has_taxonomic_rank_form = False
         self._query = ""
         self._return_geo_agg: bool = False
         self._db_variables = QgsSettings()
@@ -106,6 +123,19 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             "Cette année",
             "Date de début - Date de fin (à définir ci-dessous)",
         ]
+        self._histogram_variables: List[str] = []
+        self._taxonomic_ranks = {
+            "groupe_taxo": "Groupe taxo",
+            "regne": "Règne",
+            "phylum": "Phylum",
+            "classe": "Classe",
+            "ordre": "Ordre",
+            "famille": "Famille",
+            "obs.group1_inpn": "Groupe 1 INPN",
+            "obs.group2_inpn": "Groupe 2 INPN",
+        }
+        self._taxonomic_ranks_labels: List[str]
+        self._taxonomic_ranks_db: List[str]
         self._groupe_taxo: List[str] = []
         self._output_name = "output"
         self._study_area = None
@@ -116,19 +146,17 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         self._taxons_filters: Dict[str, List[str]] = {}
         self._is_data_extraction: bool = False
         self._filters: List[str] = []
-        self._period_type: List[str] = []
+        self._period_type: str
         self._extra_where: Optional[str] = None
         self._geographic_where_clause: Optional[str] = None
         self._uri: QgsDataSourceUri
 
     def tr(self, string: str) -> str:
-        """
-        Returns a translatable string with the self.tr() function.
-        """
+        """QgsProcessingAlgorithm translatable string with the self.tr() function."""
         return QCoreApplication.translate("Processing", string)
 
     def createInstance(self):  # noqa N802
-        return QgsProcessingAlgorithm()
+        return BaseProcessingAlgorithm()
 
     def name(self) -> str:
         """
@@ -185,32 +213,102 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         with some other properties.
         """
         super().initAlgorithm(_config)
+        item_pos = 0
         # self._ts = datetime.now()
         # self._db_variables = QgsSettings()
-
+        item_pos += 1
         self.addParameter(
             QgsProcessingParameterProviderConnection(
                 self.DATABASE,
                 self.tr(
-                    """<b style="color:#0a84db">CONNEXION À LA BASE DE DONNÉES</b><br/>
-                    <b>*1/</b> Sélectionnez votre <u>connexion</u> à la base de données LPO"""
+                    f"""<b style="color:#0a84db">CONNEXION À LA BASE DE DONNÉES</b><br/>
+                    <b>*{item_pos}/</b> Sélectionnez votre <u>connexion</u> à la base de données LPO"""
                 ),
                 "postgres",
                 defaultValue="geonature_lpo",
             )
         )
-
+        item_pos += 1
         # Input vector layer = study area
         self.addParameter(
             QgsProcessingParameterFeatureSource(
                 self.STUDY_AREA,
                 self.tr(
-                    """<b style="color:#0a84db">ZONE D'ÉTUDE</b><br/>
-                    <b>*2/</b> Sélectionnez votre <u>zone d'étude</u>, à partir de laquelle seront extraits les résultats"""
+                    f"""<b style="color:#0a84db">ZONE D'ÉTUDE</b><br/>
+                    <b>*{item_pos}/</b> Sélectionnez votre <u>zone d'étude</u>, à partir de laquelle seront extraits les résultats"""
                 ),
                 [QgsProcessing.TypeVectorPolygon],
             )
         )
+
+        if self._has_taxonomic_rank_form and self._taxonomic_ranks:
+            item_pos += 1
+            self._taxonomic_ranks_labels = [
+                value for key, value in self._taxonomic_ranks.items()
+            ]
+            taxonomic_rank = QgsProcessingParameterEnum(
+                self.TAXONOMIC_RANK,
+                self.tr(
+                    f"""<b style="color:#0a84db">RANG TAXONOMIQUE</b><br/>
+                    <b>*{item_pos}/</b> Sélectionnez le <u>rang taxonomique</u> qui vous intéresse"""
+                ),
+                self._taxonomic_ranks_labels,
+                allowMultiple=False,
+            )
+            taxonomic_rank.setMetadata(
+                {
+                    "widget_wrapper": {
+                        "useCheckBoxes": True,
+                        "columns": len(self._taxonomic_ranks_labels) / 2,
+                    }
+                }
+            )
+            self.addParameter(taxonomic_rank)
+
+        if self._has_time_interval_form:
+            item_pos += 1
+            ### Time interval and period ###
+            time_interval = QgsProcessingParameterEnum(
+                self.TIME_INTERVAL,
+                self.tr(
+                    f"""<b style="color:#0a84db">AGRÉGATION TEMPORELLE ET PÉRIODE</b><br/>
+                    <b>*{item_pos}/</b> Sélectionnez l'<u>agrégation temporelle</u> qui vous intéresse"""
+                ),
+                self.interval_variables,
+                allowMultiple=False,
+            )
+            time_interval.setMetadata(
+                {
+                    "widget_wrapper": {
+                        "useCheckBoxes": True,
+                        "columns": len(self.interval_variables),
+                    }
+                }
+            )
+            self.addParameter(time_interval)
+
+        else:
+            item_pos += 1
+            period_type = QgsProcessingParameterEnum(
+                self.PERIOD,
+                self.tr(
+                    f"""<b style="color:#0a84db">PÉRIODE</b><br/>
+                    <b>*{item_pos}/</b> Sélectionnez une <u>période</u> pour filtrer vos données d'observations"""
+                ),
+                self._period_variables,
+                allowMultiple=False,
+                optional=False,
+            )
+            period_type.setMetadata(
+                {
+                    "widget_wrapper": {
+                        "useCheckBoxes": True,
+                        "columns": len(self._period_variables) / 2,
+                    }
+                }
+            )
+            self.addParameter(period_type)
+
         ### Taxons filters ###
         self.addParameter(
             QgsProcessingParameterEnum(
@@ -225,24 +323,6 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
                 optional=True,
             )
         )
-        period_type = QgsProcessingParameterEnum(
-            self.PERIOD,
-            self.tr(
-                "<b>*5/</b> Sélectionnez une <u>période</u> pour filtrer vos données d'observations"
-            ),
-            self._period_variables,
-            allowMultiple=False,
-            optional=False,
-        )
-        period_type.setMetadata(
-            {
-                "widget_wrapper": {
-                    "useCheckBoxes": True,
-                    "columns": len(self._period_variables) / 2,
-                }
-            }
-        )
-        self.addParameter(period_type)
 
         start_date = QgsProcessingParameterString(
             self.START_DATE,
@@ -298,6 +378,38 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
                 createByDefault=False,
             )
         )
+
+        if self._has_histogram_form:
+            add_histogram = QgsProcessingParameterEnum(
+                self.ADD_HISTOGRAM,
+                self.tr(
+                    """<b>10/</b> Cochez la case ci-dessous si vous souhaitez <u>exporter</u> les résultats sous la forme d'un <u>histogramme</u> du total par<br/> pas de temps choisi."""
+                ),
+                [
+                    "Oui, je souhaite exporter les résultats sous la forme d'un histogramme du total par pas de temps choisi"
+                ],
+                allowMultiple=True,
+                optional=True,
+            )
+            add_histogram.setMetadata(
+                {"widget_wrapper": {"useCheckBoxes": True, "columns": 1}}
+            )
+            self.addParameter(add_histogram)
+
+            self.addParameter(
+                QgsProcessingParameterFileDestination(
+                    self.OUTPUT_HISTOGRAM,
+                    self.tr(
+                        """<b style="color:#0a84db">ENREGISTREMENT DES RESULTATS</b><br/>
+                    <b>11/</b> <u style="color:#952132">Si (et seulement si !)</u> vous avez sélectionné l'export sous forme d'<u>histogramme</u>, veuillez renseigner un emplacement<br/> pour l'enregistrer sur votre ordinateur (au format image). <u>Dans le cas contraire</u>, vous pouvez ignorer cette étape.<br/>
+                    <font style='color:#06497a'><u>Aide</u> : Cliquez sur le bouton [...] puis sur 'Enregistrer vers un fichier...'</font>"""
+                    ),
+                    self.tr("image PNG (*.png)"),
+                    optional=True,
+                    createByDefault=False,
+                )
+            )
+
         # Extra "where" conditions
         extra_where = QgsProcessingParameterString(
             self.EXTRA_WHERE,
@@ -406,6 +518,8 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         # self._filters.append(
         #     f"ST_Intersects(la.geom, ST_union({construct_sql_array_polygons(self._study_area)})"
         # )
+        if self._study_area:
+            self._array_polygons = construct_sql_array_polygons(self._study_area)
         if not self._is_data_extraction:
             self._filters += ["is_present", "is_valid"]
         taxon_filters = construct_sql_taxons_filter(self._taxons_filters)
@@ -429,7 +543,8 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             array_polygons=self._array_polygons,
             where_filters=" AND ".join(self._filters),
         )
-
+        QgsMessageLog.logMessage(query)
+        geom_field = "geom" if self._is_map_layer else None
         if self._add_table:
             # Define the name of the PostGIS summary table which will be created in the DB
             table_name = simplify_name(self._format_name)
@@ -438,10 +553,10 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             # Execute the SQL queries
             execute_sql_queries(context, feedback, self._connection, queries)
             # Format the URI
-            self._uri.setDataSource(None, table_name, "geom", "", "id")
+            self._uri.setDataSource(None, table_name, geom_field, "", "id")
         else:
             # Format the URI with the query
-            self._uri.setDataSource("", f"({self._query})", "geom", "", "id")
+            self._uri.setDataSource("", f"({query})", geom_field, "", "id")
 
         self._layer = QgsVectorLayer(self._uri.uri(), self._format_name, "postgres")
         check_layer_is_valid(feedback, self._layer)
@@ -482,7 +597,9 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
                 return {self.OUTPUT: dest_id}
         else:
             with open(
-                os.path.join(plugin_path, "helpers", "csv_formatter.py"),
+                os.path.join(
+                    plugin_path, os.pardir, "action_scripts", "csv_formatter.py"
+                ),
                 "r",
                 encoding="utf-8",
             ) as file:
@@ -491,20 +608,24 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
                 QgsAction.GenericPython,
                 "Exporter la couche sous format Excel dans mon dossier utilisateur avec la mise en forme adaptée",
                 action_code,
-                os.path.join(plugin_path, "icons", "excel.png"),
+                os.path.join(plugin_path, os.pardir, "icons", "excel.png"),
                 False,
                 "Exporter sous format Excel",
                 {"Layer"},
             )
             self._layer.actions().addAction(action)
             # JOKE
-            with open(os.path.join(plugin_path, "joke.py"), "r") as file:
+            with open(
+                os.path.join(plugin_path, os.pardir, "action_scripts", "joke.py"),
+                "r",
+                encoding="utf-8",
+            ) as file:
                 joke_action_code = file.read()
             joke_action = QgsAction(
                 QgsAction.GenericPython,
                 "Rédiger mon rapport",
                 joke_action_code,
-                os.path.join(plugin_path, "icons", "logo_LPO.png"),
+                os.path.join(plugin_path, os.pardir, "icons", "word.png"),
                 False,
                 "Rédiger mon rapport",
                 {"Layer"},
@@ -512,3 +633,47 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             self._layer.actions().addAction(joke_action)
 
             return {self.OUTPUT: self._layer.id()}
+
+    def postProcessAlgorithm(self, _context, _feedback) -> Dict:  # noqa N802
+        # Open the attribute table of the PostGIS layer
+        iface.showAttributeTable(self._layer)
+        iface.setActiveLayer(self._layer)
+
+        return {}
+
+    def histogram_builder(self, layer, histogram_option):
+        plt.close()
+        x_var = [
+            (
+                feature[taxonomic_rank_label]
+                if feature[taxonomic_rank_label] != "Pas de correspondance taxref"
+                else "Aucune correspondance"
+            )
+            for feature in self.layer_summary.getFeatures()
+        ]
+        y_var = [
+            int(feature[histogram_option])
+            for feature in self.layer_summary.getFeatures()
+        ]
+        if len(x_var) <= 20:
+            plt.subplots_adjust(bottom=0.5)
+        elif len(x_var) <= 80:
+            plt.figure(figsize=(20, 8))
+            plt.subplots_adjust(bottom=0.3, left=0.05, right=0.95)
+        else:
+            plt.figure(figsize=(40, 16))
+            plt.subplots_adjust(bottom=0.2, left=0.03, right=0.97)
+        plt.bar(range(len(x_var)), y_var, tick_label=x_var)
+        plt.xticks(rotation="vertical")
+        plt.xlabel(
+            self.taxonomic_ranks_variables[
+                self.parameterAsEnum(parameters, self.TAXONOMIC_RANK, context)
+            ]
+        )
+        plt.ylabel(histogram_option.replace("Nb", "Nombre"))
+        plt.title(
+            f'{histogram_option.replace("Nb", "Nombre")} par {taxonomic_rank_label[0].lower() + taxonomic_rank_label[1:].replace("taxo", "taxonomique")}'
+        )
+        if output_histogram[-4:] != ".png":
+            output_histogram += ".png"
+        plt.savefig(output_histogram)

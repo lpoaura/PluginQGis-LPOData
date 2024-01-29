@@ -190,9 +190,11 @@ set_border(ws, "A1:Z3275")
 
 # Sauvegarde du fichier
 path = f"{os.path.expanduser('~')}/QGIS_exports"
-if os.path.exists(path) == False:
+if not os.path.exists(path):
     os.mkdir(path)
+
 wb.save(f"{path}/{layer.name()}.xlsx")
+
 webbrowser.open(os.path.realpath(path))
-successDialog = SuccessDialog()
-successDialog.show()
+success_dialog = SuccessDialog()
+success_dialog.show()

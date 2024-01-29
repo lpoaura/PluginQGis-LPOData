@@ -94,7 +94,7 @@ class SummaryTablePerSpecies(BaseProcessingAlgorithm):
             <li>Nombre de dates</li>
             <li>Nombre de données de mortalité</li>
             <li>LR France</li>
-            <li>LR Rhône-Alpes</li>
+            <li>LR régionale(s)</li>
             <li>LR Auvergne</li>
             <li>Directive Habitats</li>
             <li>Directive Oiseaux</li>

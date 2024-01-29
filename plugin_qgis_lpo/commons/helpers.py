@@ -17,14 +17,11 @@
  ***************************************************************************/
 """
 
-__author__ = "Collectif (LPO AuRA)"
-__date__ = ""
-__copyright__ = "(C) Collectif (LPO AuRA)"
 
-# This will get replaced with a git SHA1 when you do a git archive
-__revision__ = "$Format:%H$"
+from datetime import datetime
 from typing import Dict, Optional
 
+import matplotlib.pyplot as plt
 import processing
 from qgis.core import QgsField, QgsMessageLog, QgsProcessingException, QgsWkbTypes
 from qgis.PyQt.QtCore import QVariant
@@ -119,7 +116,7 @@ def construct_sql_taxons_filter(taxons_dict: Dict) -> Optional[str]:
     return None
 
 
-def construct_sql_source_filter(source_dict):
+def construct_sql_source_filter(source_dict: Dict) -> Optional[str]:
     """
     Construct the sql "where" clause with source filters.
     """
@@ -136,11 +133,10 @@ def construct_sql_source_filter(source_dict):
             if value == source_dict[len(source_dict) - 1]:
                 source_where += source_where_suite + "]))"
                 return source_where
-        else:
-            return ""
+    return None
 
 
-def construct_sql_geom_type_filter(source_dict):
+def construct_sql_geom_type_filter(source_dict: Dict) -> str:
     """
     Construct the sql "where" clause with source filters.
     """
@@ -160,8 +156,8 @@ def construct_sql_geom_type_filter(source_dict):
 
 
 def construct_sql_datetime_filter(
-    self, period_type_filter, timestamp, parameters, context
-):
+    self, period_type_filter: str, timestamp: datetime, parameters, context
+) -> Optional[str]:
     """
     Construct the sql "where" clause with the datetime filter.
     """
