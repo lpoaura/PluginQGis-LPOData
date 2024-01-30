@@ -14,6 +14,7 @@ from qgis.core import (
     QgsProcessing,
     QgsProcessingAlgorithm,
     QgsProcessingContext,
+    QgsProcessingException,
     QgsProcessingFeedback,
     QgsProcessingParameterBoolean,
     QgsProcessingParameterDefinition,
@@ -81,6 +82,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
     OUTPUT_NAME = "OUTPUT_NAME"
     ADD_TABLE = "ADD_TABLE"
     OUTPUT_HISTOGRAM = "OUTPUT_HISTOGRAM"
+    ADD_HISTOGRAM = "ADD_HISTOGRAM"
     HISTOGRAM_OPTIONS = "HISTOGRAM_OPTIONS"
 
     def __init__(self) -> None:
@@ -101,6 +103,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         self._has_time_interval_form = False
         self._has_histogram_form = False
         self._has_taxonomic_rank_form = False
+        self._export_output = False
         self._query = ""
         self._return_geo_agg: bool = False
         self._db_variables = QgsSettings()
@@ -136,6 +139,9 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         }
         self._taxonomic_ranks_labels: List[str]
         self._taxonomic_ranks_db: List[str]
+        self._taxonomic_rank_label: str = "Groupe taxo"
+        self._taxonomic_rank_db: str = "groupe_taxo"
+        self._histogram_option: str
         self._groupe_taxo: List[str] = []
         self._output_name = "output"
         self._study_area = None
@@ -156,7 +162,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         return QCoreApplication.translate("Processing", string)
 
     def createInstance(self):  # noqa N802
-        return BaseProcessingAlgorithm()
+        return type(self)()
 
     def name(self) -> str:
         """
@@ -213,6 +219,9 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         with some other properties.
         """
         super().initAlgorithm(_config)
+
+        required_text = '<span style="color:#952132">(requis)</span>'
+        optional_text = "(facultatif)"
         item_pos = 0
         # self._ts = datetime.now()
         # self._db_variables = QgsSettings()
@@ -221,11 +230,12 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterProviderConnection(
                 self.DATABASE,
                 self.tr(
-                    f"""<b style="color:#0a84db">CONNEXION À LA BASE DE DONNÉES</b><br/>
+                    f"""<b style="color:#0a84db">BASE DE DONNÉES</b> {required_text}<br/>
                     <b>*{item_pos}/</b> Sélectionnez votre <u>connexion</u> à la base de données LPO"""
                 ),
                 "postgres",
                 defaultValue="geonature_lpo",
+                optional=False,
             )
         )
         item_pos += 1
@@ -234,40 +244,43 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterFeatureSource(
                 self.STUDY_AREA,
                 self.tr(
-                    f"""<b style="color:#0a84db">ZONE D'ÉTUDE</b><br/>
+                    f"""<b style="color:#0a84db">ZONE D'ÉTUDE</b> {required_text}<br/>
                     <b>*{item_pos}/</b> Sélectionnez votre <u>zone d'étude</u>, à partir de laquelle seront extraits les résultats"""
                 ),
                 [QgsProcessing.TypeVectorPolygon],
             )
         )
 
-        if self._has_taxonomic_rank_form and self._taxonomic_ranks:
-            item_pos += 1
-            self._taxonomic_ranks_labels = [
-                value for key, value in self._taxonomic_ranks.items()
-            ]
-            taxonomic_rank = QgsProcessingParameterEnum(
-                self.TAXONOMIC_RANK,
-                self.tr(
-                    f"""<b style="color:#0a84db">RANG TAXONOMIQUE</b><br/>
-                    <b>*{item_pos}/</b> Sélectionnez le <u>rang taxonomique</u> qui vous intéresse"""
-                ),
-                self._taxonomic_ranks_labels,
-                allowMultiple=False,
-            )
-            taxonomic_rank.setMetadata(
-                {
-                    "widget_wrapper": {
-                        "useCheckBoxes": True,
-                        "columns": len(self._taxonomic_ranks_labels) / 2,
-                    }
-                }
-            )
-            self.addParameter(taxonomic_rank)
+        # if self._has_taxonomic_rank_form and self._taxonomic_ranks:
+        #     item_pos += 1
+        #     self._taxonomic_ranks_labels = [
+        #         value for _key, value in self._taxonomic_ranks.items()
+        #     ]
+        #     self._taxonomic_ranks_db = [
+        #         key for key, _value in self._taxonomic_ranks.items()
+        #     ]
+        #     taxonomic_rank = QgsProcessingParameterEnum(
+        #         self.TAXONOMIC_RANK,
+        #         self.tr(
+        #             f"""<b style="color:#0a84db">RANG TAXONOMIQUE</b><br/>
+        #             <b>*{item_pos}/</b> Sélectionnez le <u>rang taxonomique</u> qui vous intéresse"""
+        #         ),
+        #         self._taxonomic_ranks_labels,
+        #         allowMultiple=False,
+        #     )
+        #     taxonomic_rank.setMetadata(
+        #         {
+        #             "widget_wrapper": {
+        #                 "useCheckBoxes": True,
+        #                 "columns": len(self._taxonomic_ranks_labels) / 2,
+        #             }
+        #         }
+        #     )
+        #     self.addParameter(taxonomic_rank)
 
         if self._has_time_interval_form:
             item_pos += 1
-            ### Time interval and period ###
+            # ## Time interval and period ###
             time_interval = QgsProcessingParameterEnum(
                 self.TIME_INTERVAL,
                 self.tr(
@@ -287,42 +300,26 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             )
             self.addParameter(time_interval)
 
-        else:
-            item_pos += 1
-            period_type = QgsProcessingParameterEnum(
-                self.PERIOD,
-                self.tr(
-                    f"""<b style="color:#0a84db">PÉRIODE</b><br/>
+        item_pos += 1
+        period_type = QgsProcessingParameterEnum(
+            self.PERIOD,
+            self.tr(
+                f"""<b style="color:#0a84db">PÉRIODE</b> {required_text}<br/>
                     <b>*{item_pos}/</b> Sélectionnez une <u>période</u> pour filtrer vos données d'observations"""
-                ),
-                self._period_variables,
-                allowMultiple=False,
-                optional=False,
-            )
-            period_type.setMetadata(
-                {
-                    "widget_wrapper": {
-                        "useCheckBoxes": True,
-                        "columns": len(self._period_variables) / 2,
-                    }
-                }
-            )
-            self.addParameter(period_type)
-
-        ### Taxons filters ###
-        self.addParameter(
-            QgsProcessingParameterEnum(
-                self.GROUPE_TAXO,
-                self.tr(
-                    """<b style="color:#0a84db">FILTRES DE REQUÊTAGE</b><br/>
-                    <b>4/</b> Si cela vous intéresse, vous pouvez sélectionner un/plusieurs <u>taxon(s)</u> dans la liste déroulante suivante (à choix multiples)<br/> pour filtrer vos données d'observations. <u>Sinon</u>, vous pouvez ignorer cette étape.<br/>
-                    - Groupes taxonomiques :"""
-                ),
-                self._db_variables.value("groupe_taxo"),
-                allowMultiple=True,
-                optional=True,
-            )
+            ),
+            self._period_variables,
+            allowMultiple=False,
+            optional=False,
         )
+        period_type.setMetadata(
+            {
+                "widget_wrapper": {
+                    "useCheckBoxes": True,
+                    "columns": len(self._period_variables) / 2,
+                }
+            }
+        )
+        self.addParameter(period_type)
 
         start_date = QgsProcessingParameterString(
             self.START_DATE,
@@ -332,7 +329,6 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         )
         start_date.setMetadata({"widget_wrapper": {"class": DateTimeWidget}})
         self.addParameter(start_date)
-
         end_date = QgsProcessingParameterString(
             self.END_DATE,
             """- Date de fin <i style="color:#952132">(nécessaire seulement si vous avez sélectionné l'option <b>Date de début - Date de fin</b>)</i> :""",
@@ -341,11 +337,27 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         end_date.setMetadata({"widget_wrapper": {"class": DateTimeWidget}})
         self.addParameter(end_date)
 
+        # ## Taxons filters ##
+        item_pos += 1
+        self.addParameter(
+            QgsProcessingParameterEnum(
+                self.GROUPE_TAXO,
+                self.tr(
+                    f"""<b style="color:#0a84db">TAXONS</b> {optional_text}<br/>
+                    <b>{item_pos}/</b> Vous pouvez sélectionner un/plusieurs <u>groupes taxonomiques</u> dans la liste déroulante suivante (choix multiples)<u>Sinon</u>, vous pouvez ignorer cette étape.<br/>
+                    - Groupes taxonomiques :"""
+                ),
+                self._db_variables.value("groupe_taxo"),
+                allowMultiple=True,
+                optional=True,
+            )
+        )
+
         self.addParameter(
             QgsProcessingParameterString(
                 self.OUTPUT_NAME,
                 self.tr(
-                    """<b style="color:#0a84db">PARAMÉTRAGE DES RESULTATS EN SORTIE</b><br/>
+                    f"""<b style="color:#0a84db">PARAMÉTRAGE DES RESULTATS EN SORTIE</b> {optional_text}<br/>
                     <b>*6/</b> Définissez un <u>nom</u> pour votre nouvelle couche PostGIS"""
                 ),
                 self.tr(self._output_name),
@@ -364,20 +376,21 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         )
 
         # Output PostGIS layer = summary map data
-        self.addParameter(
-            QgsProcessingParameterFeatureSink(
-                self.OUTPUT,
-                self.tr(
-                    """<b style="color:#DF7401">EXPORT DES RESULTATS</b><br/>
-                    <b>7/</b> Si cela vous intéresse, vous pouvez <u>exporter</u> votre nouvelle couche sur votre ordinateur. <u>Sinon</u>, vous pouvez ignorer cette étape.<br/>
-                    <u>Précisions</u> : La couche exportée est une couche figée qui n'est pas rafraîchie à chaque réouverture de QGis, contrairement à la couche PostGIS.<br/>
-                    <font style='color:#DF7401'><u>Aide</u> : Cliquez sur le bouton [...] puis sur le type d'export qui vous convient</font>"""
-                ),
-                QgsProcessing.TypeVectorPolygon,
-                optional=True,
-                createByDefault=False,
+        if self._is_map_layer:
+            self.addParameter(
+                QgsProcessingParameterFeatureSink(
+                    self.OUTPUT,
+                    self.tr(
+                        f"""<b style="color:#DF7401">EXPORT DES RESULTATS</b> {optional_text}<br/>
+                        <b>7/</b> Si cela vous intéresse, vous pouvez <u>exporter</u> votre nouvelle couche sur votre ordinateur. <u>Sinon</u>, vous pouvez ignorer cette étape.<br/>
+                        <u>Précisions</u> : La couche exportée est une couche figée qui n'est pas rafraîchie à chaque réouverture de QGis, contrairement à la couche PostGIS.<br/>
+                        <font style='color:#DF7401'><u>Aide</u> : Cliquez sur le bouton [...] puis sur le type d'export qui vous convient</font>"""
+                    ),
+                    QgsProcessing.TypeVectorPolygon,
+                    optional=True,
+                    createByDefault=False,
+                )
             )
-        )
 
         if self._has_histogram_form:
             add_histogram = QgsProcessingParameterEnum(
@@ -395,6 +408,16 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
                 {"widget_wrapper": {"useCheckBoxes": True, "columns": 1}}
             )
             self.addParameter(add_histogram)
+
+            histogram_options = QgsProcessingParameterEnum(
+                self.HISTOGRAM_OPTIONS,
+                self.tr(
+                    "<b>7/</b> Si cela vous intéresse, vous pouvez <u>exporter</u> les résultats sous forme d'<u>histogramme</u>. Dans ce cas, sélectionnez le type<br/> d'histogramme qui vous convient. <u>Sinon</u>, vous pouvez ignorer cette étape."
+                ),
+                self._histogram_variables,
+                defaultValue="Pas d'histogramme",
+            )
+            self.addParameter(histogram_options)
 
             self.addParameter(
                 QgsProcessingParameterFileDestination(
@@ -513,8 +536,9 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             # "obs.group1_inpn": group1_inpn,
             # "obs.group2_inpn": group2_inpn,
         }
+
         # WHERE clauses builder
-        ## TODO: Manage use case
+        # TODO: Manage use case
         # self._filters.append(
         #     f"ST_Intersects(la.geom, ST_union({construct_sql_array_polygons(self._study_area)})"
         # )
@@ -536,14 +560,36 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         if self._extra_where:
             self._filters.append(f"({self._extra_where})")
 
+        if self._has_histogram_form:
+            self._histogram_option = self._histogram_variables[
+                self.parameterAsEnum(parameters, self.HISTOGRAM_OPTIONS, context)
+            ]
+            if self._histogram_option != "Pas d'histogramme":
+                self._output_histogram = self.parameterAsFileOutput(
+                    parameters, self.OUTPUT_HISTOGRAM, context
+                )
+                if not self._output_histogram:
+                    raise QgsProcessingException(
+                        "Veuillez renseigner un emplacement pour enregistrer votre histogramme !"
+                    )
+            # taxonomic_rank_index = self.parameterAsEnum(
+            #     parameters, self.TAXONOMIC_RANK, context
+            # )
+            # self._taxonomic_rank_label = self._taxonomic_ranks_labels[
+            #     taxonomic_rank_index
+            # ]
+            # self._taxonomic_rank_db = self._taxonomic_ranks_db[taxonomic_rank_index]
+
         # EXECUTE THE SQL QUERY
         self._uri = uri_from_name(self._connection)
         query = self._query.format(
             areas_type=self._areas_type,
             array_polygons=self._array_polygons,
             where_filters=" AND ".join(self._filters),
+            taxonomic_rank_label=self._taxonomic_rank_label,
+            taxonomic_rank_db=self._taxonomic_rank_db,
         )
-        QgsMessageLog.logMessage(query)
+        feedback.pushDebugInfo(query)
         geom_field = "geom" if self._is_map_layer else None
         if self._add_table:
             # Define the name of the PostGIS summary table which will be created in the DB
@@ -560,6 +606,10 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
 
         self._layer = QgsVectorLayer(self._uri.uri(), self._format_name, "postgres")
         check_layer_is_valid(feedback, self._layer)
+
+        if self._histogram_option != "Pas d'histogramme" and self._output_histogram:
+            self.histogram_builder(self._taxonomic_rank_label)
+
         load_layer(context, self._layer)
 
         if self._is_map_layer:
@@ -641,19 +691,23 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
 
         return {}
 
-    def histogram_builder(self, layer, histogram_option):
+    def histogram_builder(
+        self,
+        taxonomic_rank_label: str,
+    ) -> None:
+        """generate histogram"""
         plt.close()
         x_var = [
             (
-                feature[taxonomic_rank_label]
-                if feature[taxonomic_rank_label] != "Pas de correspondance taxref"
+                feature[self._taxonomic_rank_label]
+                if feature[self._taxonomic_rank_label] != "Pas de correspondance taxref"
                 else "Aucune correspondance"
             )
-            for feature in self.layer_summary.getFeatures()
+            for feature in self._layer.getFeatures()
         ]
         y_var = [
-            int(feature[histogram_option])
-            for feature in self.layer_summary.getFeatures()
+            int(feature[self._histogram_option])
+            for feature in self._layer.getFeatures()
         ]
         if len(x_var) <= 20:
             plt.subplots_adjust(bottom=0.5)
@@ -665,15 +719,11 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             plt.subplots_adjust(bottom=0.2, left=0.03, right=0.97)
         plt.bar(range(len(x_var)), y_var, tick_label=x_var)
         plt.xticks(rotation="vertical")
-        plt.xlabel(
-            self.taxonomic_ranks_variables[
-                self.parameterAsEnum(parameters, self.TAXONOMIC_RANK, context)
-            ]
-        )
-        plt.ylabel(histogram_option.replace("Nb", "Nombre"))
+        plt.xlabel(self._taxonomic_rank_label)
+        plt.ylabel(self._histogram_option.replace("Nb", "Nombre"))
         plt.title(
-            f'{histogram_option.replace("Nb", "Nombre")} par {taxonomic_rank_label[0].lower() + taxonomic_rank_label[1:].replace("taxo", "taxonomique")}'
+            f'{self._histogram_option.replace("Nb", "Nombre")} par {self._taxonomic_rank_label[0].lower() + taxonomic_rank_label[1:].replace("taxo", "taxonomique")}'
         )
-        if output_histogram[-4:] != ".png":
-            output_histogram += ".png"
-        plt.savefig(output_histogram)
+        if self._output_histogram[-4:] != ".png":
+            self._output_histogram += ".png"
+        plt.savefig(self._output_histogram)
