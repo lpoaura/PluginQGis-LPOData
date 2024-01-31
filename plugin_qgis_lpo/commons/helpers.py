@@ -110,7 +110,7 @@ def construct_queries_list(
     queries = [
         f"DROP TABLE if exists {table_name}",
         f"CREATE TABLE {table_name} AS ({main_query})",
-        f"ALTER TABLE {table_name} add primary key ({pk_field}')",
+        f'ALTER TABLE {table_name} add primary key ("{pk_field}")',
     ]
     return queries
 

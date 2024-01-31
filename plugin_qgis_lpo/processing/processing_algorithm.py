@@ -166,6 +166,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         self._geographic_where_clause: Optional[str] = None
         self._uri: QgsDataSourceUri
         self._primary_key = "id"
+        self._output_histogram: str
 
     def tr(self, string: str) -> str:
         """QgsProcessingAlgorithm translatable string with the self.tr() function."""
@@ -356,6 +357,52 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
+        if self._has_histogram:
+            # add_histogram = QgsProcessingParameterEnum(
+            #     self.ADD_HISTOGRAM,
+            #     self.tr(
+            #         """<b>10/</b> Cochez la case ci-dessous si vous souhaitez <u>exporter</u> les résultats sous la forme d'un <u>histogramme</u> du total par<br/> pas de temps choisi."""
+            #     ),
+            #     [
+            #         "Oui, je souhaite exporter les résultats sous la forme d'un histogramme du total par pas de temps choisi"
+            #     ],
+            #     allowMultiple=True,
+            #     optional=True,
+            # )
+            # add_histogram.setMetadata(
+            #     {"widget_wrapper": {"useCheckBoxes": True, "columns": 1}}
+            # )
+            # self.addParameter(add_histogram)
+
+            histogram_options = QgsProcessingParameterEnum(
+                self.HISTOGRAM_OPTIONS,
+                self.tr(
+                    f"""<b style="color:#0a84db">HISTOGRAMME</b> {optional_text}<br/>
+                        Générer un histogramme à partir des résultats."""
+                ),
+                self._histogram_variables,
+                defaultValue="Pas d'histogramme",
+            )
+            histogram_options.setFlags(
+                histogram_options.flags()
+                | QgsProcessingParameterDefinition.FlagAdvanced
+            )
+            self.addParameter(histogram_options)
+
+            output_histogram = QgsProcessingParameterFileDestination(
+                self.OUTPUT_HISTOGRAM,
+                self.tr(
+                    """Emplacement de l'enregistrement du ficher (format image PNG) de l'histogramme"""
+                ),
+                self.tr("image PNG (*.png)"),
+                # optional=True,
+                # createByDefault=False,
+            )
+            output_histogram.setFlags(
+                output_histogram.flags() | QgsProcessingParameterDefinition.FlagAdvanced
+            )
+            self.addParameter(output_histogram)
+
         self.addParameter(
             QgsProcessingParameterString(
                 self.OUTPUT_NAME,
@@ -394,47 +441,6 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         #             createByDefault=False,
         #         )
         #     )
-
-        if self._has_histogram:
-            # add_histogram = QgsProcessingParameterEnum(
-            #     self.ADD_HISTOGRAM,
-            #     self.tr(
-            #         """<b>10/</b> Cochez la case ci-dessous si vous souhaitez <u>exporter</u> les résultats sous la forme d'un <u>histogramme</u> du total par<br/> pas de temps choisi."""
-            #     ),
-            #     [
-            #         "Oui, je souhaite exporter les résultats sous la forme d'un histogramme du total par pas de temps choisi"
-            #     ],
-            #     allowMultiple=True,
-            #     optional=True,
-            # )
-            # add_histogram.setMetadata(
-            #     {"widget_wrapper": {"useCheckBoxes": True, "columns": 1}}
-            # )
-            # self.addParameter(add_histogram)
-
-            histogram_options = QgsProcessingParameterEnum(
-                self.HISTOGRAM_OPTIONS,
-                self.tr(
-                    "<b>7/</b> Si cela vous intéresse, vous pouvez <u>exporter</u> les résultats sous forme d'<u>histogramme</u>. Dans ce cas, sélectionnez le type<br/> d'histogramme qui vous convient. <u>Sinon</u>, vous pouvez ignorer cette étape."
-                ),
-                self._histogram_variables,
-                defaultValue="Pas d'histogramme",
-            )
-            self.addParameter(histogram_options)
-
-            self.addParameter(
-                QgsProcessingParameterFileDestination(
-                    self.OUTPUT_HISTOGRAM,
-                    self.tr(
-                        """<b style="color:#0a84db">ENREGISTREMENT DES RESULTATS</b><br/>
-                    <b>11/</b> <u style="color:#952132">Si (et seulement si !)</u> vous avez sélectionné l'export sous forme d'<u>histogramme</u>, veuillez renseigner un emplacement<br/> pour l'enregistrer sur votre ordinateur (au format image). <u>Dans le cas contraire</u>, vous pouvez ignorer cette étape.<br/>
-                    <font style='color:#06497a'><u>Aide</u> : Cliquez sur le bouton [...] puis sur 'Enregistrer vers un fichier...'</font>"""
-                    ),
-                    self.tr("image PNG (*.png)"),
-                    optional=True,
-                    createByDefault=False,
-                )
-            )
 
         if self._has_source_data_filter:
             source_data_where = QgsProcessingParameterEnum(

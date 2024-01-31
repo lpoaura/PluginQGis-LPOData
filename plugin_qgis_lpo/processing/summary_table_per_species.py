@@ -84,29 +84,29 @@ QGis (couche de type polygones).
         # self._short_description = ""
         self._is_map_layer = False
         self._query = """WITH obs AS (
-                        -- selection des cd_nom
+                        /* selection des cd_nom */
                         SELECT observations.*
                         FROM src_lpodatas.v_c_observations_light observations
                         WHERE ST_intersects(observations.geom, ST_union({array_polygons})) and {where_filters}),
                     communes AS (
-                        --selection des communes
+                        /* selection des communes */
                         SELECT DISTINCT obs.id_synthese, la.area_name
                         FROM obs
                         LEFT JOIN gn_synthese.cor_area_synthese cor ON obs.id_synthese = cor.id_synthese
                         JOIN ref_geo.l_areas la ON cor.id_area = la.id_area
                         WHERE la.id_type = ref_geo.get_id_area_type('COM')),
                     atlas_code as (
-                        --préparation codes atlas
+                        /* préparation codes atlas */
                         SELECT cd_nomenclature, label_fr, hierarchy
                         FROM ref_nomenclatures.t_nomenclatures
                         WHERE id_type=(select ref_nomenclatures.get_id_nomenclature_type('VN_ATLAS_CODE'))
                     ),
                     total_count AS (
-                        --comptage nb total individus
+                        /* comptage nb total individus */
                         SELECT COUNT(*) AS total_count
                         FROM obs),
                      data AS (
-                        --selection des données + statut
+                        /* selection des données + statut */
                         SELECT
                          obs.cd_ref
                         , obs.vn_id
