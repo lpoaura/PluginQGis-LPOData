@@ -29,6 +29,7 @@ class StateOfKnowledge(BaseProcessingAlgorithm):
 
         self._name = "StateOfKnowledge"
         self._display_name = "État des connaissances"
+        self._output_name = "Etat des connaissances"
         self._group_id = "summary_tables"
         self._group = "Tableaux de synthèse"
         self._short_help_string = ""
@@ -61,7 +62,6 @@ class StateOfKnowledge(BaseProcessingAlgorithm):
             "Nb de dates",
             "Nb de données de mortalité",
         ]
-        self._output_name = "État des connaissances"
         self._query = """WITH obs AS (
             SELECT obs.*
             FROM src_lpodatas.v_c_observations_light obs
@@ -98,9 +98,9 @@ class StateOfKnowledge(BaseProcessingAlgorithm):
     # def createInstance(self):  # noqa N802
     #     return StateOfKnowledge()
 
-    def postProcessAlgorithm(self, _context, _feedback) -> Dict:  # noqa N802
-        # Open the attribute table of the PostGIS layer
-        iface.showAttributeTable(self._layer)
-        iface.setActiveLayer(self._layer)
+    # def postProcessAlgorithm(self, _context, _feedback) -> Dict:  # noqa N802
+    #     # Open the attribute table of the PostGIS layer
+    #     iface.showAttributeTable(self._layer)
+    #     iface.setActiveLayer(self._layer)
 
-        return {}
+    #     return {}

@@ -18,31 +18,11 @@
 """
 
 
-import os
-from datetime import datetime
 from typing import Dict
 
-from qgis.core import QgsAction, QgsMessageLog, QgsVectorLayer
-from qgis.PyQt.QtCore import QCoreApplication
-from qgis.PyQt.QtGui import QIcon
 from qgis.utils import iface
 
-from ..commons.helpers import (
-    check_layer_is_valid,
-    construct_queries_list,
-    construct_sql_array_polygons,
-    construct_sql_datetime_filter,
-    construct_sql_taxons_filter,
-    execute_sql_queries,
-    load_layer,
-    simplify_name,
-)
 from .processing_algorithm import BaseProcessingAlgorithm
-
-# from processing.tools import postgis
-from .qgis_processing_postgis import uri_from_name
-
-plugin_path = os.path.dirname(__file__)
 
 
 class SummaryTablePerSpecies(BaseProcessingAlgorithm):
@@ -51,7 +31,7 @@ class SummaryTablePerSpecies(BaseProcessingAlgorithm):
     returns a summary non geometric PostGIS layer.
     """
 
-    layer_map = None
+    # layer_map = None
 
     # Constants used to refer to parameters and outputs
     def __init__(self) -> None:
@@ -59,7 +39,7 @@ class SummaryTablePerSpecies(BaseProcessingAlgorithm):
 
         self._name = "SummaryTablePerSpecies"
         self._display_name = "Tableau de synthèse par espèce"
-        self._output_name = "Tableau de synthèse par espèce"
+        self._output_name = "Tableau de synthese par espece"
         self._group_id = "summary_tables"
         self._group = "Tableaux de synthèse"
         self._short_description = """<font style="font-size:18px"><b>Besoin d'aide ?</b> Vous pouvez vous référer au <b>Wiki</b> accessible sur ce lien : <a
@@ -197,12 +177,12 @@ QGis (couche de type polygones).
                     SELECT row_number() OVER () AS id, *
                     FROM synthese"""
 
-    def postProcessAlgorithm(self, _context, _feedback) -> Dict:  # noqa N802
-        # Open the attribute table of the PostGIS layer
-        iface.showAttributeTable(self.layer_map)
-        iface.setActiveLayer(self.layer_map)
+    # def postProcessAlgorithm(self, _context, _feedback) -> Dict:  # noqa N802
+    #     # Open the attribute table of the PostGIS layer
+    #     iface.showAttributeTable(self._layer)
+    #     iface.setActiveLayer(self._layer)
 
-        return {}
+    #     return {}
 
-    def createInstance(self):  # noqa N802
-        return SummaryTablePerSpecies()
+    # def createInstance(self):  # noqa N802
+    #     return SummaryTablePerSpecies()
