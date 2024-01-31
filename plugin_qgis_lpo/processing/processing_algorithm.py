@@ -37,6 +37,7 @@ from ..commons.helpers import (
     construct_sql_array_polygons,
     construct_sql_datetime_filter,
     construct_sql_geom_type_filter,
+    construct_sql_select_data_per_time_interval,
     construct_sql_source_filter,
     construct_sql_taxons_filter,
     execute_sql_queries,
@@ -132,6 +133,21 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             "Cette année",
             "Date de début - Date de fin (à définir ci-dessous)",
         ]
+        self._time_interval_variables = ["Par année", "Par mois"]
+        self._months_names_variables = [
+            "Janvier",
+            "Février",
+            "Mars",
+            "Avril",
+            "Mai",
+            "Juin",
+            "Juillet",
+            "Août",
+            "Septembre",
+            "Octobre",
+            "Novembre",
+            "Décembre",
+        ]
         self._histogram_variables: List[str] = []
         self._type_geom_variables: List[str] = ["Point", "LineString", "Polygon"]
         self._taxonomic_ranks = {
@@ -167,6 +183,10 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         self._uri: QgsDataSourceUri
         self._primary_key = "id"
         self._output_histogram: str
+        self._group_by_species: str = ""
+        self._taxa_fields: Optional[str] = None
+        self._custom_fields: Optional[str] = None
+        self._x_var: Optional[str] = None
 
     def tr(self, string: str) -> str:
         """QgsProcessingAlgorithm translatable string with the self.tr() function."""
@@ -259,49 +279,50 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
-        # if self._has_taxonomic_rank_form and self._taxonomic_ranks:
-        #     item_pos += 1
-        #     self._taxonomic_ranks_labels = [
-        #         value for _key, value in self._taxonomic_ranks.items()
-        #     ]
-        #     self._taxonomic_ranks_db = [
-        #         key for key, _value in self._taxonomic_ranks.items()
-        #     ]
-        #     taxonomic_rank = QgsProcessingParameterEnum(
-        #         self.TAXONOMIC_RANK,
-        #         self.tr(
-        #             f"""<b style="color:#0a84db">RANG TAXONOMIQUE</b><br/>
-        #             <b>*{item_pos}/</b> Sélectionnez le <u>rang taxonomique</u> qui vous intéresse"""
-        #         ),
-        #         self._taxonomic_ranks_labels,
-        #         allowMultiple=False,
-        #     )
-        #     taxonomic_rank.setMetadata(
-        #         {
-        #             "widget_wrapper": {
-        #                 "useCheckBoxes": True,
-        #                 "columns": len(self._taxonomic_ranks_labels) / 2,
-        #             }
-        #         }
-        #     )
-        #     self.addParameter(taxonomic_rank)
+        if self._has_taxonomic_rank_form and self._taxonomic_ranks:
+            self._taxonomic_ranks_labels = [
+                value for _key, value in self._taxonomic_ranks.items()
+            ]
+            self._taxonomic_ranks_db = [
+                key for key, _value in self._taxonomic_ranks.items()
+            ]
+            taxonomic_rank = QgsProcessingParameterEnum(
+                self.TAXONOMIC_RANK,
+                self.tr(
+                    f"""<b style="color:#0a84db">RANG TAXONOMIQUE</b> {required_text}"""
+                ),
+                self._taxonomic_ranks_labels,
+                allowMultiple=False,
+            )
+            taxonomic_rank.setMetadata(
+                {
+                    "widget_wrapper": {
+                        "useCheckBoxes": True,
+                        "columns": (
+                            (len(self._taxonomic_ranks_labels) / 2)
+                            if len(self._taxonomic_ranks_labels) > 3
+                            else len(self._taxonomic_ranks_labels)
+                        ),
+                    }
+                }
+            )
+            self.addParameter(taxonomic_rank)
 
         if self._has_time_interval_form:
             # ## Time interval and period ###
             time_interval = QgsProcessingParameterEnum(
                 self.TIME_INTERVAL,
                 self.tr(
-                    """<b style="color:#0a84db">AGRÉGATION TEMPORELLE ET PÉRIODE</b><br/>
-                    Sélectionnez l'<u>agrégation temporelle</u> qui vous intéresse"""
+                    f"""<b style="color:#0a84db">AGRÉGATION TEMPORELLE</b> {required_text}"""
                 ),
-                self.interval_variables,
+                self._time_interval_variables,
                 allowMultiple=False,
             )
             time_interval.setMetadata(
                 {
                     "widget_wrapper": {
                         "useCheckBoxes": True,
-                        "columns": len(self.interval_variables),
+                        "columns": len(self._time_interval_variables),
                     }
                 }
             )
@@ -650,6 +671,49 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             # ]
             # self._taxonomic_rank_db = self._taxonomic_ranks_db[taxonomic_rank_index]
 
+        if self._has_time_interval_form:
+            time_interval = self._time_interval_variables[
+                self.parameterAsEnum(parameters, self.TIME_INTERVAL, context)
+            ]
+            start_year = self.parameterAsInt(parameters, self.START_YEAR, context)
+            end_year = self.parameterAsInt(parameters, self.END_YEAR, context)
+            if end_year < start_year:
+                raise QgsProcessingException(
+                    "Veuillez renseigner une année de fin postérieure à l'année de début !"
+                )
+            taxonomic_rank = self._taxonomic_ranks_labels[
+                self.parameterAsEnum(parameters, self.TAXONOMIC_RANK, context)
+            ]
+            aggregation_type = "Nombre de données"
+            self._group_by_species = (
+                "obs.cd_nom, obs.cd_ref, nom_rang, nom_sci, obs.nom_vern, "
+                if taxonomic_rank == "Espèces"
+                else ""
+            )
+            (
+                self._custom_fields,
+                self._x_var,
+            ) = construct_sql_select_data_per_time_interval(
+                self,
+                time_interval,
+                start_year,
+                end_year,
+                aggregation_type,
+                parameters,
+                context,
+            )
+            # Select species info (optional)
+            select_species_info = """/*source_id_sp, */obs.cd_nom, obs.cd_ref, nom_rang as "Rang", groupe_taxo AS "Groupe taxo",
+                obs.nom_vern AS "Nom vernaculaire", nom_sci AS "Nom scientifique\""""
+            # Select taxonomic groups info (optional)
+            select_taxo_groups_info = 'groupe_taxo AS "Groupe taxo"'
+            self._taxa_fields = (
+                select_species_info
+                if taxonomic_rank == "Espèces"
+                else select_taxo_groups_info
+            )
+            feedback.pushDebugInfo(self._taxa_fields)
+
         # EXECUTE THE SQL QUERY
         self._uri = uri_from_name(self._connection)
         query = self._query.format(
@@ -658,6 +722,9 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             where_filters=" AND ".join(self._filters),
             taxonomic_rank_label=self._taxonomic_rank_label,
             taxonomic_rank_db=self._taxonomic_rank_db,
+            group_by_species=self._group_by_species,
+            taxa_fields=self._taxa_fields,
+            custom_fields=self._custom_fields,
         )
         feedback.pushDebugInfo(query)
         geom_field = "geom" if self._is_map_layer else None

@@ -87,7 +87,8 @@ QGis (couche de type polygones).
                         /* selection des cd_nom */
                         SELECT observations.*
                         FROM src_lpodatas.v_c_observations_light observations
-                        WHERE ST_intersects(observations.geom, ST_union({array_polygons})) and {where_filters}),
+                        WHERE ST_intersects(observations.geom, ST_union({array_polygons}))
+                        and {where_filters}),
                     communes AS (
                         /* selection des communes */
                         SELECT DISTINCT obs.id_synthese, la.area_name
@@ -99,7 +100,9 @@ QGis (couche de type polygones).
                         /* préparation codes atlas */
                         SELECT cd_nomenclature, label_fr, hierarchy
                         FROM ref_nomenclatures.t_nomenclatures
-                        WHERE id_type=(select ref_nomenclatures.get_id_nomenclature_type('VN_ATLAS_CODE'))
+                        WHERE id_type=(
+                            select ref_nomenclatures.get_id_nomenclature_type('VN_ATLAS_CODE')
+                            )
                     ),
                     total_count AS (
                         /* comptage nb total individus */
@@ -176,13 +179,3 @@ QGis (couche de type polygones).
                         ORDER BY groupe_taxo,vn_id, nom_vern)
                     SELECT row_number() OVER () AS id, *
                     FROM synthese"""
-
-    # def postProcessAlgorithm(self, _context, _feedback) -> Dict:  # noqa N802
-    #     # Open the attribute table of the PostGIS layer
-    #     iface.showAttributeTable(self._layer)
-    #     iface.setActiveLayer(self._layer)
-
-    #     return {}
-
-    # def createInstance(self):  # noqa N802
-    #     return SummaryTablePerSpecies()
