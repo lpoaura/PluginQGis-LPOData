@@ -78,7 +78,7 @@ class StateOfKnowledge(BaseProcessingAlgorithm):
         SELECT
             row_number() OVER () AS id,
             COALESCE({taxonomic_rank_db}, 'Pas de correspondance taxref') AS "{taxonomic_rank_label}",
-            -- groupe_taxo as "Groupe taxo",
+            /* groupe_taxo as "Groupe taxo", */
             COUNT(*) AS "Nb de données",
             ROUND(COUNT(*)::decimal/total_count, 4)*100 AS "Nb données / Nb données TOTAL (%)",
             COUNT(DISTINCT obs.cd_ref) FILTER (WHERE id_rang='ES') AS "Nb d'espèces",
