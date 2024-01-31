@@ -34,7 +34,6 @@ from .state_of_knowledge import StateOfKnowledge
 from .summary_map import SummaryMap
 from .summary_table_per_species import SummaryTablePerSpecies
 from .summary_table_per_time_interval import SummaryTablePerTimeInterval
-from .summary_table_per_time_interval_old import SummaryTablePerTimeIntervalOld
 
 plugin_path = os.path.dirname(__file__)
 
@@ -90,7 +89,6 @@ class Provider(QgsProcessingProvider):
             SummaryTablePerTimeInterval(),
             StateOfKnowledge(),
             SummaryMap(),
-            SummaryTablePerTimeIntervalOld(),
         ]
         for alg in algorithms:
             self.addAlgorithm(alg)

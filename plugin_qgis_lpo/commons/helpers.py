@@ -193,13 +193,14 @@ def construct_sql_datetime_filter(
 
 
 def construct_sql_select_data_per_time_interval(
-    self,
+    self: QgsProcessingAlgorithm,
     time_interval_param,
-    start_year_param,
-    end_year_param,
-    aggregation_type_param,
-    parameters,
-    context,
+    start_year_param: int,
+    end_year_param: int,
+    aggregation_type_param: str,
+    parameters: Dict,
+    context: QgsProcessingContext,
+    feedback: QgsProcessingFeedback,
 ):
     """
     Construct the sql "select" data according to a time interval and a period.
@@ -252,37 +253,40 @@ def construct_sql_select_data_per_time_interval(
                 )
             else:
                 for month in range(start_month, end_month + 1):
-                    select_data += f""", COUNT({"*" if aggregation_type_param == 'Nombre de données' else "DISTINCT t.cd_ref"}) filter (WHERE to_char(date, 'YYYY-MM')='{start_year_param}-{months_numbers_variables[month]}') AS \"{self.months_names_variables[month]} {start_year_param}\""""
+                    select_data += f""", COUNT({"*" if aggregation_type_param == 'Nombre de données' else "DISTINCT t.cd_ref"}) filter (WHERE to_char(date, 'YYYY-MM')='{start_year_param}-{months_numbers_variables[month]}') AS \"{self._months_names_variables[month]} {start_year_param}\""""
                     x_var.append(
-                        self.months_names_variables[month] + " " + str(start_year_param)
+                        self._months_names_variables[month]
+                        + " "
+                        + str(start_year_param)
                     )
         elif end_year_param == start_year_param + 1:
             for month in range(start_month, 12):
-                select_data += f""", COUNT({"*" if aggregation_type_param == 'Nombre de données' else "DISTINCT t.cd_ref"}) filter (WHERE to_char(date, 'YYYY-MM')='{start_year_param}-{months_numbers_variables[month]}') AS \"{self.months_names_variables[month]} {start_year_param}\""""
+                select_data += f""", COUNT({"*" if aggregation_type_param == 'Nombre de données' else "DISTINCT t.cd_ref"}) filter (WHERE to_char(date, 'YYYY-MM')='{start_year_param}-{months_numbers_variables[month]}') AS \"{self._months_names_variables[month]} {start_year_param}\""""
                 x_var.append(
-                    self.months_names_variables[month] + " " + str(start_year_param)
+                    self._months_names_variables[month] + " " + str(start_year_param)
                 )
             for month in range(0, end_month + 1):
-                select_data += f""", COUNT({"*" if aggregation_type_param == 'Nombre de données' else "DISTINCT t.cd_ref"}) filter (WHERE to_char(date, 'YYYY-MM')='{end_year_param}-{months_numbers_variables[month]}') AS \"{self.months_names_variables[month]} {end_year_param}\""""
+                select_data += f""", COUNT({"*" if aggregation_type_param == 'Nombre de données' else "DISTINCT t.cd_ref"}) filter (WHERE to_char(date, 'YYYY-MM')='{end_year_param}-{months_numbers_variables[month]}') AS \"{self._months_names_variables[month]} {end_year_param}\""""
                 x_var.append(
-                    self.months_names_variables[month] + " " + str(end_year_param)
+                    self._months_names_variables[month] + " " + str(end_year_param)
                 )
         else:
             for month in range(start_month, 12):
-                select_data += f""", COUNT({"*" if aggregation_type_param == 'Nombre de données' else "DISTINCT t.cd_ref"}) filter (WHERE to_char(date, 'YYYY-MM')='{start_year_param}-{months_numbers_variables[month]}') AS \"{self.months_names_variables[month]} {start_year_param}\""""
+                select_data += f""", COUNT({"*" if aggregation_type_param == 'Nombre de données' else "DISTINCT t.cd_ref"}) filter (WHERE to_char(date, 'YYYY-MM')='{start_year_param}-{months_numbers_variables[month]}') AS \"{self._months_names_variables[month]} {start_year_param}\""""
                 x_var.append(
-                    self.months_names_variables[month] + " " + str(start_year_param)
+                    self._months_names_variables[month] + " " + str(start_year_param)
                 )
             for year in range(start_year_param + 1, end_year_param):
                 for month in range(0, 12):
-                    select_data += f""", COUNT({"*" if aggregation_type_param == 'Nombre de données' else "DISTINCT t.cd_ref"}) filter (WHERE to_char(date, 'YYYY-MM')='{year}-{months_numbers_variables[month]}') AS \"{self.months_names_variables[month]} {year}\""""
-                    x_var.append(self.months_names_variables[month] + " " + str(year))
+                    select_data += f""", COUNT({"*" if aggregation_type_param == 'Nombre de données' else "DISTINCT t.cd_ref"}) filter (WHERE to_char(date, 'YYYY-MM')='{year}-{months_numbers_variables[month]}') AS \"{self._months_names_variables[month]} {year}\""""
+                    x_var.append(self._months_names_variables[month] + " " + str(year))
             for month in range(0, end_month + 1):
-                select_data += f""", COUNT({"*" if aggregation_type_param == 'Nombre de données' else "DISTINCT t.cd_ref"}) filter (WHERE to_char(date, 'YYYY-MM')='{end_year_param}-{months_numbers_variables[month]}') AS \"{self.months_names_variables[month]} {end_year_param}\""""
+                select_data += f""", COUNT({"*" if aggregation_type_param == 'Nombre de données' else "DISTINCT t.cd_ref"}) filter (WHERE to_char(date, 'YYYY-MM')='{end_year_param}-{months_numbers_variables[month]}') AS \"{self._months_names_variables[month]} {end_year_param}\""""
                 x_var.append(
-                    self.months_names_variables[month] + " " + str(end_year_param)
+                    self._months_names_variables[month] + " " + str(end_year_param)
                 )
         select_data += f""", COUNT({"*" if aggregation_type_param == 'Nombre de données' else "DISTINCT t.cd_ref"}) filter (WHERE to_char(date, 'YYYY-MM')>='{start_year_param}-{months_numbers_variables[start_month]}' and to_char(date, 'YYYY-MM')<='{end_year_param}-{months_numbers_variables[end_month]}') AS \"TOTAL\""""
+        feedback.pushDebugInfo(select_data)
     return select_data, x_var
 
 

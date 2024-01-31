@@ -22,6 +22,7 @@ from qgis.core import (
     QgsProcessingParameterFeatureSink,
     QgsProcessingParameterFeatureSource,
     QgsProcessingParameterFileDestination,
+    QgsProcessingParameterNumber,
     QgsProcessingParameterProviderConnection,
     QgsProcessingParameterString,
     QgsSettings,
@@ -101,6 +102,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         self._short_help_string = ""
         self._short_description = ""
         self._icon: str
+        self._ts = datetime.now()
 
         # processAlgorithm settings
         self._is_map_layer = False
@@ -326,40 +328,82 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             )
             self.addParameter(time_interval)
 
-        period_type = QgsProcessingParameterEnum(
-            self.PERIOD,
-            self.tr(
-                f"""<b style="color:#0a84db">PÉRIODE</b> {required_text} : sélectionnez une <u>période</u> pour filtrer vos données d'observations"""
-            ),
-            self._period_variables,
-            allowMultiple=False,
-            optional=False,
-        )
-        period_type.setMetadata(
-            {
-                "widget_wrapper": {
-                    "useCheckBoxes": True,
-                    "columns": len(self._period_variables) / 2,
-                }
-            }
-        )
-        self.addParameter(period_type)
+            self.addParameter(
+                QgsProcessingParameterEnum(
+                    self.START_MONTH,
+                    self.tr("Mois de début"),
+                    self._months_names_variables,
+                    allowMultiple=False,
+                    optional=True,
+                )
+            )
 
-        start_date = QgsProcessingParameterString(
-            self.START_DATE,
-            f"Date de début {optional_text}",
-            defaultValue="",
-            optional=True,
-        )
-        start_date.setMetadata({"widget_wrapper": {"class": DateTimeWidget}})
-        self.addParameter(start_date)
-        end_date = QgsProcessingParameterString(
-            self.END_DATE,
-            f"Date de fin {optional_text}",
-            optional=True,
-        )
-        end_date.setMetadata({"widget_wrapper": {"class": DateTimeWidget}})
-        self.addParameter(end_date)
+            self.addParameter(
+                QgsProcessingParameterNumber(
+                    self.START_YEAR,
+                    self.tr("Année de début"),
+                    QgsProcessingParameterNumber.Integer,
+                    defaultValue=2010,
+                    minValue=1800,
+                    maxValue=int(self._ts.strftime("%Y")),
+                )
+            )
+
+            self.addParameter(
+                QgsProcessingParameterEnum(
+                    self.END_MONTH,
+                    self.tr("Mois de fin"),
+                    self._months_names_variables,
+                    allowMultiple=False,
+                    optional=True,
+                )
+            )
+
+            self.addParameter(
+                QgsProcessingParameterNumber(
+                    self.END_YEAR,
+                    self.tr("Année de fin"),
+                    QgsProcessingParameterNumber.Integer,
+                    defaultValue=self._ts.strftime("%Y"),
+                    minValue=1800,
+                    maxValue=int(self._ts.strftime("%Y")),
+                )
+            )
+        else:
+            period_type = QgsProcessingParameterEnum(
+                self.PERIOD,
+                self.tr(
+                    f"""<b style="color:#0a84db">PÉRIODE</b> {required_text} : sélectionnez une <u>période</u> pour filtrer vos données d'observations"""
+                ),
+                self._period_variables,
+                allowMultiple=False,
+                optional=False,
+            )
+            period_type.setMetadata(
+                {
+                    "widget_wrapper": {
+                        "useCheckBoxes": True,
+                        "columns": len(self._period_variables) / 2,
+                    }
+                }
+            )
+            self.addParameter(period_type)
+
+            start_date = QgsProcessingParameterString(
+                self.START_DATE,
+                f"Date de début {optional_text}",
+                defaultValue="",
+                optional=True,
+            )
+            start_date.setMetadata({"widget_wrapper": {"class": DateTimeWidget}})
+            self.addParameter(start_date)
+            end_date = QgsProcessingParameterString(
+                self.END_DATE,
+                f"Date de fin {optional_text}",
+                optional=True,
+            )
+            end_date.setMetadata({"widget_wrapper": {"class": DateTimeWidget}})
+            self.addParameter(end_date)
 
         # ## Taxons filters ##
         self.addParameter(
@@ -531,7 +575,6 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         if feedback is None:
             feedback = QgsProcessingFeedback()
 
-        ts = datetime.now()
         # Form values
         self._connection = self.parameterAsString(parameters, self.DATABASE, context)
         self._add_table = self.parameterAsBool(parameters, self.ADD_TABLE, context)
@@ -603,7 +646,9 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         #     for i in (self.parameterAsEnums(parameters, self.GROUP2_INPN, context))
         # ]
         # Retrieve the output PostGIS layer name and format it
-        self._format_name = f"{self._layer_name} {str(ts.strftime('%Y%m%d_%H%M%S'))}"
+        self._format_name = (
+            f"{self._layer_name} {str(self._ts.strftime('%Y%m%d_%H%M%S'))}"
+        )
 
         self._taxons_filters = {
             "groupe_taxo": self._groupe_taxo,
@@ -631,7 +676,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
 
         # Complete the "where" filter with the datetime filter
         time_filter = construct_sql_datetime_filter(
-            self, self._period_type, ts, parameters, context
+            self, self._period_type, self._ts, parameters, context
         )
         if time_filter:
             self._filters.append(time_filter)
@@ -669,8 +714,11 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             time_interval = self._time_interval_variables[
                 self.parameterAsEnum(parameters, self.TIME_INTERVAL, context)
             ]
+            feedback.pushDebugInfo(f"time_interval {time_interval}")
             start_year = self.parameterAsInt(parameters, self.START_YEAR, context)
+            feedback.pushDebugInfo(f"start_year {start_year}")
             end_year = self.parameterAsInt(parameters, self.END_YEAR, context)
+            feedback.pushDebugInfo(f"end_year {end_year}")
             if end_year < start_year:
                 raise QgsProcessingException(
                     "Veuillez renseigner une année de fin postérieure à l'année de début !"
@@ -678,6 +726,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             taxonomic_rank = self._taxonomic_ranks_labels[
                 self.parameterAsEnum(parameters, self.TAXONOMIC_RANK, context)
             ]
+            feedback.pushDebugInfo(f"taxonomic_rank {taxonomic_rank}")
             aggregation_type = "Nombre de données"
             self._group_by_species = (
                 "obs.cd_nom, obs.cd_ref, nom_rang, nom_sci, obs.nom_vern, "
@@ -695,6 +744,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
                 aggregation_type,
                 parameters,
                 context,
+                feedback,
             )
             # Select species info (optional)
             select_species_info = """/*source_id_sp, */obs.cd_nom, obs.cd_ref, nom_rang as "Rang", groupe_taxo AS "Groupe taxo",
