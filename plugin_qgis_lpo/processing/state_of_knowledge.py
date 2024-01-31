@@ -47,7 +47,7 @@ class StateOfKnowledge(BaseProcessingAlgorithm):
             <li>Liste des sources VisioNature</li></ul><br/>
             <font style='color:#0a84db'><u>IMPORTANT</u> : Les <b>étapes indispensables</b> sont marquées d'une <b>étoile *</b> avant leur numéro. Prenez le temps de lire <u>attentivement</U> les instructions pour chaque étape, et particulièrement les</font> <font style ='color:#952132'>informations en rouge</font> <font style='color:#0a84db'>!</font>"""
         self._is_map_layer = False
-        self._has_histogram_form = True
+        self._has_histogram = True
         # self._has_taxonomic_rank_form = True
         # self._has_time_interval_form = False
         self._histogram_variables = [

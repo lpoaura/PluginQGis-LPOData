@@ -101,7 +101,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         self._is_map_layer = False
         self._is_table_layer = False
         self._has_time_interval_form = False
-        self._has_histogram_form = False
+        self._has_histogram = False
         self._has_taxonomic_rank_form = False
         self._export_output = False
         self._query = ""
@@ -141,7 +141,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         self._taxonomic_ranks_db: List[str]
         self._taxonomic_rank_label: str = "Groupe taxo"
         self._taxonomic_rank_db: str = "groupe_taxo"
-        self._histogram_option: str
+        self._histogram_option: str = "Pas d'histogramme"
         self._groupe_taxo: List[str] = []
         self._output_name = "output"
         self._study_area = None
@@ -392,22 +392,22 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
                 )
             )
 
-        if self._has_histogram_form:
-            add_histogram = QgsProcessingParameterEnum(
-                self.ADD_HISTOGRAM,
-                self.tr(
-                    """<b>10/</b> Cochez la case ci-dessous si vous souhaitez <u>exporter</u> les résultats sous la forme d'un <u>histogramme</u> du total par<br/> pas de temps choisi."""
-                ),
-                [
-                    "Oui, je souhaite exporter les résultats sous la forme d'un histogramme du total par pas de temps choisi"
-                ],
-                allowMultiple=True,
-                optional=True,
-            )
-            add_histogram.setMetadata(
-                {"widget_wrapper": {"useCheckBoxes": True, "columns": 1}}
-            )
-            self.addParameter(add_histogram)
+        if self._has_histogram:
+            # add_histogram = QgsProcessingParameterEnum(
+            #     self.ADD_HISTOGRAM,
+            #     self.tr(
+            #         """<b>10/</b> Cochez la case ci-dessous si vous souhaitez <u>exporter</u> les résultats sous la forme d'un <u>histogramme</u> du total par<br/> pas de temps choisi."""
+            #     ),
+            #     [
+            #         "Oui, je souhaite exporter les résultats sous la forme d'un histogramme du total par pas de temps choisi"
+            #     ],
+            #     allowMultiple=True,
+            #     optional=True,
+            # )
+            # add_histogram.setMetadata(
+            #     {"widget_wrapper": {"useCheckBoxes": True, "columns": 1}}
+            # )
+            # self.addParameter(add_histogram)
 
             histogram_options = QgsProcessingParameterEnum(
                 self.HISTOGRAM_OPTIONS,
@@ -560,7 +560,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         if self._extra_where:
             self._filters.append(f"({self._extra_where})")
 
-        if self._has_histogram_form:
+        if self._has_histogram:
             self._histogram_option = self._histogram_variables[
                 self.parameterAsEnum(parameters, self.HISTOGRAM_OPTIONS, context)
             ]

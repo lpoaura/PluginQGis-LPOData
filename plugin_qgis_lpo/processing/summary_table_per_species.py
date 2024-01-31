@@ -59,6 +59,7 @@ class SummaryTablePerSpecies(BaseProcessingAlgorithm):
 
         self._name = "SummaryTablePerSpecies"
         self._display_name = "Tableau de synthèse par espèce"
+        self._output_name = "Tableau de synthèse par espèce"
         self._group_id = "summary_tables"
         self._group = "Tableaux de synthèse"
         self._short_description = """<font style="font-size:18px"><b>Besoin d'aide ?</b> Vous pouvez vous référer au <b>Wiki</b> accessible sur ce lien : <a
