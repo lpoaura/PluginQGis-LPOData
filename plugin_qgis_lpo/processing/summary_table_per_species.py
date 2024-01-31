@@ -47,7 +47,7 @@ class SummaryTablePerSpecies(BaseProcessingAlgorithm):
         target="_blank">https://github.com/lpoaura/PluginQGis-LPOData/wiki</a>.</font><br /><br />
 Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données LPO, d'obtenir un
 <b>tableau de synthèse</b> par espèce (couche PostgreSQL) basé sur une <b>zone d'étude</b> présente dans votre projet
-QGis (couche de type polygones).
+QGIS (couche de type polygones).
 <b style='color:#952132'>Les données d'absence sont exclues de ce traitement.</b><br /><br />
 <b>Pour chaque espèce</b> observée dans la zone d'étude considérée, le tableau fournit les informations suivantes :
 <ul>
@@ -75,8 +75,7 @@ QGis (couche de type polygones).
     <li>Liste des sources VisioNature</li>
 </ul>
 <br />
-<font style='color:#0a84db'><u>IMPORTANT</u> : Les <b>étapes indispensables</b> sont marquées d'une <b>étoile *</b>
-    avant leur numéro. Prenez le temps de lire <u>attentivement</U> les instructions pour chaque étape, et
+<font style='color:#0a84db'><u>IMPORTANT</u> : Prenez le temps de lire <u>attentivement</U> les instructions pour chaque étape, et
     particulièrement les</font>
 <font style='color:#952132'>informations en rouge</font>
 <font style='color:#0a84db'>!</font>"""
