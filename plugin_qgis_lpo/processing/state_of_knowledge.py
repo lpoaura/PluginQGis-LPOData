@@ -15,6 +15,9 @@
  *                                                                         *
  ***************************************************************************/
 """
+from typing import Dict
+
+from qgis.utils import iface
 
 from .processing_algorithm import BaseProcessingAlgorithm
 
@@ -94,3 +97,10 @@ class StateOfKnowledge(BaseProcessingAlgorithm):
 
     # def createInstance(self):  # noqa N802
     #     return StateOfKnowledge()
+
+    def postProcessAlgorithm(self, _context, _feedback) -> Dict:  # noqa N802
+        # Open the attribute table of the PostGIS layer
+        iface.showAttributeTable(self._layer)
+        iface.setActiveLayer(self._layer)
+
+        return {}
