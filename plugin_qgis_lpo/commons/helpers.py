@@ -19,11 +19,17 @@
 
 
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 import matplotlib.pyplot as plt
 import processing
-from qgis.core import QgsField, QgsMessageLog, QgsProcessingException, QgsWkbTypes
+from qgis.core import (
+    QgsField,
+    QgsMessageLog,
+    QgsProcessingException,
+    QgsProcessingFeedback,
+    QgsWkbTypes,
+)
 from qgis.PyQt.QtCore import QVariant
 
 
@@ -39,7 +45,7 @@ def simplify_name(string: str) -> str:
     return string.lower().translate(translation_table)
 
 
-def check_layer_is_valid(feedback, layer):
+def check_layer_is_valid(feedback: QgsProcessingFeedback, layer):
     """
     Check if the input vector layer is valid.
     """
@@ -116,43 +122,31 @@ def construct_sql_taxons_filter(taxons_dict: Dict) -> Optional[str]:
     return None
 
 
-def construct_sql_source_filter(source_dict: Dict) -> Optional[str]:
+def construct_sql_source_filter(sources) -> Optional[str]:
     """
     Construct the sql "where" clause with source filters.
     """
-    source_where = " and ("
-    source_where_suite = ""
-    for value in source_dict:
-        if len(source_dict) > 1:
-            if source_where == " and (":
-                source_where += "desc_source ILIKE ANY (array["
-                source_where_suite += f"'{str(value)}%'"
-            else:
-                source_where_suite += f",'{str(value)}%'"
-
-            if value == source_dict[len(source_dict) - 1]:
-                source_where += source_where_suite + "]))"
-                return source_where
+    if sources:
+        return f"desc_source ILIKE ANY (array{[f'{source}%' for source in sources]})"
     return None
 
 
-def construct_sql_geom_type_filter(source_dict: Dict) -> str:
+def construct_sql_geom_type_filter(geom_types: List[str]) -> Optional[str]:
     """
     Construct the sql "where" clause with source filters.
     """
 
-    geomtypes = {
-        "Point": "'ST_Point','ST_MultiPoint'",
-        "LineString": "'ST_LineString','ST_MultiLineString'",
-        "Polygon": "'ST_Polygon','ST_MultiPolygon'",
+    types_dict = {
+        "Point": ["ST_Point", "ST_MultiPoint"],
+        "LineString": ["ST_LineString", "ST_MultiLineString"],
+        "Polygon": ["ST_Polygon", "ST_MultiPolygon"],
     }
-    geomtype_where = " and ("
-    for value in source_dict:
-        if len(source_dict) == 1:
-            geomtype_where += f"type_geom IN ({geomtypes[value]}))"
-            return geomtype_where
-    geomtype_where += f"type_geom IN ({geomtypes['Point']}))"
-    return geomtype_where
+    if geom_types:
+        geom_types_list = []
+        for geom_type in geom_types:
+            geom_types_list += types_dict[geom_type]
+        return f"type_geom = ANY (array{geom_types_list})"
+    return None
 
 
 def construct_sql_datetime_filter(

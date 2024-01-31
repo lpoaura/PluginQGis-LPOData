@@ -59,7 +59,7 @@ from .qgis_processing_postgis import uri_from_name
 pluginPath = os.path.dirname(__file__)
 
 
-class ExtractData(QgsProcessingAlgorithm):
+class ExtractDataOld(QgsProcessingAlgorithm):
     """
     This algorithm takes a connection to a data base and a vector polygons layer and
     returns an intersected points PostGIS layer.
@@ -88,10 +88,10 @@ class ExtractData(QgsProcessingAlgorithm):
     TYPE_GEOM = "TYPE_GEOM"
 
     def name(self):
-        return "ExtractData"
+        return "ExtractDataOld"
 
     def displayName(self):  # noqa N802
-        return "Extraction de données d'observation"
+        return "Extraction de données d'observation (OLD)"
 
     def icon(self) -> "QIcon":
         return QIcon(os.path.join(pluginPath, os.pardir, "icons", "extract_data.png"))
@@ -452,19 +452,19 @@ class ExtractData(QgsProcessingAlgorithm):
             "obs.group1_inpn": group1_inpn,
             "obs.group2_inpn": group2_inpn,
         }
-        taxons_where = construct_sql_taxons_filter(taxons_filters)
-        where += taxons_where
+        # taxons_where = construct_sql_taxons_filter(taxons_filters)
+        # where += taxons_where
         # Complete the "where" clause with the datetime filter
-        datetime_where = construct_sql_datetime_filter(
-            self, period_type, ts, parameters, context
-        )
-        where += datetime_where
-        # Complete the "where" clause with the source data filter
-        where += source_where
-        # Complete the "where" clause with the type geom data filter
-        where += geomtype_where
-        # Complete the "where" clause with the extra conditions
-        where += " " + extra_where
+        # datetime_where = construct_sql_datetime_filter(
+        #     self, period_type, ts, parameters, context
+        # )
+        # where += datetime_where
+        # # Complete the "where" clause with the source data filter
+        # where += source_where
+        # # Complete the "where" clause with the type geom data filter
+        # where += geomtype_where
+        # # Complete the "where" clause with the extra conditions
+        # where += " " + extra_where
 
         ### EXECUTE THE SQL QUERY ###
         # Retrieve the data base connection name
@@ -537,4 +537,4 @@ class ExtractData(QgsProcessingAlgorithm):
         return QCoreApplication.translate("Processing", string)
 
     def createInstance(self):  # noqa N802
-        return ExtractData()
+        return ExtractDataOld()

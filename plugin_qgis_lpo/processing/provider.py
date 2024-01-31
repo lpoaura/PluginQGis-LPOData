@@ -30,6 +30,7 @@ from qgis.PyQt.QtGui import QIcon
 
 from .extract_data import ExtractData
 from .extract_data_observers import ExtractDataObservers
+from .extract_data_old import ExtractDataOld
 from .state_of_knowledge import StateOfKnowledge
 from .summary_map import SummaryMap
 from .summary_table_per_species import SummaryTablePerSpecies
@@ -92,6 +93,7 @@ class Provider(QgsProcessingProvider):
             SummaryTablePerTimeInterval(),
             StateOfKnowledge(),
             SummaryMap(),
+            ExtractDataOld(),
         ]
         for alg in algorithms:
             self.addAlgorithm(alg)
