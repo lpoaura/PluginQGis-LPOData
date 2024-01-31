@@ -122,7 +122,7 @@ def construct_sql_taxons_filter(taxons_dict: Dict) -> Optional[str]:
     return None
 
 
-def construct_sql_source_filter(sources) -> Optional[str]:
+def construct_sql_source_filter(sources: List[str]) -> Optional[str]:
     """
     Construct the sql "where" clause with source filters.
     """
