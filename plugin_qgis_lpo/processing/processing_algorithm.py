@@ -259,8 +259,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterProviderConnection(
                 self.DATABASE,
                 self.tr(
-                    f"""<b style="color:#0a84db">BASE DE DONNÉES</b> {required_text}<br/>
-                    Sélectionnez votre <u>connexion</u> à la base de données LPO"""
+                    f"""<b style="color:#0a84db">BASE DE DONNÉES</b> {required_text} : sélectionnez votre <u>connexion</u> à la base de données LPO"""
                 ),
                 "postgres",
                 defaultValue="geonature_lpo",
@@ -272,8 +271,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterFeatureSource(
                 self.STUDY_AREA,
                 self.tr(
-                    f"""<b style="color:#0a84db">ZONE D'ÉTUDE</b> {required_text}<br/>
-                    Sélectionnez votre <u>zone d'étude</u>, à partir de laquelle seront extraits les résultats"""
+                    f"""<b style="color:#0a84db">ZONE D'ÉTUDE</b> {required_text} : sélectionnez votre <u>zone d'étude</u>, à partir de laquelle seront extraits les résultats"""
                 ),
                 [QgsProcessing.TypeVectorPolygon],
             )
@@ -331,8 +329,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         period_type = QgsProcessingParameterEnum(
             self.PERIOD,
             self.tr(
-                f"""<b style="color:#0a84db">PÉRIODE</b> {required_text}<br/>
-                    Sélectionnez une <u>période</u> pour filtrer vos données d'observations"""
+                f"""<b style="color:#0a84db">PÉRIODE</b> {required_text} : sélectionnez une <u>période</u> pour filtrer vos données d'observations"""
             ),
             self._period_variables,
             allowMultiple=False,
@@ -369,8 +366,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterEnum(
                 self.GROUPE_TAXO,
                 self.tr(
-                    f"""<b style="color:#0a84db">TAXONS</b> {optional_text}<br/>
-                    Filtrer les données par groupes taxonomiques"""
+                    f"""<b style="color:#0a84db">TAXONS</b> {optional_text} : filtrer les données par groupes taxonomiques"""
                 ),
                 self._db_variables.value("groupe_taxo"),
                 allowMultiple=True,
@@ -398,8 +394,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             histogram_options = QgsProcessingParameterEnum(
                 self.HISTOGRAM_OPTIONS,
                 self.tr(
-                    f"""<b style="color:#0a84db">HISTOGRAMME</b> {optional_text}<br/>
-                        Générer un histogramme à partir des résultats."""
+                    f"""<b style="color:#0a84db">HISTOGRAMME</b> {optional_text} : générer un histogramme à partir des résultats."""
                 ),
                 self._histogram_variables,
                 defaultValue="Pas d'histogramme",
@@ -428,8 +423,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterString(
                 self.OUTPUT_NAME,
                 self.tr(
-                    f"""<b style="color:#0a84db">PARAMÉTRAGE DES RESULTATS EN SORTIE</b> {optional_text}<br/>
-                    Personnalisez le nom de votre couche en base de données"""
+                    f"""<b style="color:#0a84db">PARAMÉTRAGE DES RESULTATS EN SORTIE</b> {optional_text} : personnalisez le nom de votre couche en base de données"""
                 ),
                 self.tr(self._output_name),
             )
