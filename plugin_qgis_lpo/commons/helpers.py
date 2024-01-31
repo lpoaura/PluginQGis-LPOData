@@ -19,15 +19,19 @@
 
 
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import matplotlib.pyplot as plt
 import processing
 from qgis.core import (
     QgsField,
+    QgsFields,
     QgsMessageLog,
+    QgsProcessingAlgorithm,
+    QgsProcessingContext,
     QgsProcessingException,
     QgsProcessingFeedback,
+    QgsVectorLayer,
     QgsWkbTypes,
 )
 from qgis.PyQt.QtCore import QVariant
@@ -45,7 +49,7 @@ def simplify_name(string: str) -> str:
     return string.lower().translate(translation_table)
 
 
-def check_layer_is_valid(feedback: QgsProcessingFeedback, layer):
+def check_layer_is_valid(feedback: QgsProcessingFeedback, layer: QgsVectorLayer):
     """
     Check if the input vector layer is valid.
     """
@@ -63,7 +67,7 @@ def check_layer_is_valid(feedback: QgsProcessingFeedback, layer):
     return None
 
 
-def construct_sql_array_polygons(layer):
+def construct_sql_array_polygons(layer: QgsVectorLayer):
     """
     Construct the sql array containing the input vector layer's features geometry.
     """
@@ -84,9 +88,9 @@ def construct_sql_array_polygons(layer):
         # Retrieve the geometry
         area = feature.geometry()  # QgsGeometry object
         # Retrieve the geometry type (single or multiple)
-        geomSingleType = QgsWkbTypes.isSingleType(area.wkbType())
+        geom_single_type = QgsWkbTypes.isSingleType(area.wkbType())
         # Increment the sql array
-        if geomSingleType:
+        if geom_single_type:
             array_polygons += (
                 f"ST_transform(ST_PolygonFromText('{area.asWkt()}', {crs}), 2154), "
             )
@@ -99,11 +103,14 @@ def construct_sql_array_polygons(layer):
     return array_polygons
 
 
-def construct_queries_list(table_name, main_query):
+def construct_queries_list(
+    table_name: str, main_query: str, pk_field: str = "id"
+) -> List[str]:
+    """Table create"""
     queries = [
         f"DROP TABLE if exists {table_name}",
         f"CREATE TABLE {table_name} AS ({main_query})",
-        f"ALTER TABLE {table_name} add primary key (id)",
+        f"ALTER TABLE {table_name} add primary key ({pk_field}')",
     ]
     return queries
 
@@ -150,7 +157,11 @@ def construct_sql_geom_type_filter(geom_types: List[str]) -> Optional[str]:
 
 
 def construct_sql_datetime_filter(
-    self, period_type_filter: str, timestamp: datetime, parameters, context
+    self: QgsProcessingAlgorithm,
+    period_type_filter: str,
+    timestamp: datetime,
+    parameters: Dict[str, Any],
+    context: QgsProcessingContext,
 ) -> Optional[str]:
     """
     Construct the sql "where" clause with the datetime filter.
@@ -275,7 +286,7 @@ def construct_sql_select_data_per_time_interval(
     return select_data, x_var
 
 
-def load_layer(context, layer):
+def load_layer(context: QgsProcessingContext, layer: QgsVectorLayer):
     """
     Load a layer in the current project.
     """
@@ -287,7 +298,12 @@ def load_layer(context, layer):
     plugin_lpo_group.insertLayer(0, layer)
 
 
-def execute_sql_queries(context, feedback, connection, queries):
+def execute_sql_queries(
+    context: QgsProcessingContext,
+    feedback: QgsProcessingFeedback,
+    connection: str,
+    queries: List[str],
+) -> None:
     """
     Execute several sql queries.
     """
@@ -303,7 +319,7 @@ def execute_sql_queries(context, feedback, connection, queries):
     return None
 
 
-def format_layer_export(layer):
+def format_layer_export(layer: QgsVectorLayer) -> QgsFields:
     """
     Create new valid fields for the sink.
     """

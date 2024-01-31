@@ -669,14 +669,15 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             self._uri.setDataSource("", f"({query})", geom_field, "", self._primary_key)
 
         self._layer = QgsVectorLayer(self._uri.uri(), self._format_name, "postgres")
-        # check_layer_is_valid(feedback, self._layer)
+        check_layer_is_valid(feedback, self._layer)
 
         if self._histogram_option != "Pas d'histogramme" and self._output_histogram:
             self.histogram_builder(self._taxonomic_rank_label)
 
         load_layer(context, self._layer)
 
-        if self._is_map_layer:
+        # if self._is_map_layer:
+        if False:
             new_fields = format_layer_export(self._layer)
             (sink, dest_id) = self.parameterAsSink(
                 parameters,
