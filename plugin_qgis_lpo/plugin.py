@@ -21,16 +21,17 @@
 from qgis.core import QgsApplication
 from qgis.PyQt.QtWidgets import QAction, QMenu
 
-# from plugin_qgis_lpo.processing.provider import Provider
-from plugin_qgis_lpo.qgis_plugin_tools.tools.custom_logging import (
-    setup_logger,
-    teardown_logger,
-)
-from plugin_qgis_lpo.qgis_plugin_tools.tools.resources import plugin_name
-
 from .processing.provider import Provider
 from .processing.qgis_processing_postgis import get_connection_name
 from .processing.species_map import CarteParEspece
+
+# from plugin_qgis_lpo.processing.provider import Provider
+# from plugin_qgis_lpo.qgis_plugin_tools.tools.custom_logging import (
+#     setup_logger,
+#     teardown_logger,
+# )
+# from plugin_qgis_lpo.qgis_plugin_tools.tools.resources import plugin_name
+
 
 # cmd_folder = os.path.split(inspect.getfile(inspect.currentframe()))[0]
 
@@ -41,10 +42,10 @@ from .processing.species_map import CarteParEspece
 class Plugin(object):
     """QGIS Plugin Implementation."""
 
-    name = plugin_name()
+    # name = plugin_name()
 
     def __init__(self, iface) -> None:
-        setup_logger(Plugin.name)
+        # setup_logger(Plugin.name)
         # self.provider = None
         self.provider = Provider()
         self.iface = iface
@@ -96,5 +97,5 @@ class Plugin(object):
             lpo_menu.removeAction(self.especes_action)
         except IndexError:
             pass
-        teardown_logger(Plugin.name)
+        # teardown_logger(Plugin.name)
         self.iface.removeToolBarIcon(self.especes_action)
