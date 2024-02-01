@@ -385,7 +385,7 @@ class ExtractData(QgsProcessingAlgorithm):
         # Construct the sql array containing the study area's features geometry
         array_polygons = construct_sql_array_polygons(study_area)
         # Define the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer = biodiversity data
-        where = f"is_valid and ST_intersects(geom, ST_union({array_polygons}))"
+        where = f"ST_intersects(geom, ST_union({array_polygons}))"
         # Define a dictionnary with the aggregated taxons filters and complete the "where" clause thanks to it
         taxons_filters = {
             "groupe_taxo": groupe_taxo,
@@ -418,7 +418,7 @@ class ExtractData(QgsProcessingAlgorithm):
         # Define the SQL query
         query = f"""SELECT obs.*
         FROM src_lpodatas.v_c_observations obs
-        LEFT JOIN taxonomie.taxref t ON obs.taxref_cdnom = t.cd_nom
+        LEFT JOIN taxonomie.taxref t ON obs.cd_nom = t.cd_nom
         WHERE {where}"""
         # Format the URI with the query
         uri.setDataSource("", "("+query+")", "geom", "", "id_synthese")

@@ -40,9 +40,9 @@ prep_lrra as (
             sp.category,
             sp.criteria,
             sp.id_source
-           FROM taxonomie.t_redlist sp
+           FROM taxonomie.t_c_redlist sp
              LEFT JOIN taxonomie.taxref tx ON sp.cd_nom = tx.cd_nom
-             inner join taxonomie.bib_redlist_source art ON sp.id_source = art.id_source
+             inner join taxonomie.bib_c_redlist_source art ON sp.id_source = art.id_source
              where (classe='Aves' or  (classe ='Mammalia' and ordre <>'Chiroptera')) and art.area_name ='Rhône-Alpes'
 )
 ,

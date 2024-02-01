@@ -102,9 +102,8 @@ class MyCheckableComboBox(QComboBox):
 class CarteParEspece(QDialog):
     def __init__(self, connection_name, parent=None):
         super().__init__(parent)
-
+        self.connection_name = connection_name
         self.setWindowTitle("Carte par espèce(s)")
-
         self.cbx_nom_vern = MyCheckableComboBox()
         self.cbx_nom_sci = MyCheckableComboBox()
         nom_vern_proxy_model = QSortFilterProxyModel()
@@ -123,9 +122,7 @@ class CarteParEspece(QDialog):
         grp_box.layout().addWidget(rbtn_vern)
         grp_box.layout().addWidget(rbtn_sci)
 
-        dialog_buttons = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel
-        )
+        dialog_buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         dialog_buttons.accepted.connect(self.accept)
         dialog_buttons.rejected.connect(self.reject)
 
@@ -136,17 +133,19 @@ class CarteParEspece(QDialog):
         self.layout().addWidget(grp_box)
         self.layout().addWidget(dialog_buttons)
 
-        connection = (
+        self.connection = (
             QgsProviderRegistry.instance()
             .providerMetadata("postgres")
-            .createConnection(connection_name)
+            .createConnection(self.connection_name)
         )
 
         with OverrideCursor(Qt.WaitCursor):
             query = """SELECT unnest(liste_object)
                 FROM dbadmin.mv_taxonomy
                 WHERE rang='species'"""
-            especes = [json.loads(item[0]) for item in connection.executeSql(query)]
+            especes = [
+                json.loads(item[0]) for item in self.connection.executeSql(query)
+            ]
 
             # Remplissage des combobox
             for espece in especes:
@@ -179,12 +178,8 @@ class CarteParEspece(QDialog):
             self.cbx_nom_vern.model().sort(0)
             self.cbx_nom_sci.model().sort(0)
 
-        rbtn_vern.toggled.connect(
-            lambda checked: self.cbx_nom_vern.setVisible(checked)
-        )
-        rbtn_sci.toggled.connect(
-            lambda checked: self.cbx_nom_sci.setVisible(checked)
-        )
+        rbtn_vern.toggled.connect(lambda checked: self.cbx_nom_vern.setVisible(checked))
+        rbtn_sci.toggled.connect(lambda checked: self.cbx_nom_sci.setVisible(checked))
         rbtn_vern.setChecked(True)
         self.cbx_nom_sci.setHidden(True)
 
@@ -205,11 +200,6 @@ class CarteParEspece(QDialog):
             QMessageBox.warning(None, "Attention", "Aucune espèce sélectionnée")
             return
 
-        connection = (
-            QgsProviderRegistry.instance()
-            .providerMetadata("postgres")
-            .createConnection("geonature_lpo")
-        )
         query = f"""SELECT s.id_synthese,
                 cor.vn_nom_sci as nom_sci,
                 cor.vn_nom_fr as nom_vern,
@@ -237,11 +227,24 @@ class CarteParEspece(QDialog):
                WHERE tcse.is_valid and st_geometrytype(s.the_geom_local) = 'ST_Point'
               and cor.cd_ref in ({', '.join(str(a) for a in cd_refs)})
               ORDER BY tcse.bird_breed_code DESC"""
-        uri = QgsDataSourceUri(connection.uri())
+        uri = QgsDataSourceUri(self.connection.uri())
         uri.setDataSource("", "(" + query + ")", "geom", "", "id_synthese")
+
+        layer_name_query = f"""SELECT
+                string_agg(distinct
+                    coalesce(vn_nom_fr, vn_nom_sci)
+                    , ', ') as layer_name
+            FROM taxonomie.mv_c_cor_vn_taxref
+            WHERE cd_ref IN ({','.join([str(cdref) for cdref in cd_refs])})
+            """
+        layer_name_query_result = self.connection.executeSql(layer_name_query)
+        layer_name = layer_name_query_result[0][0]
+
         with OverrideCursor(Qt.WaitCursor):
-            layer = QgsVectorLayer(uri.uri(), "Espèces", "postgres")
-            layer.loadNamedStyle(str(Path(__file__).parent / "styles" / "reproduction.qml"))
+            layer = QgsVectorLayer(uri.uri(), layer_name, "postgres")
+            layer.loadNamedStyle(
+                str(Path(__file__).parent / "styles" / "reproduction.qml")
+            )
             QgsProject.instance().addMapLayer(layer)
 
         super().accept()

@@ -1,3 +1,5 @@
+"""Fake news"""
+
 from qgis.gui import QgsMessageBar
 from PyQt5.QtWidgets import QDialog, QSizePolicy, QLabel, QDialogButtonBox, QVBoxLayout
 
