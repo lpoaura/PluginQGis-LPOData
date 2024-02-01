@@ -1,0 +1,19 @@
+[general]
+name=Traitements de la LPO AuRA
+qgisMinimumVersion=3.16
+description=Scripts de la LPO pour l'analyse de données
+about=Scripts développés par la LPO pour analyser les données naturalistes contenues dans une base Géonature, alimentée notamment par Visionature.
+version=3.0.0-dev
+author=collectif (LPO AuRA)
+email=webadmin.aura@lpo.fr
+repository=https://github.com/lpoaura/PluginQGis-LPOData
+tracker=https://github.com/lpoaura/PluginQGis-LPOData/issues
+hasProcessingProvider=yes
+category=Analysis
+changelog=https://github.com/lpoaura/PluginQGis-LPOData/blob/master/CHANGELOG.md
+experimental=True
+deprecated=False
+tags=LPO AuRA, données, analyse, traitements, Python, PostGIS
+homepage=https://github.com/lpoaura/PluginQGis-LPOData
+icon=icons/logo_lpo_aura_carre.png
+server=False

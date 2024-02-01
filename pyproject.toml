@@ -1,0 +1,14 @@
+[tool.black]
+line-length = 88
+target-version = ['py38']
+include = '\.pyi?$'
+
+[tool.isort]
+# Black compatible values for isort https://black.readthedocs.io/en/stable/compatible_configs.html#isort
+profile = "black"
+
+[tool.pytest.ini_options]
+addopts = "-v"
+
+[tool.coverage.report]
+omit = ["plugin_qgis_lpo/qgis_plugin_tools/*"]
