@@ -1,0 +1,54 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"python.languageServer": "Jedi",
+		"python.testing.pytestEnabled": true,
+		"python.testing.pytestArgs": [
+			"test"
+		],
+		"python.testing.unittestEnabled": false,
+		"python.testing.nosetestsEnabled": false,
+		"python.linting.enabled": true,
+		"python.linting.flake8Enabled": true,
+		"python.linting.mypyEnabled": true,
+		"python.linting.pylintEnabled": false,
+		"python.defaultInterpreterPath": ".venv\\Scripts\\python.exe",
+		"editor.formatOnSave": true,
+		"python.analysis.autoFormatStrings": true,
+		"isort.check": true,
+		"editor.defaultFormatter": "ms-python.black-formatter",
+	},
+	"launch": {
+		"configurations": [
+			{
+				"name": "QGIS debugpy",
+				"type": "python",
+				"request": "attach",
+				"connect": {
+					"host": "localhost",
+					"port": 5678
+				},
+				"pathMappings": [
+					{
+						"localRoot": "${workspaceFolder}/plugin_qgis_lpo",
+						"remoteRoot": "C:/Users/${env:USERNAME}/AppData/Roaming/QGIS/QGIS3/profiles/default/python/plugins/plugin_qgis_lpo"
+					}
+				]
+			},
+			{
+				"name": "Debug Tests",
+				"type": "python",
+				"request": "test",
+				"console": "integratedTerminal",
+				"justMyCode": false,
+				"env": {
+					"PYTEST_ADDOPTS": "--no-cov"
+				}
+			}
+		],
+	}
+}
