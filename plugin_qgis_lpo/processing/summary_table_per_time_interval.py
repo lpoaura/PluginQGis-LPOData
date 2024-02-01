@@ -54,7 +54,7 @@ class SummaryTablePerTimeInterval(BaseProcessingAlgorithm):
         self._icon = "table.png"
         # self._short_description = ""
         self._is_map_layer = False
-        self._has_histogram = True
+        self._has_histogram = False
         self._has_time_interval_form = True
         self._has_taxonomic_rank_form = True
         self._taxonomic_ranks = {
