@@ -39,11 +39,11 @@ plugin_path = os.path.dirname(__file__)
 
 
 class Provider(QgsProcessingProvider):
-    def __init__(self) -> None:
-        """
-        Default constructor.
-        """
-        QgsProcessingProvider.__init__(self)
+    # def __init__(self) -> None:
+    #     """
+    #     Default constructor.
+    #     """
+    #     super().__init__(self)
 
     def id(self) -> str:
         """
@@ -51,7 +51,7 @@ class Provider(QgsProcessingProvider):
         string should be a unique, short, character only string, eg "qgis" or
         "gdal". This string should not be localised.
         """
-        return "scriptsLPO"
+        return "lpoScripts"
 
     def name(self) -> str:
         """
@@ -71,12 +71,11 @@ class Provider(QgsProcessingProvider):
             os.path.join(plugin_path, os.pardir, "icons", "logo_lpo_aura_carre.png")
         )
 
-    def unload(self) -> None:
-        """
-        Unloads the provider. Any tear-down steps required by the provider
-        should be implemented here.
-        """
-        pass
+    # def unload(self) -> None:
+    #     """
+    #     Unloads the provider. Any tear-down steps required by the provider
+    #     should be implemented here.
+    #     """
 
     def loadAlgorithms(self):  # noqa N802
         """
@@ -93,11 +92,11 @@ class Provider(QgsProcessingProvider):
         for alg in algorithms:
             self.addAlgorithm(alg)
 
-        # def longName(self):
+    def longName(self):  # noqa N802
         """
         Returns the a longer version of the provider name, which can include
         extra details such as version numbers. E.g. "Lastools LIDAR tools
         (version 2.2.1)". This string should be localised. The default
         implementation returns the same string as name().
         """
-        # return self.name()
+        return self.tr("Scripts d'exploitation de la base de donnée de la LPO")
