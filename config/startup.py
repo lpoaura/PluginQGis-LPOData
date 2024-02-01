@@ -1,8 +1,7 @@
 """Qgis STARTUP script
-Must be copied in QGIS root config directory 
+Must be copied in QGIS root config directory
 (e.g. ~/.local/share/QGIS/QGIS3/)
 """
-
 from qgis.core import (
     Qgis,
     QgsDataSourceUri,
@@ -17,10 +16,10 @@ from qgis.utils import iface
 try:
     postgres_metadata = QgsProviderRegistry.instance().providerMetadata("postgres")
     connection = postgres_metadata.createConnection("geonature_lpo")
-except QgsProviderConnectionException:
+except QgsProviderConnectionException as exc:
     raise QgsProcessingException(
-        self.tr("Could not retrieve connection details for {}").format(connection)
-    )
+        f"Could not retrieve connection details : {str(exc)}"
+    ) from exc
 uri = QgsDataSourceUri(connection.uri())
 
 # Groupe_taxo list
@@ -104,6 +103,18 @@ layer = QgsVectorLayer(uri.uri(), "source_data", "postgres")
 for feature in layer.getFeatures():
     source_data = feature[1]
 
+lr_columns_query = """SELECT parameter_value
+from gn_commons.t_parameters
+where parameter_name like 'plugin_qgis_lpo_lr_columns'"""
+uri.setDataSource("", "(" + lr_columns_query + ")", None, "", "parameter_value")
+layer = QgsVectorLayer(uri.uri(), "lr_columns", "postgres")
+for feature in layer.getFeatures():
+    lr_columns = feature[0]
+
+# lr_columns = {
+#     "lr_r": "LR régionale",
+# }
+
 # Add lists to QgsSettings
 db_variables = QgsSettings()
 # db_variables.setValue("areas_types", areas_types)
@@ -116,7 +127,7 @@ db_variables.setValue("famille", famille)
 db_variables.setValue("group1_inpn", group1_inpn)
 db_variables.setValue("group2_inpn", group2_inpn)
 db_variables.setValue("source_data", source_data)
-
+db_variables.setValue("lr_columns", lr_columns)
 # Add Plugin LPO menu
 
 iface.pluginMenu().parent().addMenu("Plugin LPO")

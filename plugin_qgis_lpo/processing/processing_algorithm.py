@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """Generic Qgis Processing Algorithm classes"""
+import ast
 import json
 import os
 from datetime import datetime
@@ -10,7 +11,6 @@ import matplotlib.pyplot as plt
 from qgis.core import (
     QgsAction,
     QgsDataSourceUri,
-    QgsMessageLog,
     QgsProcessing,
     QgsProcessingAlgorithm,
     QgsProcessingContext,
@@ -19,7 +19,6 @@ from qgis.core import (
     QgsProcessingParameterBoolean,
     QgsProcessingParameterDefinition,
     QgsProcessingParameterEnum,
-    QgsProcessingParameterFeatureSink,
     QgsProcessingParameterFeatureSource,
     QgsProcessingParameterFileDestination,
     QgsProcessingParameterNumber,
@@ -189,6 +188,8 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         self._taxa_fields: Optional[str] = None
         self._custom_fields: Optional[str] = None
         self._x_var: Optional[str] = None
+        self._lr_columns_db: List[str] = ["lr_r"]
+        self._lr_columns_with_alias: List[str] = ['lr_r as "LR Régionale"']
 
     def tr(self, string: str) -> str:
         """QgsProcessingAlgorithm translatable string with the self.tr() function."""
@@ -758,6 +759,22 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             )
             feedback.pushDebugInfo(self._taxa_fields)
 
+        lr_columns = self._db_variables.value("lr_columns")
+        if lr_columns:
+            try:
+                lr_columns_as_dict = ast.literal_eval(
+                    json.loads(self._db_variables.value("lr_columns"))
+                )
+                self._lr_columns_db = [
+                    key for key, _value in lr_columns_as_dict.items()
+                ]
+                self._lr_columns_with_alias = [
+                    f'{key} as "{value}"' for key, value in lr_columns_as_dict.items()
+                ]
+            except Exception as e:
+                print(e)
+                pass
+
         # EXECUTE THE SQL QUERY
         self._uri = uri_from_name(self._connection)
         query = self._query.format(
@@ -769,6 +786,8 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             group_by_species=self._group_by_species,
             taxa_fields=self._taxa_fields,
             custom_fields=self._custom_fields,
+            lr_columns_fields="\n, ".join(self._lr_columns_db),
+            lr_columns_with_alias="\n, ".join(self._lr_columns_with_alias),
         )
         feedback.pushDebugInfo(query)
         geom_field = "geom" if self._is_map_layer else None
