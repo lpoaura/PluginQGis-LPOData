@@ -1,5 +1,7 @@
 # CHANGELOG
 
+### v3.1.0-dev -
+
 ### v3.0.0-dev - New refactored plugin version
 
 * Processing algorithm scripts are now pooled in a parent class.
