@@ -2,7 +2,7 @@ name: "📚 Documentation Builder"
 
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
     paths:
       - '.github/workflows/documentation.yml'
       - 'docs/**/*'
@@ -11,7 +11,7 @@ on:
       - "*"
 
   pull_request:
-    branches: [ main ]
+    branches: [ master ]
     paths:
       - ".github/workflows/documentation.yml"
 
@@ -72,16 +72,16 @@ jobs:
 
     - name: Setup Pages
       uses: actions/configure-pages@v4
-      if: ${{ github.event_name == 'push' && ( startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main' ) }}
+      if: ${{ github.event_name == 'push' && ( startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/master' ) }}
 
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
-      if: ${{ github.event_name == 'push' && ( startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main' ) }}
+      if: ${{ github.event_name == 'push' && ( startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/master' ) }}
       with:
         # Upload entire repository
         path: docs/_build/html/
 
     - name: Deploy to GitHub Pages
       id: deployment
-      if: ${{ github.event_name == 'push' && ( startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main' ) }}
+      if: ${{ github.event_name == 'push' && ( startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/master' ) }}
       uses: actions/deploy-pages@v1

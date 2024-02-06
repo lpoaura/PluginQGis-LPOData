@@ -1,6 +1,6 @@
 # Scripts de processing framework de la LPO AuRA - QGIS Plugin
 ![tests](https://github.com/lpoaura/plugin_qgis_lpo/workflows/Tests/badge.svg)
-[![codecov.io](https://codecov.io/github/lpoaura/plugin_qgis_lpo/coverage.svg?branch=main)](https://codecov.io/github/lpoaura/plugin_qgis_lpo?branch=main)
+[![codecov.io](https://codecov.io/github/lpoaura/plugin_qgis_lpo/coverage.svg?branch=master)](https://codecov.io/github/lpoaura/plugin_qgis_lpo?branch=master)
 ![release](https://github.com/lpoaura/plugin_qgis_lpo/workflows/Release/badge.svg)
 
 [![GPLv3 license](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.html)
@@ -64,7 +64,7 @@ See [LICENSE](LICENSE) for more information.
 | Minimum QGIS version | 3.16 |
 | Maximum QGIS version | 3.99 |
 | Git repository URL | https://github.com/lpoaura/PluginQGis-LPOData |
-| Git default branch | main |
+| Git default branch | master |
 | License | GPLv3 |
 | Python linter | both |
 | CI/CD platform | GitHub |
