@@ -1,5 +1,5 @@
 # Testing dependencies
 # --------------------
 
-pytest-cov>=3,<4
+pytest-cov>=3,<5
 packaging>=23
