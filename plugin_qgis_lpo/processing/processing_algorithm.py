@@ -1,4 +1,5 @@
 """Generic Qgis Processing Algorithm classes"""
+
 import ast
 import json
 import os
@@ -90,7 +91,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
     TYPE_GEOM = "TYPE_GEOM"
 
     def __init__(self) -> None:
-        super().__init__()
+        """Init class and set default values"""
 
         # Global settings
         self._name = "myprocessingalgorithm"
@@ -251,7 +252,6 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         Here we define the inputs and output of the algorithm, along
         with some other properties.
         """
-        # super().initAlgorithm(_config)
 
         required_text = '<span style="color:#952132">(requis)</span>'
         optional_text = "(facultatif)"
