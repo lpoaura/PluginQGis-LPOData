@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Generic Qgis Processing Algorithm classes"""
 import ast
 import json
@@ -31,6 +29,7 @@ from qgis.PyQt.QtCore import QCoreApplication
 from qgis.PyQt.QtGui import QIcon
 from qgis.utils import iface
 
+from ..__about__ import __icon_dir_path__
 from ..commons.helpers import (
     check_layer_is_valid,
     construct_queries_list,
@@ -234,7 +233,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
 
     def icon(self) -> QIcon:
         """Icon script"""
-        return QIcon(os.path.join(plugin_path, os.pardir, "icons", self._icon))
+        return QIcon(str(__icon_dir_path__ / self._icon))
 
     def shortHelpString(self) -> str:  # noqa N802
         """
@@ -252,7 +251,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         Here we define the inputs and output of the algorithm, along
         with some other properties.
         """
-        super().initAlgorithm(_config)
+        # super().initAlgorithm(_config)
 
         required_text = '<span style="color:#952132">(requis)</span>'
         optional_text = "(facultatif)"

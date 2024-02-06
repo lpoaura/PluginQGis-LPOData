@@ -1,86 +1,43 @@
-# -*- coding: utf-8 -*-
+#! python3  # noqa: E265
 
 """
-/***************************************************************************
-        ScriptsLPO : scripts_lpo_provider.py
-        -------------------
-
- ***************************************************************************/
-
-/***************************************************************************
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- ***************************************************************************/
+    Processing provider module.
 """
-
-__author__ = "LPO AuRA"
-__date__ = "2020-2024"
-
-# This will get replaced with a git SHA1 when you do a git archive
-__revision__ = "$Format:%H$"
-
 import os
 
-from qgis.core import QgsMessageLog, QgsProcessingProvider
+# PyQGIS
+from qgis.core import QgsProcessingProvider
+from qgis.PyQt.QtCore import QCoreApplication
 from qgis.PyQt.QtGui import QIcon
 
-from .extract_data import ExtractData
-from .extract_data_observers import ExtractDataObservers
-from .state_of_knowledge import StateOfKnowledge
-from .summary_map import SummaryMap
-from .summary_table_per_species import SummaryTablePerSpecies
-from .summary_table_per_time_interval import SummaryTablePerTimeInterval
+# project
+from plugin_qgis_lpo.__about__ import (
+    __icon_dir_path__,
+    __icon_path__,
+    __title__,
+    __version__,
+)
+from plugin_qgis_lpo.processing.extract_data import ExtractData
+from plugin_qgis_lpo.processing.extract_data_observers import ExtractDataObservers
+from plugin_qgis_lpo.processing.state_of_knowledge import StateOfKnowledge
+from plugin_qgis_lpo.processing.summary_map import SummaryMap
+from plugin_qgis_lpo.processing.summary_table_per_species import SummaryTablePerSpecies
+from plugin_qgis_lpo.processing.summary_table_per_time_interval import (
+    SummaryTablePerTimeInterval,
+)
 
-plugin_path = os.path.dirname(__file__)
+# ############################################################################
+# ########## Classes ###############
+# ##################################
 
 
-class Provider(QgsProcessingProvider):
-    # def __init__(self) -> None:
-    #     """
-    #     Default constructor.
-    #     """
-    #     super().__init__(self)
+class QgisLpoProvider(QgsProcessingProvider):
+    """
+    Processing provider class.
+    """
 
-    def id(self) -> str:
-        """
-        Returns the unique provider id, used for identifying the provider. This
-        string should be a unique, short, character only string, eg "qgis" or
-        "gdal". This string should not be localised.
-        """
-        return "lpoScripts"
-
-    def name(self) -> str:
-        """
-        Returns the provider name, which is used to describe the provider
-        within the GUI.
-
-        This string should be short (e.g. "Lastools") and localised.
-        """
-        return self.tr("Traitements de la LPO")
-
-    def icon(self) -> "QIcon":
-        """
-        Should return a QIcon which is used for your provider inside
-        the Processing toolbox.
-        """
-        return QIcon(
-            os.path.join(plugin_path, os.pardir, "icons", "logo_lpo_aura_carre.png")
-        )
-
-    # def unload(self) -> None:
-    #     """
-    #     Unloads the provider. Any tear-down steps required by the provider
-    #     should be implemented here.
-    #     """
-
-    def loadAlgorithms(self):  # noqa N802
-        """
-        Loads all algorithms belonging to this provider.
-        """
+    def loadAlgorithms(self):
+        """Loads all algorithms belonging to this provider."""
         algorithms = [
             ExtractData(),
             ExtractDataObservers(),
@@ -92,11 +49,61 @@ class Provider(QgsProcessingProvider):
         for alg in algorithms:
             self.addAlgorithm(alg)
 
-    def longName(self):  # noqa N802
+    def id(self) -> str:
+        """Unique provider id, used for identifying it. This string should be unique, \
+        short, character only string, eg "qgis" or "gdal". \
+        This string should not be localised.
+
+        :return: provider ID
+        :rtype: str
         """
-        Returns the a longer version of the provider name, which can include
-        extra details such as version numbers. E.g. "Lastools LIDAR tools
-        (version 2.2.1)". This string should be localised. The default
+        return "plugin_qgis_lpo"
+
+    def name(self) -> str:
+        """Returns the provider name, which is used to describe the provider
+        within the GUI. This string should be short (e.g. "Lastools") and localised.
+
+        :return: provider name
+        :rtype: str
+        """
+        return __title__
+
+    def longName(self) -> str:
+        """Longer version of the provider name, which can include
+        extra details such as version numbers. E.g. "Lastools LIDAR tools". This string should be localised. The default
         implementation returns the same string as name().
+
+        :return: provider long name
+        :rtype: str
         """
-        return self.tr("Scripts d'exploitation de la base de donnée de la LPO")
+        return self.tr("{} - Tools".format(__title__))
+
+    def icon(self) -> QIcon:
+        """QIcon used for your provider inside the Processing toolbox menu.
+
+        :return: provider icon
+        :rtype: QIcon
+        """
+        return QIcon(str(__icon_dir_path__ / "logo_lpo_aura_carre.png"))
+
+    def tr(self, message: str) -> str:
+        """Get the translation for a string using Qt translation API.
+
+        :param message: String for translation.
+        :type message: str, QString
+
+        :returns: Translated version of message.
+        :rtype: str
+        """
+        # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
+        return QCoreApplication.translate(self.__class__.__name__, message)
+
+    def versionInfo(self) -> str:
+        """Version information for the provider, or an empty string if this is not \
+        applicable (e.g. for inbuilt Processing providers). For plugin based providers, \
+        this should return the plugin’s version identifier.
+
+        :return: version
+        :rtype: str
+        """
+        return __version__

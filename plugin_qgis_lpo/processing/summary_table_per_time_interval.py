@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 /***************************************************************************
         ScriptsLPO : summary_table_per_species.py
@@ -18,11 +16,7 @@
 """
 
 
-from typing import Dict
-
-from qgis.utils import iface
-
-from .processing_algorithm import BaseProcessingAlgorithm
+from plugin_qgis_lpo.processing.processing_algorithm import BaseProcessingAlgorithm
 
 
 class SummaryTablePerTimeInterval(BaseProcessingAlgorithm):

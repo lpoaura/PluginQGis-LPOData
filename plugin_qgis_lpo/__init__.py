@@ -1,19 +1,23 @@
-import os
+#! python3  # noqa: E265
 
-from qgis.gui import QgisInterface
+# ----------------------------------------------------------
+# Copyright (C) 2015 Martin Dobias
+# ----------------------------------------------------------
+# Licensed under the terms of GNU GPL 2
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+# --------------------------------------------------------------------
 
-# from plugin_qgis_lpo.qgis_plugin_tools.infrastructure.debugging import (  # noqa F401
-#     setup_debugpy,
-#     setup_ptvsd,
-#     setup_pydevd,
-# )
 
-# debugger = os.environ.get("QGIS_PLUGIN_USE_DEBUGGER", "").lower()
-# if debugger in {"debugpy", "ptvsd", "pydevd"}:
-#     locals()["setup_" + debugger]()
+def classFactory(iface):
+    """Load the plugin class.
 
+    :param iface: A QGIS interface instance.
+    :type iface: QgsInterface
+    """
+    from .plugin_main import QgisLpoPlugin
 
-def classFactory(iface: QgisInterface):  # noqa N802
-    from .plugin import Plugin
-
-    return Plugin(iface)
+    return QgisLpoPlugin(iface)

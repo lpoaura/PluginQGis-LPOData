@@ -1,5 +1,4 @@
-# Scripts de processing framework de la LPO AuRA
-
+# Scripts de processing framework de la LPO AuRA - QGIS Plugin
 ![tests](https://github.com/lpoaura/plugin_qgis_lpo/workflows/Tests/badge.svg)
 [![codecov.io](https://codecov.io/github/lpoaura/plugin_qgis_lpo/coverage.svg?branch=main)](https://codecov.io/github/lpoaura/plugin_qgis_lpo?branch=main)
 ![release](https://github.com/lpoaura/plugin_qgis_lpo/workflows/Release/badge.svg)
@@ -9,6 +8,9 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
+
+[![pylint](https://github.com/lpoaura/PluginQGis-LPODatalint/pylint.svg)](https://github.com/lpoaura/PluginQGis-LPODatalint/)
+[![flake8](https://img.shields.io/badge/linter-flake8-green)](https://flake8.pycqa.org/)
 
 
 Ce plugin ajoute à QGIS des scripts d'exploitation des données naturalistes de
@@ -28,7 +30,7 @@ La base de données sur laquelle les développements ont été faits dispose ég
 
 Pour permettre l'export des données formatées, il est nécessaire de disposer de la libraire `openpyxl`. Pour l'installer `py3_env` puis `python3 -m pip install --user openpyxl`.
 
-<img align="center" src="https://github.com/lpoaura/PluginQGis-LPOData/blob/develop_aura/icons/logo_lpo_aura.png">
+<img align="center" src="https://github.com/lpoaura/PluginQGis-LPOData/blob/main/plugin_qgis_lpo/resources/images/logo_lpo_aura.png">
 
 
 ## Development
@@ -40,3 +42,95 @@ This plugin is licenced with[GNU General Public License, version 3](https://www.
 
 
 See [LICENSE](LICENSE) for more information.
+
+## Generated options
+
+### Plugin
+
+| Cookiecutter option | Picked value |
+| :-- | :--: |
+| Plugin name | Traitement des données LPO |
+| Plugin name slugified | plugin_qgis_lpo |
+| Plugin name class (used in code) | QgisLpo |
+| Plugin category | Database |
+| Plugin description short | This plugin is a revolution! |
+| Plugin description long | Extends QGIS with revolutionary features that every single GIS end-users was expected (or not)! |
+| Plugin tags | geonature,visionature,faune-france,postgresql,lpo |
+| Plugin icon | default_icon.png |
+| Plugin with processing provider | True |
+| Author name | Pole VDC (LPOAuRA) |
+| Author organization | LPO Auvergne-Rhône-Alpes |
+| Author email | webadmin.aura@lpo.fr |
+| Minimum QGIS version | 3.16 |
+| Maximum QGIS version | 3.99 |
+| Git repository URL | https://github.com/lpoaura/PluginQGis-LPOData |
+| Git default branch | main |
+| License | GPLv3 |
+| Python linter | both |
+| CI/CD platform | GitHub |
+| IDE | VSCode |
+
+### Tooling
+
+This project is configured with the following tools:
+
+- [Black](https://black.readthedocs.io/en/stable/) to format the code without any existential question
+- [iSort](https://pycqa.github.io/isort/) to sort the Python imports
+
+Code rules are enforced with [pre-commit](https://pre-commit.com/) hooks.  
+Static code analisis is based on: both
+
+See also: [contribution guidelines](CONTRIBUTING.md).
+
+## CI/CD
+
+Plugin is linted, tested, packaged and published with GitHub.
+
+If you mean to deploy it to the [official QGIS plugins repository](https://plugins.qgis.org/), remember to set your OSGeo credentials (`OSGEO_USER_NAME` and `OSGEO_USER_PASSWORD`) as environment variables in your CI/CD tool.
+
+
+### Documentation
+
+The documentation is generated using Sphinx and is automatically generated through the CI and published on Pages.
+
+- homepage: <https://github.com/lpoaura/PluginQGis-LPOData>
+- repository: <https://github.com/lpoaura/PluginQGis-LPOData>
+- tracker: <https://github.com/lpoaura/PluginQGis-LPOData/issues>
+
+----
+
+## Next steps
+
+### Set up development environment
+
+> Typical commands on Linux (Ubuntu).
+
+1. If you don't pick the `git init` option, initialize your local repository:
+
+    ```sh
+    git init
+    ```
+
+1. Follow the [embedded documentation to set up your development environment](./docs/development/environment.md)
+1. Add all files to git index to prepare initial commit:
+
+    ```sh
+    git add -A
+    ```
+
+1. Run the git hooks to ensure that everything runs OK and to start developing on quality standards:
+
+    ```sh
+    pre-commit run -a
+    ```
+
+### Try to build documentation locally
+
+1. Have a look to the [plugin's metadata.txt file](plugin_qgis_lpo/metadata.txt): review it, complete it or fix it if needed (URLs, etc.).
+1. Follow the [embedded documentation to build plugin documentation locally](./docs/development/environment.md)
+
+----
+
+## License
+
+Distributed under the terms of the [`GPLv3` license](LICENSE).
