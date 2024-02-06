@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 Unreleased
 
-## version_tag - YYYY-DD-mm
+# >> version_tag - YYYY-DD-mm
 
 ### Added
 
@@ -16,7 +16,7 @@ Unreleased
 
 -->
 
-## 0.1.0 - 2024-02-06
+# >> 0.1.0 - 2024-02-06
 
 - First release
 - Generated with the [QGIS Plugins templater](https://oslandia.gitlab.io/qgis/template-qgis-plugin/)

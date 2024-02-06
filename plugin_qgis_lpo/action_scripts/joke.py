@@ -1,7 +1,13 @@
 """Fake news"""
 
-from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QLabel, QSizePolicy, QVBoxLayout
 from qgis.gui import QgsMessageBar
+from qgis.PyQt.QtWidgets import (
+    QDialog,
+    QDialogButtonBox,
+    QLabel,
+    QSizePolicy,
+    QVBoxLayout,
+)
 
 
 class JokeDialog(QDialog):

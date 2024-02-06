@@ -1,6 +1,6 @@
 # Packaging and deployment
 
-## Packaging
+# >> Packaging
 
 This plugin is using the [qgis-plugin-ci](https://github.com/opengisch/qgis-plugin-ci/) tool to perform packaging operations.  
 Under the hood, the package command is performing a `git archive` run based on `CHANGELOG.md`.
@@ -20,7 +20,7 @@ qgis-plugin-ci package 1.3.1
 qgis-plugin-ci package latest
 ```
 
-## Release a version
+# >> Release a version
 
 Through git workflow:
 

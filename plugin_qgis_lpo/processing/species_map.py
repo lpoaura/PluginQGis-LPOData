@@ -2,13 +2,7 @@ import json
 import re
 from pathlib import Path
 
-from qgis.core import (
-    QgsDataSourceUri,
-    QgsMessageLog,
-    QgsProject,
-    QgsProviderRegistry,
-    QgsVectorLayer,
-)
+from qgis.core import QgsDataSourceUri, QgsProject, QgsProviderRegistry, QgsVectorLayer
 from qgis.PyQt.QtCore import QEvent, QSortFilterProxyModel, Qt
 from qgis.PyQt.QtGui import QStandardItem, QStandardItemModel
 from qgis.PyQt.QtWidgets import (

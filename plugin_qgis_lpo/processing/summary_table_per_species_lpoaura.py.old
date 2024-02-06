@@ -37,10 +37,10 @@ from qgis.utils import iface
 
 from ..commons.helpers import (
     check_layer_is_valid,
-    construct_queries_list,
-    construct_sql_array_polygons,
-    construct_sql_datetime_filter,
-    construct_sql_taxons_filter,
+    sql_queries_list_builder,
+    sql_array_polygons_builder,
+    sql_datetime_filter_builder,
+    sql_taxons_filter_builder,
     execute_sql_queries,
     load_layer,
     simplify_name,
@@ -215,7 +215,7 @@ class SummaryTablePerSpecies(BaseProcessingAlgorithm):
 
         ### CONSTRUCT "WHERE" CLAUSE (SQL) ###
         # Construct the sql array containing the study area's features geometry
-        array_polygons = construct_sql_array_polygons(study_area)
+        array_polygons = sql_array_polygons_builder(study_area)
         # Define the "where" clause of the SQL query, aiming to retrieve the output PostGIS layer = summary table
         where = f"""is_valid and is_present
         and ST_intersects(obs.geom, ST_union({array_polygons}))"""
@@ -230,10 +230,10 @@ class SummaryTablePerSpecies(BaseProcessingAlgorithm):
             "obs.group1_inpn": group1_inpn,
             "obs.group2_inpn": group2_inpn,
         }
-        taxons_where = construct_sql_taxons_filter(taxons_filters)
+        taxons_where = sql_taxons_filter_builder(taxons_filters)
         where += taxons_where
         # Complete the "where" clause with the datetime filter
-        datetime_where = construct_sql_datetime_filter(
+        datetime_where = sql_datetime_filter_builder(
             self, period_type, ts, parameters, context
         )
         where += datetime_where
@@ -350,7 +350,7 @@ class SummaryTablePerSpecies(BaseProcessingAlgorithm):
             # Define the name of the PostGIS summary table which will be created in the DB
             table_name = simplify_name(format_name)
             # Define the SQL queries
-            queries = construct_queries_list(table_name, query)
+            queries = sql_queries_list_builder(table_name, query)
             # Execute the SQL queries
             execute_sql_queries(context, feedback, connection, queries)
             # Format the URI

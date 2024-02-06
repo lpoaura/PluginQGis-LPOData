@@ -1,5 +1,5 @@
 #! python3  # noqa: E265
-
+"""init Qgis LPO Plugin"""
 # ----------------------------------------------------------
 # Copyright (C) 2015 Martin Dobias
 # ----------------------------------------------------------
@@ -12,7 +12,7 @@
 # --------------------------------------------------------------------
 
 
-def classFactory(iface):
+def classFactory(iface):  # noqa N802
     """Load the plugin class.
 
     :param iface: A QGIS interface instance.

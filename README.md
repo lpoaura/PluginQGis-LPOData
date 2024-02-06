@@ -33,17 +33,17 @@ Pour permettre l'export des données formatées, il est nécessaire de disposer 
 <img align="center" src="https://github.com/lpoaura/PluginQGis-LPOData/blob/main/plugin_qgis_lpo/resources/images/logo_lpo_aura.png">
 
 
-## Development
+# >> Development
 
 Refer to [development](docs/development.md) for developing this QGIS3 plugin.
 
-## License
+# >> License
 This plugin is licenced with[GNU General Public License, version 3](https://www.gnu.org/licenses/gpl-3.0.html)
 
 
 See [LICENSE](LICENSE) for more information.
 
-## Generated options
+# >> Generated options
 
 ### Plugin
 
@@ -82,7 +82,7 @@ Static code analisis is based on: both
 
 See also: [contribution guidelines](CONTRIBUTING.md).
 
-## CI/CD
+# >> CI/CD
 
 Plugin is linted, tested, packaged and published with GitHub.
 
@@ -99,7 +99,7 @@ The documentation is generated using Sphinx and is automatically generated throu
 
 ----
 
-## Next steps
+# >> Next steps
 
 ### Set up development environment
 
@@ -131,6 +131,6 @@ The documentation is generated using Sphinx and is automatically generated throu
 
 ----
 
-## License
+# >> License
 
 Distributed under the terms of the [`GPLv3` license](LICENSE).

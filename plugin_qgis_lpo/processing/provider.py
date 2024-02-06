@@ -3,7 +3,6 @@
 """
     Processing provider module.
 """
-import os
 
 # PyQGIS
 from qgis.core import QgsProcessingProvider
@@ -11,12 +10,7 @@ from qgis.PyQt.QtCore import QCoreApplication
 from qgis.PyQt.QtGui import QIcon
 
 # project
-from plugin_qgis_lpo.__about__ import (
-    __icon_dir_path__,
-    __icon_path__,
-    __title__,
-    __version__,
-)
+from plugin_qgis_lpo.__about__ import __icon_dir_path__, __title__, __version__
 from plugin_qgis_lpo.processing.extract_data import ExtractData
 from plugin_qgis_lpo.processing.extract_data_observers import ExtractDataObservers
 from plugin_qgis_lpo.processing.state_of_knowledge import StateOfKnowledge
@@ -70,7 +64,8 @@ class QgisLpoProvider(QgsProcessingProvider):
 
     def longName(self) -> str:
         """Longer version of the provider name, which can include
-        extra details such as version numbers. E.g. "Lastools LIDAR tools". This string should be localised. The default
+        extra details such as version numbers. E.g. "Lastools LIDAR tools".
+        This string should be localised. The default
         implementation returns the same string as name().
 
         :return: provider long name

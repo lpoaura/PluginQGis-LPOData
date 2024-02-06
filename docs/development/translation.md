@@ -1,6 +1,6 @@
 # Manage translations
 
-## Requirements
+# >> Requirements
 
 Qt Linguist tools are used to manage translations. Typically on Ubuntu:
 
@@ -8,7 +8,7 @@ Qt Linguist tools are used to manage translations. Typically on Ubuntu:
 sudo apt install qttools5-dev-tools
 ```
 
-## Workflow
+# >> Workflow
 
 1. Update `.ts` files:
 

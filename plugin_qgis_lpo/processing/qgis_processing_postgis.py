@@ -21,7 +21,7 @@ __copyright__ = "(C) 2012, Martin Dobias"
 
 import os
 import re
-from typing import List
+from typing import Optional
 
 import psycopg2
 import psycopg2.extensions  # For isolation levels
@@ -109,7 +109,6 @@ class TableAttribute(object):
 
 
 class TableConstraint(object):
-
     """Class that represents a constraint of a table (relation)."""
 
     (TypeCheck, TypeForeignKey, TypePrimaryKey, TypeUnique) = list(range(4))
@@ -617,21 +616,21 @@ class GeoDB(object):
         """Delete table from the database."""
 
         table_name = self._table_name(schema, table)
-        sql = "DROP TABLE %s" % table_name
+        sql = f"DROP TABLE {table_name}"
         self._exec_sql_and_commit(sql)
 
     def empty_table(self, table: str, schema: str = None):
         """Delete all rows from table."""
 
         table_name = self._table_name(schema, table)
-        sql = "DELETE FROM %s" % table_name
+        sql = f"DELETE FROM {table_name}"
         self._exec_sql_and_commit(sql)
 
-    def rename_table(self, table: str, new_table: str, schema: str = None):
+    def rename_table(self, table: str, new_table: str, schema: Optional[str] = None):
         """Rename a table in database."""
 
         table_name = self._table_name(schema, table)
-        sql = "ALTER TABLE %s RENAME TO %s" % (table_name, self._quote(new_table))
+        sql = f"ALTER TABLE {table_name} RENAME TO {self._quote(new_table)}"
         self._exec_sql_and_commit(sql)
 
         # Update geometry_columns if PostGIS is enabled

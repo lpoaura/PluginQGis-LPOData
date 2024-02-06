@@ -1,12 +1,12 @@
 #####################################################
-##### OBJECTIFS DU SCRIPT :                         #
-##### Créer un fichier excel                        #
-##### Le remplir de valeurs                         #
-##### Ajouter des conditions de mise en forme       #
+# OBJECTIFS DU SCRIPT :                         #
+# Créer un fichier excel                        #
+# Le remplir de valeurs                         #
+# Ajouter des conditions de mise en forme       #
 #####################################################
 
 #####################################################
-##### 1 - Import des librairies                     #
+# 1 - Import des librairies                     #
 #####################################################
 
 import os
@@ -16,10 +16,16 @@ from typing import Dict
 
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side  # , Color
-from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QLabel, QSizePolicy, QVBoxLayout
 from qgis.core import QgsProject
 from qgis.gui import QgsMessageBar
 from qgis.PyQt.QtCore import NULL
+from qgis.PyQt.QtWidgets import (
+    QDialog,
+    QDialogButtonBox,
+    QLabel,
+    QSizePolicy,
+    QVBoxLayout,
+)
 
 
 class SuccessDialog(QDialog):
@@ -41,15 +47,15 @@ class SuccessDialog(QDialog):
 
 
 #####################################################
-##### 2 - Gestion des données                       #
+# >> 2 - Gestion des données                       #
 #####################################################
 
-## Création du fichier excel
+# >> Création du fichier excel
 wb = Workbook()
-## Sélection de "feuille" active 'worksheet'
+# >> Sélection de "feuille" active 'worksheet'
 ws = wb.active
 
-## Alimentation du fichier excel avec les données de la table attributaire
+# >> Alimentation du fichier excel avec les données de la table attributaire
 # Récupération de la couche
 layer_id = "[%@layer_id%]"
 layer = QgsProject().instance().mapLayer(layer_id)
@@ -73,14 +79,14 @@ for feature in features:
     ws.append(feature_row)
 
 #####################################################
-##### 3 - Mise en forme du fichier                  #
+# >> 3 - Mise en forme du fichier                  #
 #####################################################
 
-##### 3.1 - Mise en italique des cases 'Nom scientifique'
+# >> 3.1 - Mise en italique des cases 'Nom scientifique'
 
-## Définition du style
+# >> Définition du style
 italic_grey_font = Font(color="606060", italic=True)
-## Rechercher la colonne "Nom scientifique"
+# >> Rechercher la colonne "Nom scientifique"
 for col in ws["1:1"]:
     if col.value == "Nom scientifique":
         # Si on trouve une colonne référente alors :
@@ -90,9 +96,9 @@ for col in ws["1:1"]:
             cell.font = italic_grey_font
             cell.alignment = Alignment(horizontal="center")
 
-##### 3.2 - Couleur sur les cases de type statut
+# >> 3.2 - Couleur sur les cases de type statut
 
-## Définition du style
+# >> Définition du style
 blackFill = PatternFill(start_color="000000", end_color="000000", fill_type="solid")
 purpleFill = PatternFill(start_color="3d1851", end_color="3d1851", fill_type="solid")
 lpurpleFill = PatternFill(start_color="5b1a62", end_color="5b1a62", fill_type="solid")
@@ -104,7 +110,7 @@ greenFill = PatternFill(start_color="78b747", end_color="78b747", fill_type="sol
 grey2Fill = PatternFill(start_color="d4d4d4", end_color="d4d4d4", fill_type="solid")
 
 
-## Définition de la fonction d'application des couleurs selon le statut
+# >> Définition de la fonction d'application des couleurs selon le statut
 def color_statut_style(x):
     for cell in ws[x]:
         if re.match("EX", cell.value):
@@ -127,7 +133,7 @@ def color_statut_style(x):
             cell.fill = grey2Fill
 
 
-## Recherche des colonnes de type statut
+# >> Recherche des colonnes de type statut
 # Rechercher la colonne "LR France", "LR Rhône-Alpes", "LR Auvergne" # d'autres colonnes à prévoir
 for col in ws["1:1"]:
     if col.value == "LR France":
@@ -146,16 +152,16 @@ for col in ws["1:1"]:
         ref_statut = range_statut.column_letter + ":" + range_statut.column_letter
         color_statut_style(ref_statut)
 
-##### 3.3 - Style général des colonnes
+# >> 3.3 - Style général des colonnes
 
-## Mise en gras des noms de colonnes
+# >> Mise en gras des noms de colonnes
 col_name_font = Font(bold=True, italic=False, vertAlign=None, color="ffffff", size=12)
 blueLPO = PatternFill(start_color="0076bd", end_color="0076bd", fill_type="solid")
 for cell in ws["1:1"]:
     cell.font = col_name_font
     cell.fill = blueLPO
 
-## Mise en forme de la largeur des colonnes
+# >> Mise en forme de la largeur des colonnes
 dims: Dict[str, int] = {}
 for row in ws.rows:
     for cell in row:
@@ -170,7 +176,7 @@ for col, value in dims.items():
         ws.column_dimensions[col].width = value
 
 
-## Mise en forme des bordures du tableau
+# >> Mise en forme des bordures du tableau
 # Définition d'une fonction qui parcourt les cellules et applique le style de bordure choisie
 def set_border(ws, cell_range):
     border = Border(bottom=Side(border_style="thin", color="0076bd"))
@@ -185,7 +191,7 @@ full_dim = ws.dimensions
 set_border(ws, "A1:Z3275")
 
 #####################################################
-##### 4 - Enregistrement du résultat final          #
+# >> 4 - Enregistrement du résultat final          #
 #####################################################
 
 # Sauvegarde du fichier
