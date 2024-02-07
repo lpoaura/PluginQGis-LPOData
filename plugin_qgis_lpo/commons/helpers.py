@@ -120,7 +120,8 @@ def sql_taxons_filter_builder(taxons_dict: Dict) -> Optional[str]:
     rank_filters = []
     for key, value in taxons_dict.items():
         if value:
-            rank_filters.append(f"{key} in {str(tuple(value))}")
+            value_list = ",".join([f"'{v}'" for v in value])
+            rank_filters.append(f"{key} in ({value_list})")
     if len(rank_filters) > 0:
         taxons_where = f"({' or '.join(rank_filters)})"
         return taxons_where
