@@ -60,6 +60,7 @@ class SummaryMap(BaseProcessingAlgorithm):
         self._icon = "map.png"
         self._short_help_string = ""
         self._is_map_layer = True
+        self._return_geo_agg = True
         self._query = """/*set random_page_cost to 4;*/
 WITH prep AS (SELECT la.id_area, ((st_area(la.geom))::DECIMAL / 1000000) area_surface
               FROM ref_geo.l_areas la

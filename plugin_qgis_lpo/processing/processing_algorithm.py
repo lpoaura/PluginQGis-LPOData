@@ -416,6 +416,22 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             end_date.setMetadata({"widget_wrapper": {"class": DateTimeWidget}})
             self.addParameter(end_date)
 
+        if self._return_geo_agg:
+            areas_types = QgsProcessingParameterEnum(
+                self.AREAS_TYPE,
+                self.tr(
+                    f"""<b style="color:#0a84db">TYPE D'ENTITÉS GÉOGRAPHIQUES</b> {required_text} :
+                    Sélectionnez le <u>type d'entités géographiques</u>
+                    qui vous intéresse"""
+                ),
+                self._areas_variables,
+                allowMultiple=False,
+            )
+            areas_types.setMetadata(
+                {"widget_wrapper": {"useCheckBoxes": True, "columns": 5}}
+            )
+            self.addParameter(areas_types)
+
         # ## Taxons filters ##
         self.addParameter(
             QgsProcessingParameterEnum(
@@ -561,22 +577,6 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             extra_where.flags() | QgsProcessingParameterDefinition.FlagAdvanced
         )
         self.addParameter(extra_where)
-
-        if self._return_geo_agg:
-            areas_types = QgsProcessingParameterEnum(
-                self.AREAS_TYPE,
-                self.tr(
-                    """<b style="color:#0a84db">TYPE D'ENTITÉS GÉOGRAPHIQUES</b><br/>
-                    <b>*3/</b> Sélectionnez le <u>type d'entités géographiques</u>
-                    qui vous intéresse"""
-                ),
-                self._areas_variables,
-                allowMultiple=False,
-            )
-            areas_types.setMetadata(
-                {"widget_wrapper": {"useCheckBoxes": True, "columns": 3}}
-            )
-            self.addParameter(areas_types)
 
     def processAlgorithm(  # noqa N802
         self,
