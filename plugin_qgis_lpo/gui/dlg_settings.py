@@ -19,7 +19,7 @@ from qgis.PyQt.QtGui import QDesktopServices, QIcon
 
 # project
 from plugin_qgis_lpo.__about__ import (
-    __icon_path__,
+    __icon_dir_path__,
     __title__,
     __uri_homepage__,
     __uri_tracker__,
@@ -126,9 +126,9 @@ class ConfigOptionsPage(FORM_CLASS, QgsOptionsPageWidget):
 class PlgOptionsFactory(QgsOptionsWidgetFactory):
     """Factory for options widget."""
 
-    def __init__(self):
-        """Constructor."""
-        super().__init__()
+    # def __init__(self):
+    #     """Constructor."""
+    #     super().__init__()
 
     def icon(self) -> QIcon:
         """Returns plugin icon, used to as tab icon in QGIS options tab widget.
@@ -136,9 +136,9 @@ class PlgOptionsFactory(QgsOptionsWidgetFactory):
         :return: _description_
         :rtype: QIcon
         """
-        return QIcon(str(__icon_path__))
+        return QIcon(str(__icon_dir_path__ / "logo_lpo_aura_carre.png"))
 
-    def createWidget(self, parent) -> ConfigOptionsPage:
+    def createWidget(self, parent) -> ConfigOptionsPage:  # noqa N802
         """Create settings widget.
 
         :param parent: Qt parent where to include the options page.

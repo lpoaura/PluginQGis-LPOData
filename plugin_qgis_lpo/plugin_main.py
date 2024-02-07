@@ -41,6 +41,12 @@ class QgisLpoPlugin:
         provides the hook by which you can manipulate the QGIS application at run time.
         :type iface: QgsInterface
         """
+        self.options_factory: PlgOptionsFactory
+        self.action_help: QAction
+        self.action_settings: QAction
+        self.action_help_plugin_menu_documentation: QAction
+        self.especes_action: QAction
+
         self.provider = QgisLpoProvider()
         self.iface = iface
         self.log = PlgLogger().log

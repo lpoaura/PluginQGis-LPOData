@@ -46,6 +46,7 @@ from ..commons.helpers import (
     sql_timeinterval_cols_builder,
 )
 from ..commons.widgets import DateTimeWidget
+from ..toolbelt.log_handler import PlgLogger
 from .qgis_processing_postgis import uri_from_name
 
 plugin_path = os.path.dirname(__file__)
@@ -93,6 +94,8 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
     def __init__(self) -> None:
         """Init class and set default values"""
         super().__init__()
+
+        self.log = PlgLogger().log
         # Global settings
         self._name = "myprocessingalgorithm"
         self._display_name = "My Processing Algorithm"
@@ -593,15 +596,16 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         self._connection = self.parameterAsString(parameters, self.DATABASE, context)
         self._add_table = self.parameterAsBool(parameters, self.ADD_TABLE, context)
         self._study_area = self.parameterAsSource(parameters, self.STUDY_AREA, context)
-        feedback.pushDebugInfo(
-            str(
+        self.log(
+            message=str(
                 [
                     self._db_variables.value("source_data")[i]
                     for i in (
                         self.parameterAsEnums(parameters, self.SOURCE_DATA, context)
                     )
                 ]
-            )
+            ),
+            log_level=4,
         )
         self._source_data_where = sql_source_filter_builder(
             [
@@ -728,11 +732,11 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             self._time_interval = self._time_interval_variables[
                 self.parameterAsEnum(parameters, self.TIME_INTERVAL, context)
             ]
-            feedback.pushDebugInfo(f"time_interval {self._time_interval}")
+            self.log(message=f"time_interval {self._time_interval}", log_level=4)
             self._start_year = self.parameterAsInt(parameters, self.START_YEAR, context)
-            feedback.pushDebugInfo(f"start_year {self._start_year}")
+            self.log(message=f"start_year {self._start_year}", log_level=4)
             self._end_year = self.parameterAsInt(parameters, self.END_YEAR, context)
-            feedback.pushDebugInfo(f"end_year {self._end_year}")
+            self.log(message=f"end_year {self._end_year}", log_level=4)
             if self._end_year < self._start_year:
                 raise QgsProcessingException(
                     "Veuillez renseigner une année de fin postérieure à l'année de début !"
@@ -740,7 +744,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             taxonomic_rank = self._taxonomic_ranks_labels[
                 self.parameterAsEnum(parameters, self.TAXONOMIC_RANK, context)
             ]
-            feedback.pushDebugInfo(f"taxonomic_rank {taxonomic_rank}")
+            self.log(message=f"taxonomic_rank {taxonomic_rank}", log_level=4)
             aggregation_type = "Nombre de données"
             self._group_by_species = (
                 "obs.cd_nom, obs.cd_ref, nom_rang, nom_sci, obs.nom_vern, "
@@ -777,7 +781,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
                 if taxonomic_rank == "Espèces"
                 else select_taxo_groups_info
             )
-            feedback.pushDebugInfo(self._taxa_fields)
+            self.log(message=self._taxa_fields, log_level=4)
 
         lr_columns = self._db_variables.value("lr_columns")
         if lr_columns:
@@ -809,7 +813,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             lr_columns_fields="\n, ".join(self._lr_columns_db),
             lr_columns_with_alias="\n, ".join(self._lr_columns_with_alias),
         )
-        feedback.pushDebugInfo(query)
+        self.log(message=query, log_level=4)
         geom_field = "geom" if self._is_map_layer else None
         if self._add_table:
             # Define the name of the PostGIS summary table which will be created in the DB
@@ -819,10 +823,10 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             # Execute the SQL queries
             execute_sql_queries(context, feedback, self._connection, queries)
             # Format the URI
-            self._uri.setDataSource(None, table_name, geom_field, "", self._primary_key)
+            self._uri.setDataSource(None, table_name, geom_field, "", self._primary_key)  # type: ignore
         else:
             # Format the URI with the query
-            self._uri.setDataSource("", f"({query})", geom_field, "", self._primary_key)
+            self._uri.setDataSource("", f"({query})", geom_field, "", self._primary_key)  # type: ignore
 
         self._layer = QgsVectorLayer(self._uri.uri(), self._format_name, "postgres")
         check_layer_is_valid(feedback, self._layer)
