@@ -243,7 +243,12 @@ class CarteParEspece(QDialog):  # noqa N802
         with OverrideCursor(Qt.WaitCursor):
             layer = QgsVectorLayer(uri.uri(), layer_name, "postgres")
             layer.loadNamedStyle(
-                str(Path(__file__).parent.parent / "styles" / "reproduction.qml")
+                str(
+                    Path(__file__).parent.parent
+                    / "resources"
+                    / "styles"
+                    / "reproduction.qml"
+                )
             )
 
             QgsProject.instance().addMapLayer(layer)
