@@ -15,27 +15,20 @@
 from qgis.testing import unittest
 
 # project
-from plugin_qgis_lpo.__about__ import __version__
-from plugin_qgis_lpo.toolbelt.preferences import PlgSettingsStructure
+from plugin_qgis_lpo.commons.helpers import simplify_name
 
-# ################################
+# ############################################################################
 # ########## Classes #############
 # ################################
 
 
-class TestPlgPreferences(unittest.TestCase):
-    def test_plg_preferences_structure(self):
+class TestHelpers(unittest.TestCase):
+    def test_simplify_name(self):
         """Test settings types and default values."""
-        settings = PlgSettingsStructure()
+        string = "Table des espèces d'oiseaux 20/03/2023"
 
         # global
-        self.assertTrue(hasattr(settings, "debug_mode"))
-        self.assertIsInstance(settings.debug_mode, bool)
-        self.assertEqual(settings.debug_mode, False)
-
-        self.assertTrue(hasattr(settings, "version"))
-        self.assertIsInstance(settings.version, str)
-        self.assertEqual(settings.version, __version__)
+        self.assertEqual(simplify_name(string), "table_des_especes_doiseaux_20032023")
 
 
 # ############################################################################

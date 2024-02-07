@@ -15,11 +15,10 @@
  ***************************************************************************/
 """
 
-
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
-import processing
+from qgis import processing
 from qgis.core import (
     QgsField,
     QgsFields,
