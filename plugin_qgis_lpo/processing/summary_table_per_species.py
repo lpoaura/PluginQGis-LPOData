@@ -145,7 +145,7 @@ QGIS (couche de type polygones).
     synthese AS (
         SELECT DISTINCT
          d.cd_ref
-        , vn_id
+        , array_to_string(vn_id,', ')                       as vn_id
         , nom_rang                                          AS "Rang"
         , d.groupe_taxo              AS "Groupe taxo"
         , nom_vern                                          AS "Nom vernaculaire"
