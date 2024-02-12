@@ -1,14 +1,22 @@
 # CHANGELOG
 
-### v3.0.0-dev - New refactored plugin version
+The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
-* Processing algorithm scripts are now pooled in a parent class.
-* Plugin files are now in a separate subfolder (`plugin_qgis_lpo`) of the repository
-* Form texts are simplified to improve readability
+<!--
 
-### v0.0.1
+Unreleased
 
-Pemière pre-release avec un premier lot de fonctions:
-* Extraction de données à partir d'une couche de zonages
-* Création d'un tableau de synthèse par taxons à partir d'une couche de zonages
-* Création d'un graphique de synthèse d'état des connaissances par groupes taxonomiques à partir d'une couche de zonages
+# >> version_tag - YYYY-DD-mm
+
+### Added
+
+### Changed
+
+### Removed
+
+-->
+
+# >> 0.1.0 - 2024-02-06
+
+- First release
+- Generated with the [QGIS Plugins templater](https://oslandia.gitlab.io/qgis/template-qgis-plugin/)

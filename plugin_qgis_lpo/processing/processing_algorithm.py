@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
-
 """Generic Qgis Processing Algorithm classes"""
+
 import ast
 import json
 import os
@@ -31,21 +30,23 @@ from qgis.PyQt.QtCore import QCoreApplication
 from qgis.PyQt.QtGui import QIcon
 from qgis.utils import iface
 
+from ..__about__ import __icon_dir_path__
 from ..commons.helpers import (
     check_layer_is_valid,
-    construct_queries_list,
-    construct_sql_array_polygons,
-    construct_sql_datetime_filter,
-    construct_sql_geom_type_filter,
-    construct_sql_select_data_per_time_interval,
-    construct_sql_source_filter,
-    construct_sql_taxons_filter,
     execute_sql_queries,
     format_layer_export,
     load_layer,
     simplify_name,
+    sql_array_polygons_builder,
+    sql_datetime_filter_builder,
+    sql_geom_type_filter_builder,
+    sql_queries_list_builder,
+    sql_source_filter_builder,
+    sql_taxons_filter_builder,
+    sql_timeinterval_cols_builder,
 )
 from ..commons.widgets import DateTimeWidget
+from ..toolbelt.log_handler import PlgLogger
 from .qgis_processing_postgis import uri_from_name
 
 plugin_path = os.path.dirname(__file__)
@@ -91,8 +92,10 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
     TYPE_GEOM = "TYPE_GEOM"
 
     def __init__(self) -> None:
+        """Init class and set default values"""
         super().__init__()
 
+        self.log = PlgLogger().log
         # Global settings
         self._name = "myprocessingalgorithm"
         self._display_name = "My Processing Algorithm"
@@ -170,7 +173,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         self._output_name = "output"
         self._study_area = None
         self._format_name: str = "output"
-        self._areas_type: List[str] = []
+        self._areas_type: str
         self._ts = datetime.now()
         self._array_polygons = None
         self._taxons_filters: Dict[str, List[str]] = {}
@@ -187,9 +190,12 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         self._group_by_species: str = ""
         self._taxa_fields: Optional[str] = None
         self._custom_fields: Optional[str] = None
-        self._x_var: Optional[str] = None
+        self._x_var: Optional[List[str]] = None
         self._lr_columns_db: List[str] = ["lr_r"]
         self._lr_columns_with_alias: List[str] = ['lr_r as "LR Régionale"']
+        self._time_interval: str
+        self._start_year: int
+        self._end_year: int
 
     def tr(self, string: str) -> str:
         """QgsProcessingAlgorithm translatable string with the self.tr() function."""
@@ -234,7 +240,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
 
     def icon(self) -> QIcon:
         """Icon script"""
-        return QIcon(os.path.join(plugin_path, os.pardir, "icons", self._icon))
+        return QIcon(str(__icon_dir_path__ / self._icon))
 
     def shortHelpString(self) -> str:  # noqa N802
         """
@@ -252,7 +258,6 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         Here we define the inputs and output of the algorithm, along
         with some other properties.
         """
-        super().initAlgorithm(_config)
 
         required_text = '<span style="color:#952132">(requis)</span>'
         optional_text = "(facultatif)"
@@ -262,7 +267,8 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterProviderConnection(
                 self.DATABASE,
                 self.tr(
-                    f"""<b style="color:#0a84db">BASE DE DONNÉES</b> {required_text} : sélectionnez votre <u>connexion</u> à la base de données LPO"""
+                    f"""<b style="color:#0a84db">BASE DE DONNÉES</b> {required_text} :
+                    sélectionnez votre <u>connexion</u> à la base de données LPO"""
                 ),
                 "postgres",
                 defaultValue="geonature_lpo",
@@ -274,7 +280,9 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterFeatureSource(
                 self.STUDY_AREA,
                 self.tr(
-                    f"""<b style="color:#0a84db">ZONE D'ÉTUDE</b> {required_text} : sélectionnez votre <u>zone d'étude</u>, à partir de laquelle seront extraits les résultats"""
+                    f"""<b style="color:#0a84db">ZONE D'ÉTUDE</b> {required_text} :
+                    sélectionnez votre <u>zone d'étude</u>,
+                    à partir de laquelle seront extraits les résultats"""
                 ),
                 [QgsProcessing.TypeVectorPolygon],
             )
@@ -374,7 +382,9 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             period_type = QgsProcessingParameterEnum(
                 self.PERIOD,
                 self.tr(
-                    f"""<b style="color:#0a84db">PÉRIODE</b> {required_text} : sélectionnez une <u>période</u> pour filtrer vos données d'observations"""
+                    f"""<b style="color:#0a84db">PÉRIODE</b> {required_text} :
+                    sélectionnez une <u>période</u> pour filtrer vos données
+                    d'observations"""
                 ),
                 self._period_variables,
                 allowMultiple=False,
@@ -406,12 +416,29 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             end_date.setMetadata({"widget_wrapper": {"class": DateTimeWidget}})
             self.addParameter(end_date)
 
+        if self._return_geo_agg:
+            areas_types = QgsProcessingParameterEnum(
+                self.AREAS_TYPE,
+                self.tr(
+                    f"""<b style="color:#0a84db">TYPE D'ENTITÉS GÉOGRAPHIQUES</b> {required_text} :
+                    Sélectionnez le <u>type d'entités géographiques</u>
+                    qui vous intéresse"""
+                ),
+                self._areas_variables,
+                allowMultiple=False,
+            )
+            areas_types.setMetadata(
+                {"widget_wrapper": {"useCheckBoxes": True, "columns": 5}}
+            )
+            self.addParameter(areas_types)
+
         # ## Taxons filters ##
         self.addParameter(
             QgsProcessingParameterEnum(
                 self.GROUPE_TAXO,
                 self.tr(
-                    f"""<b style="color:#0a84db">TAXONS</b> {optional_text} : filtrer les données par groupes taxonomiques"""
+                    f"""<b style="color:#0a84db">TAXONS</b> {optional_text} :
+                    filtrer les données par groupes taxonomiques"""
                 ),
                 self._db_variables.value("groupe_taxo"),
                 allowMultiple=True,
@@ -439,7 +466,8 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             histogram_options = QgsProcessingParameterEnum(
                 self.HISTOGRAM_OPTIONS,
                 self.tr(
-                    f"""<b style="color:#0a84db">HISTOGRAMME</b> {optional_text} : générer un histogramme à partir des résultats."""
+                    f"""<b style="color:#0a84db">HISTOGRAMME</b> {optional_text} :
+                    générer un histogramme à partir des résultats."""
                 ),
                 self._histogram_variables,
                 defaultValue="Pas d'histogramme",
@@ -453,7 +481,8 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             output_histogram = QgsProcessingParameterFileDestination(
                 self.OUTPUT_HISTOGRAM,
                 self.tr(
-                    """Emplacement de l'enregistrement du ficher (format image PNG) de l'histogramme"""
+                    """Emplacement de l'enregistrement du ficher
+                    (format image PNG) de l'histogramme"""
                 ),
                 self.tr("image PNG (*.png)"),
                 # optional=True,
@@ -468,7 +497,9 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterString(
                 self.OUTPUT_NAME,
                 self.tr(
-                    f"""<b style="color:#0a84db">PARAMÉTRAGE DES RESULTATS EN SORTIE</b> {optional_text} : personnalisez le nom de votre couche en base de données"""
+                    f"""<b style="color:#0a84db">PARAMÉTRAGE DES RESULTATS EN SORTIE</b>
+                    {optional_text} : personnalisez le nom de votre couche
+                    en base de données"""
                 ),
                 self.tr(self._output_name),
             )
@@ -547,21 +578,6 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         )
         self.addParameter(extra_where)
 
-        if self._return_geo_agg:
-            areas_types = QgsProcessingParameterEnum(
-                self.AREAS_TYPE,
-                self.tr(
-                    """<b style="color:#0a84db">TYPE D'ENTITÉS GÉOGRAPHIQUES</b><br/>
-                    <b>*3/</b> Sélectionnez le <u>type d'entités géographiques</u> qui vous intéresse"""
-                ),
-                self._areas_variables,
-                allowMultiple=False,
-            )
-            areas_types.setMetadata(
-                {"widget_wrapper": {"useCheckBoxes": True, "columns": 3}}
-            )
-            self.addParameter(areas_types)
-
     def processAlgorithm(  # noqa N802
         self,
         parameters: Dict[str, Any],
@@ -580,24 +596,25 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         self._connection = self.parameterAsString(parameters, self.DATABASE, context)
         self._add_table = self.parameterAsBool(parameters, self.ADD_TABLE, context)
         self._study_area = self.parameterAsSource(parameters, self.STUDY_AREA, context)
-        feedback.pushDebugInfo(
-            str(
+        self.log(
+            message=str(
                 [
                     self._db_variables.value("source_data")[i]
                     for i in (
                         self.parameterAsEnums(parameters, self.SOURCE_DATA, context)
                     )
                 ]
-            )
+            ),
+            log_level=4,
         )
-        self._source_data_where = construct_sql_source_filter(
+        self._source_data_where = sql_source_filter_builder(
             [
                 self._db_variables.value("source_data")[i]
                 for i in (self.parameterAsEnums(parameters, self.SOURCE_DATA, context))
             ]
         )
 
-        self._type_geom_where = construct_sql_geom_type_filter(
+        self._type_geom_where = sql_geom_type_filter_builder(
             [
                 self._type_geom_variables[i]
                 for i in (self.parameterAsEnums(parameters, self.TYPE_GEOM, context))
@@ -665,18 +682,18 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         # WHERE clauses builder
         # TODO: Manage use case
         # self._filters.append(
-        #     f"ST_Intersects(la.geom, ST_union({construct_sql_array_polygons(self._study_area)})"
+        #     f"ST_Intersects(la.geom, ST_union({sql_array_polygons_builder(self._study_area)})"
         # )
         if self._study_area:
-            self._array_polygons = construct_sql_array_polygons(self._study_area)
+            self._array_polygons = sql_array_polygons_builder(self._study_area)
         if not self._is_data_extraction:
             self._filters += ["is_present", "is_valid"]
-        taxon_filters = construct_sql_taxons_filter(self._taxons_filters)
+        taxon_filters = sql_taxons_filter_builder(self._taxons_filters)
         if taxon_filters:
             self._filters.append(taxon_filters)
 
         # Complete the "where" filter with the datetime filter
-        time_filter = construct_sql_datetime_filter(
+        time_filter = sql_datetime_filter_builder(
             self, self._period_type, self._ts, parameters, context
         )
         if time_filter:
@@ -712,22 +729,22 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             # self._taxonomic_rank_db = self._taxonomic_ranks_db[taxonomic_rank_index]
 
         if self._has_time_interval_form:
-            time_interval = self._time_interval_variables[
+            self._time_interval = self._time_interval_variables[
                 self.parameterAsEnum(parameters, self.TIME_INTERVAL, context)
             ]
-            feedback.pushDebugInfo(f"time_interval {time_interval}")
-            start_year = self.parameterAsInt(parameters, self.START_YEAR, context)
-            feedback.pushDebugInfo(f"start_year {start_year}")
-            end_year = self.parameterAsInt(parameters, self.END_YEAR, context)
-            feedback.pushDebugInfo(f"end_year {end_year}")
-            if end_year < start_year:
+            self.log(message=f"time_interval {self._time_interval}", log_level=4)
+            self._start_year = self.parameterAsInt(parameters, self.START_YEAR, context)
+            self.log(message=f"start_year {self._start_year}", log_level=4)
+            self._end_year = self.parameterAsInt(parameters, self.END_YEAR, context)
+            self.log(message=f"end_year {self._end_year}", log_level=4)
+            if self._end_year < self._start_year:
                 raise QgsProcessingException(
                     "Veuillez renseigner une année de fin postérieure à l'année de début !"
                 )
             taxonomic_rank = self._taxonomic_ranks_labels[
                 self.parameterAsEnum(parameters, self.TAXONOMIC_RANK, context)
             ]
-            feedback.pushDebugInfo(f"taxonomic_rank {taxonomic_rank}")
+            self.log(message=f"taxonomic_rank {taxonomic_rank}", log_level=4)
             aggregation_type = "Nombre de données"
             self._group_by_species = (
                 "obs.cd_nom, obs.cd_ref, nom_rang, nom_sci, obs.nom_vern, "
@@ -737,19 +754,26 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             (
                 self._custom_fields,
                 self._x_var,
-            ) = construct_sql_select_data_per_time_interval(
+            ) = sql_timeinterval_cols_builder(
                 self,
-                time_interval,
-                start_year,
-                end_year,
+                self._time_interval,
+                self._start_year,
+                self._end_year,
                 aggregation_type,
                 parameters,
                 context,
                 feedback,
             )
             # Select species info (optional)
-            select_species_info = """/*source_id_sp, */obs.cd_nom, obs.cd_ref, nom_rang as "Rang", groupe_taxo AS "Groupe taxo",
-                obs.nom_vern AS "Nom vernaculaire", nom_sci AS "Nom scientifique\""""
+            select_species_info = """
+                /*source_id_sp, */
+                obs.cd_nom,
+                obs.cd_ref,
+                nom_rang as "Rang",
+                groupe_taxo AS "Groupe taxo",
+                obs.nom_vern AS "Nom vernaculaire",
+                nom_sci AS "Nom scientifique\"
+                """
             # Select taxonomic groups info (optional)
             select_taxo_groups_info = 'groupe_taxo AS "Groupe taxo"'
             self._taxa_fields = (
@@ -757,7 +781,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
                 if taxonomic_rank == "Espèces"
                 else select_taxo_groups_info
             )
-            feedback.pushDebugInfo(self._taxa_fields)
+            self.log(message=self._taxa_fields, log_level=4)
 
         lr_columns = self._db_variables.value("lr_columns")
         if lr_columns:
@@ -789,20 +813,20 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             lr_columns_fields="\n, ".join(self._lr_columns_db),
             lr_columns_with_alias="\n, ".join(self._lr_columns_with_alias),
         )
-        feedback.pushDebugInfo(query)
+        self.log(message=query, log_level=4)
         geom_field = "geom" if self._is_map_layer else None
         if self._add_table:
             # Define the name of the PostGIS summary table which will be created in the DB
             table_name = simplify_name(self._format_name)
             # Define the SQL queries
-            queries = construct_queries_list(table_name, query)
+            queries = sql_queries_list_builder(table_name, query)
             # Execute the SQL queries
             execute_sql_queries(context, feedback, self._connection, queries)
             # Format the URI
-            self._uri.setDataSource(None, table_name, geom_field, "", self._primary_key)
+            self._uri.setDataSource(None, table_name, geom_field, "", self._primary_key)  # type: ignore
         else:
             # Format the URI with the query
-            self._uri.setDataSource("", f"({query})", geom_field, "", self._primary_key)
+            self._uri.setDataSource("", f"({query})", geom_field, "", self._primary_key)  # type: ignore
 
         self._layer = QgsVectorLayer(self._uri.uri(), self._format_name, "postgres")
         check_layer_is_valid(feedback, self._layer)

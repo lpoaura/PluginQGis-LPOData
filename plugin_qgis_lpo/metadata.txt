@@ -1,19 +1,25 @@
 [general]
-name=Traitements de la LPO AuRA
-qgisMinimumVersion=3.16
-description=Scripts de la LPO pour l'analyse de données
-about=Scripts développés par la LPO pour analyser les données naturalistes contenues dans une base Géonature, alimentée notamment par Visionature.
-version=3.0.0-dev
-author=collectif (LPO AuRA)
+name=Traitement des données LPO
+about=This plugin is a revolution!
+category=Database
+hasProcessingProvider=True
+description=Extends QGIS with revolutionary features that every single GIS end-users was expected (or not)!
+icon=resources/images/logo_lpo_aura_carre.png
+tags=geonature,visionature,faune-france,postgresql,lpo
+
+# credits and contact
+author=Pole VDC (LPOAuRA)
 email=webadmin.aura@lpo.fr
+homepage=https://github.com/lpoaura/PluginQGis-LPOData
 repository=https://github.com/lpoaura/PluginQGis-LPOData
 tracker=https://github.com/lpoaura/PluginQGis-LPOData/issues
-hasProcessingProvider=yes
-category=Analysis
-changelog=https://github.com/lpoaura/PluginQGis-LPOData/blob/master/CHANGELOG.md
-experimental=True
+
+# experimental flag
 deprecated=False
-tags=LPO AuRA, données, analyse, traitements, Python, PostGIS
-homepage=https://github.com/lpoaura/PluginQGis-LPOData
-icon=icons/logo_lpo_aura_carre.png
-server=False
+experimental=True
+qgisMinimumVersion=3.16
+qgisMaximumVersion=3.99
+
+# versioning
+version=3.0.0+dev
+changelog=

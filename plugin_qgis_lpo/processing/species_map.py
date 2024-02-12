@@ -2,13 +2,7 @@ import json
 import re
 from pathlib import Path
 
-from qgis.core import (
-    QgsDataSourceUri,
-    QgsMessageLog,
-    QgsProject,
-    QgsProviderRegistry,
-    QgsVectorLayer,
-)
+from qgis.core import QgsDataSourceUri, QgsProject, QgsProviderRegistry, QgsVectorLayer
 from qgis.PyQt.QtCore import QEvent, QSortFilterProxyModel, Qt
 from qgis.PyQt.QtGui import QStandardItem, QStandardItemModel
 from qgis.PyQt.QtWidgets import (
@@ -249,7 +243,12 @@ class CarteParEspece(QDialog):  # noqa N802
         with OverrideCursor(Qt.WaitCursor):
             layer = QgsVectorLayer(uri.uri(), layer_name, "postgres")
             layer.loadNamedStyle(
-                str(Path(__file__).parent.parent / "styles" / "reproduction.qml")
+                str(
+                    Path(__file__).parent.parent
+                    / "resources"
+                    / "styles"
+                    / "reproduction.qml"
+                )
             )
 
             QgsProject.instance().addMapLayer(layer)

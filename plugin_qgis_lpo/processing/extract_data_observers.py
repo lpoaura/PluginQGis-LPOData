@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 /***************************************************************************
         ScriptsLPO : summary_map.py
@@ -16,7 +14,6 @@
  *                                                                         *
  ***************************************************************************/
 """
-from typing import Dict
 
 from .processing_algorithm import BaseProcessingAlgorithm
 

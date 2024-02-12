@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 /***************************************************************************
         ScriptsLPO : state_of_knowledge.py
@@ -15,9 +13,6 @@
  *                                                                         *
  ***************************************************************************/
 """
-from typing import Dict
-
-from qgis.utils import iface
 
 from .processing_algorithm import BaseProcessingAlgorithm
 

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 /***************************************************************************
         ScriptsLPO : summary_table_per_species.py
@@ -17,12 +15,7 @@
  ***************************************************************************/
 """
 
-
-from typing import Dict
-
-from qgis.utils import iface
-
-from .processing_algorithm import BaseProcessingAlgorithm
+from plugin_qgis_lpo.processing.processing_algorithm import BaseProcessingAlgorithm
 
 
 class SummaryTablePerTimeInterval(BaseProcessingAlgorithm):
@@ -66,7 +59,10 @@ class SummaryTablePerTimeInterval(BaseProcessingAlgorithm):
             "Pas d'histogramme",
             "Total par pas de temps",
         ]
-        self._query = """SELECT row_number() OVER () AS id, {taxa_fields}{custom_fields}
+        self._query = """SELECT
+            row_number() OVER () AS id,
+            {taxa_fields},
+            {custom_fields}
             FROM src_lpodatas.v_c_observations_light obs
             LEFT JOIN taxonomie.bib_taxref_rangs r ON obs.id_rang = r.id_rang
             WHERE

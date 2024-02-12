@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 /***************************************************************************
         ScriptsLPO : common_functions.py
@@ -17,16 +15,13 @@
  ***************************************************************************/
 """
 
-
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
-import matplotlib.pyplot as plt
-import processing
+from qgis import processing
 from qgis.core import (
     QgsField,
     QgsFields,
-    QgsMessageLog,
     QgsProcessingAlgorithm,
     QgsProcessingContext,
     QgsProcessingException,
@@ -55,19 +50,21 @@ def check_layer_is_valid(feedback: QgsProcessingFeedback, layer: QgsVectorLayer)
     """
     if not layer.isValid():
         raise QgsProcessingException(
-            """"La couche PostGIS chargée n'est pas valide !
+            """La couche PostGIS chargée n'est pas valide !
             Checkez les logs de PostGIS pour visualiser les messages d'erreur.
-            Pour cela, rendez-vous dans l'onglet "Vue > Panneaux > Journal des messages" de QGis, puis l'onglet "PostGIS"."""
+            Pour cela, rendez-vous dans l'onglet "Vue > Panneaux > Journal des messages"
+            de QGis, puis l'onglet "PostGIS"."""
         )
     else:
         # iface.messageBar().pushMessage("Info", "La couche PostGIS demandée est valide, la requête SQL a été exécutée avec succès !", level=Qgis.Info, duration=10)
         feedback.pushInfo(
-            "La couche PostGIS demandée est valide, la requête SQL a été exécutée avec succès !"
+            "La couche PostGIS demandée est valide, "
+            "la requête SQL a été exécutée avec succès !"
         )
     return None
 
 
-def construct_sql_array_polygons(layer: QgsVectorLayer):
+def sql_array_polygons_builder(layer: QgsVectorLayer):
     """
     Construct the sql array containing the input vector layer's features geometry.
     """
@@ -77,9 +74,10 @@ def construct_sql_array_polygons(layer: QgsVectorLayer):
     crs = layer.sourceCrs().authid()
     if crs.split(":")[0] != "EPSG":
         raise QgsProcessingException(
-            """Le SCR (système de coordonnées de référence) de votre couche zone d'étude n'est pas de type 'EPSG'.
-            Veuillez choisir un SCR adéquat.
-            NB : 'EPSG:2154' pour Lambert 93 !"""
+            """Le SCR (système de coordonnées de référence) de votre couche zone \
+d'étude n'est pas de type 'EPSG'.
+Veuillez choisir un SCR adéquat.
+NB : 'EPSG:2154' pour Lambert 93 !"""
         )
     else:
         crs = crs.split(":")[1]
@@ -103,7 +101,7 @@ def construct_sql_array_polygons(layer: QgsVectorLayer):
     return array_polygons
 
 
-def construct_queries_list(
+def sql_queries_list_builder(
     table_name: str, main_query: str, pk_field: str = "id"
 ) -> List[str]:
     """Table create"""
@@ -115,21 +113,22 @@ def construct_queries_list(
     return queries
 
 
-def construct_sql_taxons_filter(taxons_dict: Dict) -> Optional[str]:
+def sql_taxons_filter_builder(taxons_dict: Dict) -> Optional[str]:
     """
     Construct the sql "where" clause with taxons filters.
     """
     rank_filters = []
     for key, value in taxons_dict.items():
         if value:
-            rank_filters.append(f"{key} in {str(tuple(value))}")
+            value_list = ",".join([f"'{v}'" for v in value])
+            rank_filters.append(f"{key} in ({value_list})")
     if len(rank_filters) > 0:
         taxons_where = f"({' or '.join(rank_filters)})"
         return taxons_where
     return None
 
 
-def construct_sql_source_filter(sources: List[str]) -> Optional[str]:
+def sql_source_filter_builder(sources: List[str]) -> Optional[str]:
     """
     Construct the sql "where" clause with source filters.
     """
@@ -138,7 +137,7 @@ def construct_sql_source_filter(sources: List[str]) -> Optional[str]:
     return None
 
 
-def construct_sql_geom_type_filter(geom_types: List[str]) -> Optional[str]:
+def sql_geom_type_filter_builder(geom_types: List[str]) -> Optional[str]:
     """
     Construct the sql "where" clause with source filters.
     """
@@ -156,7 +155,7 @@ def construct_sql_geom_type_filter(geom_types: List[str]) -> Optional[str]:
     return None
 
 
-def construct_sql_datetime_filter(
+def sql_datetime_filter_builder(
     self: QgsProcessingAlgorithm,
     period_type_filter: str,
     timestamp: datetime,
@@ -192,7 +191,7 @@ def construct_sql_datetime_filter(
     return datetime_where
 
 
-def construct_sql_select_data_per_time_interval(
+def sql_timeinterval_cols_builder(  # noqa C901
     self: QgsProcessingAlgorithm,
     time_interval_param,
     start_year_param: int,
@@ -201,34 +200,48 @@ def construct_sql_select_data_per_time_interval(
     parameters: Dict,
     context: QgsProcessingContext,
     feedback: QgsProcessingFeedback,
-):
+) -> Tuple[str, List[str]]:
     """
     Construct the sql "select" data according to a time interval and a period.
     """
-    select_data = ""
+    select_data = []
     x_var = []
+    count_param = (
+        "*" if aggregation_type_param == "Nombre de données" else "DISTINCT t.cd_ref"
+    )
     if time_interval_param == "Par année":
-        add_five_years = self.parameterAsEnums(parameters, self.ADD_FIVE_YEARS, context)
+        add_five_years = self.parameterAsEnums(
+            parameters, self.ADD_FIVE_YEARS, context  # type: ignore
+        )
         if len(add_five_years) > 0:
             if (end_year_param - start_year_param + 1) % 5 != 0:
                 raise QgsProcessingException(
-                    "Veuillez renseigner une période en année qui soit divisible par 5 ! Exemple : 2011 - 2020."
+                    "Veuillez renseigner une période en année qui soit "
+                    "divisible par 5 ! Exemple : 2011 - 2020."
                 )
             else:
                 counter = start_year_param
                 step_limit = start_year_param
                 while counter <= end_year_param:
-                    select_data += f""", COUNT({"*" if aggregation_type_param == 'Nombre de données' else "DISTINCT t.cd_ref"}) filter (WHERE date_an={counter}) AS \"{counter}\""""
+                    select_data.append(
+                        f"""COUNT({count_param}) filter (WHERE date_an={counter}) AS \"{counter}\" """
+                    )
                     x_var.append(str(counter))
                     if counter == step_limit + 4:
-                        select_data += f""", COUNT({"*" if aggregation_type_param == 'Nombre de données' else "DISTINCT t.cd_ref"}) filter (WHERE date_an>={counter-4} and date_an<={counter}) AS \"{counter-4} - {counter}\""""
+                        select_data.append(
+                            f"""COUNT({count_param}) filter (WHERE date_an>={counter-4} and date_an<={counter}) AS \"{counter-4} - {counter}\" """
+                        )
                         step_limit += 5
                     counter += 1
         else:
             for year in range(start_year_param, end_year_param + 1):
-                select_data += f""", COUNT({"*" if aggregation_type_param == 'Nombre de données' else "DISTINCT t.cd_ref"}) filter (WHERE date_an={year}) AS \"{year}\""""
+                select_data.append(
+                    f"""COUNT({count_param}) filter (WHERE date_an={year}) AS \"{year}\""""
+                )
                 x_var.append(str(year))
-        select_data += f""", COUNT({"*" if aggregation_type_param == 'Nombre de données' else "DISTINCT t.cd_ref"}) filter (WHERE date_an>={start_year_param} and date_an<={end_year_param}) AS \"TOTAL\""""
+        select_data.append(
+            f"""COUNT({count_param}) filter (WHERE date_an>={start_year_param} and date_an<={end_year_param}) AS \"TOTAL\""""
+        )
     else:
         start_month = self.parameterAsEnum(parameters, self.START_MONTH, context)
         end_month = self.parameterAsEnum(parameters, self.END_MONTH, context)
@@ -253,53 +266,69 @@ def construct_sql_select_data_per_time_interval(
                 )
             else:
                 for month in range(start_month, end_month + 1):
-                    select_data += f""", COUNT({"*" if aggregation_type_param == 'Nombre de données' else "DISTINCT t.cd_ref"}) filter (WHERE to_char(date, 'YYYY-MM')='{start_year_param}-{months_numbers_variables[month]}') AS \"{self._months_names_variables[month]} {start_year_param}\""""
+                    select_data.append(
+                        f"""COUNT({count_param}) filter (WHERE to_char(date, 'YYYY-MM')='{start_year_param}-{months_numbers_variables[month]}') AS \"{self._months_names_variables[month]} {start_year_param}\""""
+                    )
                     x_var.append(
-                        self._months_names_variables[month]
+                        self._months_names_variables[month]  # type: ignore
                         + " "
                         + str(start_year_param)
                     )
         elif end_year_param == start_year_param + 1:
             for month in range(start_month, 12):
-                select_data += f""", COUNT({"*" if aggregation_type_param == 'Nombre de données' else "DISTINCT t.cd_ref"}) filter (WHERE to_char(date, 'YYYY-MM')='{start_year_param}-{months_numbers_variables[month]}') AS \"{self._months_names_variables[month]} {start_year_param}\""""
+                select_data.append(
+                    f"""COUNT({count_param}) filter (WHERE to_char(date, 'YYYY-MM')='{start_year_param}-{months_numbers_variables[month]}') AS \"{self._months_names_variables[month]} {start_year_param}\""""
+                )
                 x_var.append(
-                    self._months_names_variables[month] + " " + str(start_year_param)
+                    self._months_names_variables[month] + " " + str(start_year_param)  # type: ignore
                 )
             for month in range(0, end_month + 1):
-                select_data += f""", COUNT({"*" if aggregation_type_param == 'Nombre de données' else "DISTINCT t.cd_ref"}) filter (WHERE to_char(date, 'YYYY-MM')='{end_year_param}-{months_numbers_variables[month]}') AS \"{self._months_names_variables[month]} {end_year_param}\""""
+                select_data.append(
+                    f"""COUNT({count_param}) filter (WHERE to_char(date, 'YYYY-MM')='{end_year_param}-{months_numbers_variables[month]}') AS \"{self._months_names_variables[month]} {end_year_param}\""""
+                )
                 x_var.append(
                     self._months_names_variables[month] + " " + str(end_year_param)
                 )
         else:
             for month in range(start_month, 12):
-                select_data += f""", COUNT({"*" if aggregation_type_param == 'Nombre de données' else "DISTINCT t.cd_ref"}) filter (WHERE to_char(date, 'YYYY-MM')='{start_year_param}-{months_numbers_variables[month]}') AS \"{self._months_names_variables[month]} {start_year_param}\""""
+                select_data.append(
+                    f"""COUNT({count_param}) filter (WHERE to_char(date, 'YYYY-MM')='{start_year_param}-{months_numbers_variables[month]}') AS \"{self._months_names_variables[month]} {start_year_param}\""""
+                )
                 x_var.append(
                     self._months_names_variables[month] + " " + str(start_year_param)
                 )
             for year in range(start_year_param + 1, end_year_param):
                 for month in range(0, 12):
-                    select_data += f""", COUNT({"*" if aggregation_type_param == 'Nombre de données' else "DISTINCT t.cd_ref"}) filter (WHERE to_char(date, 'YYYY-MM')='{year}-{months_numbers_variables[month]}') AS \"{self._months_names_variables[month]} {year}\""""
+                    select_data.append(
+                        f"""COUNT({count_param}) filter (WHERE to_char(date, 'YYYY-MM')='{year}-{months_numbers_variables[month]}') AS \"{self._months_names_variables[month]} {year}\""""
+                    )
                     x_var.append(self._months_names_variables[month] + " " + str(year))
             for month in range(0, end_month + 1):
-                select_data += f""", COUNT({"*" if aggregation_type_param == 'Nombre de données' else "DISTINCT t.cd_ref"}) filter (WHERE to_char(date, 'YYYY-MM')='{end_year_param}-{months_numbers_variables[month]}') AS \"{self._months_names_variables[month]} {end_year_param}\""""
+                select_data.append(
+                    f"""COUNT({count_param}) filter (WHERE to_char(date, 'YYYY-MM')='{end_year_param}-{months_numbers_variables[month]}') AS \"{self._months_names_variables[month]} {end_year_param}\""""
+                )
                 x_var.append(
                     self._months_names_variables[month] + " " + str(end_year_param)
                 )
-        select_data += f""", COUNT({"*" if aggregation_type_param == 'Nombre de données' else "DISTINCT t.cd_ref"}) filter (WHERE to_char(date, 'YYYY-MM')>='{start_year_param}-{months_numbers_variables[start_month]}' and to_char(date, 'YYYY-MM')<='{end_year_param}-{months_numbers_variables[end_month]}') AS \"TOTAL\""""
-        feedback.pushDebugInfo(select_data)
-    return select_data, x_var
+        select_data.append(
+            f"""COUNT({count_param}) filter (WHERE to_char(date, 'YYYY-MM')>='{start_year_param}-{months_numbers_variables[start_month]}' and to_char(date, 'YYYY-MM')<='{end_year_param}-{months_numbers_variables[end_month]}') AS \"TOTAL\""""
+        )
+    final_select_data = ", ".join(select_data)
+    feedback.pushDebugInfo(final_select_data)
+    return final_select_data, x_var
 
 
 def load_layer(context: QgsProcessingContext, layer: QgsVectorLayer):
     """
     Load a layer in the current project.
     """
-    root = context.project().layerTreeRoot()
-    plugin_lpo_group = root.findGroup("Résultats plugin LPO")
-    if not plugin_lpo_group:
-        plugin_lpo_group = root.insertGroup(0, "Résultats plugin LPO")
-    context.project().addMapLayer(layer, False)
-    plugin_lpo_group.insertLayer(0, layer)
+    if context.project() is not None:
+        root = context.project().layerTreeRoot()
+        plugin_lpo_group = root.findGroup("Résultats plugin LPO")
+        if not plugin_lpo_group:
+            plugin_lpo_group = root.insertGroup(0, "Résultats plugin LPO")
+        context.project().addMapLayer(layer, False)
+        plugin_lpo_group.insertLayer(0, layer)
 
 
 def execute_sql_queries(
