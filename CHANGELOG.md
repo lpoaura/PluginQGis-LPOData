@@ -30,4 +30,4 @@ Unreleased
 - [[carte synthèse par espèce (#92)] bug ordre](https://github.com/lpoaura/PluginQGis-LPOData/issues/92)
 - [code atlas dans extraction données (#91)](https://github.com/lpoaura/PluginQGis-LPOData/issues/91)
 - [classement sp / groupe ordre systématique (#90)](https://github.com/lpoaura/PluginQGis-LPOData/issues/90)
-- #88 exclusion données is_valid ? (#88)
+- [exclusion données is_valid ? (#88)](https://github.com/lpoaura/PluginQGis-LPOData/issues/90)
