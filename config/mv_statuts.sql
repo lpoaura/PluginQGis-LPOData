@@ -27,14 +27,11 @@
  *
  */
 
-
-drop materialized view taxonomie.mv_c_statut;
-create materialized view taxonomie.mv_c_statut as (
-with
-prep_lrra as (
-         SELECT DISTINCT
-                 tx.classe,
-         	sp.id_redlist,
+CREATE MATERIALIZED VIEW taxonomie.mv_c_statut
+TABLESPACE pg_default
+AS WITH prep_lrra AS (
+         SELECT DISTINCT tx.classe,
+            sp.id_redlist,
             sp.status_order,
             tx.cd_ref,
             sp.category,
@@ -42,18 +39,15 @@ prep_lrra as (
             sp.id_source
            FROM taxonomie.t_c_redlist sp
              LEFT JOIN taxonomie.taxref tx ON sp.cd_nom = tx.cd_nom
-             inner join taxonomie.bib_c_redlist_source art ON sp.id_source = art.id_source
-             where (classe='Aves' or  (classe ='Mammalia' and ordre <>'Chiroptera')) and art.area_name ='Rhône-Alpes'
-)
-,
-prep_statut_lrra as
-(select  distinct
-sp.cd_ref ,
-CASE
-                    WHEN classe!~~*'Aves' AND (id_source <> ALL (ARRAY[18, 19, 20])) THEN sp.category
-                    WHEN classe='Aves' AND id_source = 18 THEN sp.category
-                    WHEN classe='Aves' AND id_source = 19 THEN (sp.category::text || 'w'::text)::character varying
-                    WHEN classe='Aves' AND id_source = 20 THEN (sp.category::text || 'm'::text)::character varying
+             JOIN taxonomie.bib_c_redlist_source art ON sp.id_source = art.id_source
+          WHERE (tx.classe::text = 'Aves'::text OR tx.classe::text = 'Mammalia'::text AND tx.ordre::text <> 'Chiroptera'::text) AND art.area_name::text = 'Rhône-Alpes'::text
+        ), prep_statut_lrra AS (
+         SELECT DISTINCT sp.cd_ref,
+                CASE
+                    WHEN sp.classe::text !~~* 'Aves'::text AND (sp.id_source <> ALL (ARRAY[18, 19, 20])) THEN sp.category
+                    WHEN sp.classe::text = 'Aves'::text AND sp.id_source = 18 THEN sp.category
+                    WHEN sp.classe::text = 'Aves'::text AND sp.id_source = 19 THEN (sp.category::text || 'w'::text)::character varying
+                    WHEN sp.classe::text = 'Aves'::text AND sp.id_source = 20 THEN (sp.category::text || 'm'::text)::character varying
                     ELSE NULL::character varying
                 END AS lrra,
                 CASE
@@ -68,44 +62,40 @@ CASE
                     WHEN sp.id_source = 20 THEN sp.category
                     ELSE NULL::character varying
                 END AS lrra_migr
-from prep_lrra sp),
-prep_lrra_ok as(
-select
-	cd_ref
-	, string_agg(distinct lrra,', ')  lrra
-	, string_agg(distinct lrra_nich,', ') lrra_nich
-	, string_agg(distinct lrra_hiv,', ') lrra_hiv
-	, string_agg(distinct lrra_migr,', ') lrra_migr
-from prep_statut_lrra
-group by cd_ref)
-,
-prep_t_redlist_fr AS (
+           FROM prep_lrra sp
+        ), prep_lrra_ok AS (
+         SELECT prep_statut_lrra.cd_ref,
+            string_agg(DISTINCT prep_statut_lrra.lrra::text, ', '::text) AS lrra,
+            string_agg(DISTINCT prep_statut_lrra.lrra_nich::text, ', '::text) AS lrra_nich,
+            string_agg(DISTINCT prep_statut_lrra.lrra_hiv::text, ', '::text) AS lrra_hiv,
+            string_agg(DISTINCT prep_statut_lrra.lrra_migr::text, ', '::text) AS lrra_migr
+           FROM prep_statut_lrra
+          GROUP BY prep_statut_lrra.cd_ref
+        ), prep_t_redlist_fr AS (
          SELECT DISTINCT sp.id_redlist,
             sp.status_order,
             tx.cd_ref,
             sp.category,
             sp.criteria,
             sp.id_source,
-            groupe_taxo_fr,
-            vn_nom_fr,
-            vn_nom_sci
-           FROM taxonomie.t_redlist sp
+            ctx.groupe_taxo_fr,
+            ctx.vn_nom_fr,
+            ctx.vn_nom_sci
+           FROM taxonomie.t_c_redlist sp
              JOIN taxonomie.taxref tx ON sp.cd_nom = tx.cd_nom
-             join taxonomie.mv_c_cor_vn_taxref ctx on sp.cd_ref=ctx.cd_ref
-             where groupe_taxo_fr='Oiseaux'
+             JOIN taxonomie.mv_c_cor_vn_taxref_bkp ctx ON sp.cd_ref = ctx.cd_ref
+          WHERE ctx.groupe_taxo_fr = 'Oiseaux'::text
         ), prep2 AS (
-         SELECT DISTINCT
-         	ptlr.cd_ref,
-            groupe_taxo_fr,
-            vn_nom_fr,
-            vn_nom_sci,
+         SELECT DISTINCT ptlr.cd_ref,
+            ptlr.groupe_taxo_fr,
+            ptlr.vn_nom_fr,
+            ptlr.vn_nom_sci,
                 CASE
-                    WHEN groupe_taxo_fr ~~* 'Oiseaux'::text AND ptlr.id_source = 5 THEN ptlr.category
-                    WHEN groupe_taxo_fr ~~* 'Oiseaux'::text AND ptlr.id_source = 4 THEN (ptlr.category::text || 'w'::text)::character varying
-                    WHEN groupe_taxo_fr ~~* 'Oiseaux'::text AND ptlr.id_source = 3 THEN (ptlr.category::text || 'm'::text)::character varying
+                    WHEN ptlr.groupe_taxo_fr ~~* 'Oiseaux'::text AND ptlr.id_source = 5 THEN ptlr.category
+                    WHEN ptlr.groupe_taxo_fr ~~* 'Oiseaux'::text AND ptlr.id_source = 4 THEN (ptlr.category::text || 'w'::text)::character varying
+                    WHEN ptlr.groupe_taxo_fr ~~* 'Oiseaux'::text AND ptlr.id_source = 3 THEN (ptlr.category::text || 'm'::text)::character varying
                     ELSE NULL::character varying
-                END AS lr_france
-               ,
+                END AS lr_france,
                 CASE
                     WHEN ptlr.id_source = 5 THEN ptlr.category
                     ELSE NULL::character varying
@@ -120,349 +110,178 @@ prep_t_redlist_fr AS (
                 END AS lr_fr_migr
            FROM prep_t_redlist_fr ptlr
              LEFT JOIN taxonomie.taxref tr ON ptlr.cd_ref = tr.cd_nom
-             LEFT JOIN taxonomie.bib_redlist_source art ON ptlr.id_source = art.id_source
+             LEFT JOIN taxonomie.bib_c_redlist_source art ON ptlr.id_source = art.id_source
+        ), prep_lrf_ok AS (
+         SELECT prep2.cd_ref,
+            prep2.groupe_taxo_fr,
+            prep2.vn_nom_fr,
+            prep2.vn_nom_sci,
+            string_agg(DISTINCT prep2.lr_france::text, ', '::text) AS lr_france,
+            string_agg(DISTINCT prep2.lr_fr_nich::text, ', '::text) AS lr_fr_nich,
+            string_agg(DISTINCT prep2.lr_fr_hiv::text, ', '::text) AS lr_fr_hiv,
+            string_agg(DISTINCT prep2.lr_fr_migr::text, ', '::text) AS lr_fr_migr
+           FROM prep2
+          GROUP BY prep2.groupe_taxo_fr, prep2.vn_nom_fr, prep2.vn_nom_sci, prep2.cd_ref
+        ), lr_auv AS (
+         SELECT bs.cd_ref,
+            bs.code_statut,
+            bs.label_statut
+           FROM taxonomie.bdc_statut bs
+          WHERE bs.cd_type_statut::text = 'LRR'::text AND bs.lb_adm_tr::text = 'Auvergne'::text
+        ), lr_ra AS (
+         SELECT bs.cd_ref,
+            bs.code_statut,
+            NULL::text AS lrra_nich,
+            NULL::text AS lrra_hiv,
+            NULL::text AS lrra_migr
+           FROM taxonomie.bdc_statut bs
+          WHERE bs.cd_type_statut::text = 'LRR'::text AND bs.lb_adm_tr::text = 'Rhône-Alpes'::text
+        UNION
+         SELECT prep_lrra_ok.cd_ref,
+            prep_lrra_ok.lrra,
+            prep_lrra_ok.lrra_nich,
+            prep_lrra_ok.lrra_hiv,
+            prep_lrra_ok.lrra_migr
+           FROM prep_lrra_ok
+        ), lr_aura AS (
+         SELECT bs.cd_ref,
+            bs.code_statut,
+            bs.label_statut
+           FROM taxonomie.bdc_statut bs
+          WHERE bs.cd_type_statut::text = 'LRR'::text AND bs.lb_adm_tr::text = 'Auvergne-Rhône-Alpes'::text
+        ), lr_fr AS (
+         SELECT bs.cd_ref,
+            bs.code_statut AS lr_france,
+            NULL::text AS lr_fr_nich,
+            NULL::text AS lr_fr_hiv,
+            NULL::text AS lr_fr_migr
+           FROM taxonomie.bdc_statut bs
+             JOIN taxonomie.taxref ON bs.cd_nom = taxref.cd_nom
+          WHERE bs.cd_type_statut::text = 'LRN'::text AND bs.lb_adm_tr::text = 'France métropolitaine'::text AND (taxref.classe IS NULL OR taxref.classe::text <> 'Aves'::text)
+        UNION
+         SELECT prep_lrf_ok.cd_ref,
+            prep_lrf_ok.lr_france,
+            prep_lrf_ok.lr_fr_nich,
+            prep_lrf_ok.lr_fr_hiv,
+            prep_lrf_ok.lr_fr_migr
+           FROM prep_lrf_ok
+        ), lr_euro AS (
+         SELECT bs.cd_ref,
+            bs.cd_nom,
+            bs.code_statut,
+            bs.label_statut
+           FROM taxonomie.bdc_statut bs
+          WHERE bs.cd_type_statut::text = 'LRE'::text
+        ), lr_monde AS (
+         SELECT bs.cd_ref,
+            bs.cd_nom,
+            bs.code_statut,
+            bs.label_statut
+           FROM taxonomie.bdc_statut bs
+          WHERE bs.cd_type_statut::text = 'LRM'::text
+        ), prot_nat AS (
+         SELECT bs.cd_ref,
+                CASE
+                    WHEN bs.code_statut::text ~~* 'FRAR%'::text THEN string_agg(DISTINCT split_part(bs.code_statut::text, 'FRAR'::text, 2), ', '::text)
+                    ELSE string_agg(DISTINCT split_part(bs.label_statut::text, ' : '::text, 2), ', '::text)
+                END AS article,
+            string_agg(DISTINCT bs.code_statut::text, ', '::text) AS code_statut,
+            string_agg(DISTINCT bs.label_statut::text, ', '::text) AS label_statut
+           FROM taxonomie.bdc_statut bs
+          WHERE bs.cd_type_statut::text = 'PN'::text AND bs.lb_adm_tr::text = 'France métropolitaine'::text
+          GROUP BY bs.cd_ref, bs.code_statut
+        ), n2k AS (
+         SELECT bs.cd_ref,
+            string_agg(DISTINCT split_part(bs.label_statut::text, ' : '::text, 2), ', '::text) AS annexe
+           FROM taxonomie.bdc_statut bs
+          WHERE (bs.cd_type_statut::text = ANY (ARRAY['DH'::character varying::text, 'DO'::character varying::text])) AND bs.lb_adm_tr::text = 'France métropolitaine'::text
+          GROUP BY bs.cd_ref
+        ), berne AS (
+         SELECT bs.cd_ref,
+            split_part(bs.label_statut::text, ' : '::text, 2) AS annexe,
+            bs.code_statut,
+            bs.label_statut
+           FROM taxonomie.bdc_statut bs
+          WHERE bs.cd_type_statut::text = 'BERN'::text AND bs.lb_adm_tr::text = 'France métropolitaine'::text
+        ), bonn AS (
+         SELECT bs.cd_ref,
+            string_agg(DISTINCT split_part(bs.label_statut::text, ' : '::text, 2), ', '::text) AS annexe
+           FROM taxonomie.bdc_statut bs
+          WHERE bs.cd_type_statut::text = 'BONN'::text
+          GROUP BY bs.cd_ref
+        ), pna_en_cours AS (
+         SELECT bs.cd_ref,
+                CASE
+                    WHEN bs.code_statut::text = 'true'::text THEN 'Oui'::text
+                    ELSE NULL::text
+                END AS statut,
+            bs.label_statut
+           FROM taxonomie.bdc_statut bs
+          WHERE bs.cd_type_statut::text = 'PNA'::text
+        ), pna_ex AS (
+         SELECT bs.cd_ref,
+                CASE
+                    WHEN bs.code_statut::text = 'true'::text THEN 'Oui'::text
+                    ELSE NULL::text
+                END AS statut,
+            bs.code_statut,
+            bs.label_statut
+           FROM taxonomie.bdc_statut bs
+          WHERE bs.cd_type_statut::text = 'exPNA'::text
+        ), sc38 AS (
+         SELECT tb.cdnom_taxref AS cd_ref,
+            tb.sc38_2015
+           FROM partage.lpo38_tabesp1806 tb
+             LEFT JOIN taxonomie.mv_c_cor_vn_taxref_bkp ccvt ON ccvt.cd_nom = tb.cdnom_taxref::integer
+          WHERE tb.sc38_2015 IS NOT NULL
         )
-, prep_lrf_ok as (SELECT
-    prep2.cd_ref,
-    prep2.groupe_taxo_fr,
-    prep2.vn_nom_fr,
-    prep2.vn_nom_sci,
-    string_agg(DISTINCT prep2.lr_france::text, ', '::text) AS lr_france,
-    string_agg(DISTINCT prep2.lr_fr_nich::text, ', '::text) AS lr_fr_nich,
-    string_agg(DISTINCT prep2.lr_fr_hiv::text, ', '::text) AS lr_fr_hiv,
-    string_agg(DISTINCT prep2.lr_fr_migr::text, ', '::text) AS lr_fr_migr
-   FROM prep2
-  GROUP BY prep2.groupe_taxo_fr, prep2.vn_nom_fr, prep2.vn_nom_sci, prep2.cd_ref
-  )
-,lr_auv as (
-select
-	bs.cd_ref
-	, bs.code_statut
-	, bs.label_statut
-FROM taxonomie.bdc_statut bs
-where bs.cd_type_statut='LRR' and bs.lb_adm_tr='Auvergne'
-),
-lr_ra as (
-select
---	bs.cd_nom
-	bs.cd_ref
-	, bs.code_statut
---	, bs.label_statut
-	, null::text as lrra_nich
-	, null::text as lrra_hiv
-	, null::text as lrra_migr
-FROM taxonomie.bdc_statut bs
-where bs.cd_type_statut='LRR' and bs.lb_adm_tr='Rhône-Alpes'
-union
-	select cd_ref
-	, lrra
-/*	, case when lrra_nich='CR' then 'En danger critique'
-		when lrra_nich='EN' then 'En danger'
-		when lrra_nich='VU' then 'Vulnérable'
-		when lrra_nich='NT' then 'Quasi menacée'
-		when lrra_nich='DD' then 'Données insuffisantes'
-		when lrra_nich='LC' then 'Préoccupation mineure'
-		else null end label_statut*/
-	, lrra_nich
-	, lrra_hiv
-	, lrra_migr
-from prep_lrra_ok
-),
-lr_aura as (
-select
-	 bs.cd_ref
-	, bs.code_statut
-	, bs.label_statut
-FROM taxonomie.bdc_statut bs
-where bs.cd_type_statut='LRR' and bs.lb_adm_tr='Auvergne-Rhône-Alpes'
-),
-lr_fr as (
-select
-	bs.cd_ref
-	, bs.code_statut lr_france
-	, null::text as lr_fr_nich
-	, null::text as lr_fr_hiv
-	, null::text as lr_fr_migr
-FROM taxonomie.bdc_statut bs
-	join taxonomie.taxref on bs.cd_nom =taxref.cd_nom
-	where bs.cd_type_statut='LRN' and bs.lb_adm_tr='France métropolitaine' and taxref.classe <>'Aves'
-union
-select
-	cd_ref,
-	lr_france,
-    	lr_fr_nich,
-    	lr_fr_hiv,
-    	lr_fr_migr
-from prep_lrf_ok
-),
-lr_euro as (
-select
-	bs.cd_ref
-	,bs.cd_nom
-	, bs.code_statut
-	, bs.label_statut
-FROM taxonomie.bdc_statut bs
-where bs.cd_type_statut='LRE'
-),
-lr_monde as (
-select
-	 bs.cd_ref
-	 , bs.cd_nom
-	, bs.code_statut
-	, bs.label_statut
-FROM taxonomie.bdc_statut bs
-where bs.cd_type_statut ='LRM'
-)
-,
-prot_nat as (
-select
-	 bs.cd_ref
-	, string_agg(distinct split_part(label_statut,' : ',2),', ') article
-	, string_agg(distinct bs.code_statut,', ') code_statut
-	, string_agg(distinct bs.label_statut,', ') label_statut
-FROM taxonomie.bdc_statut bs
-where bs.cd_type_statut ='PN' and bs.lb_adm_tr='France métropolitaine'
-group by cd_ref
-)
-,
-n2k as (
-select
-	 bs.cd_ref
-	, string_agg(distinct split_part(label_statut,' : ',2),', ') annexe
-/*	, bs.code_statut
-	, bs.label_statut */
-FROM taxonomie.bdc_statut bs
-where bs.cd_type_statut in ('DH','DO') and bs.lb_adm_tr='France métropolitaine'
-group by 1
-)
-,
-berne as (
-select
-	 bs.cd_ref
-	, split_part(label_statut,' : ',2) annexe
-	, bs.code_statut
-	, bs.label_statut
-FROM taxonomie.bdc_statut bs
-where bs.cd_type_statut ='BERN' and bs.lb_adm_tr='France métropolitaine'
-)
-,
-bonn as (
-select
-	 bs.cd_ref
-	, string_agg(distinct split_part(label_statut,' : ',2),', ') annexe
-/*	, bs.code_statut
-	, bs.label_statut */
-FROM taxonomie.bdc_statut bs
-where bs.cd_type_statut ='BONN'
-group by cd_ref
-)
-,
-pna_en_cours as (
-select
-	 bs.cd_ref
-	, case when bs.code_statut ='true' then 'Oui' else null end statut
-	, bs.label_statut
-FROM taxonomie.bdc_statut bs
-where bs.cd_type_statut ='PNA'
-)
-,
-pna_ex as (
-select
-	 bs.cd_ref
-	, case when bs.code_statut ='true' then 'Oui' else null end statut
-	, bs.code_statut
-	, bs.label_statut
-FROM taxonomie.bdc_statut bs
-where bs.cd_type_statut ='exPNA'
-)
-,
-sc38 as
-(select tb.cdnom_taxref cd_ref, sc38_2015
-from lpo38_aat.tabesp1806 tb
-	left join taxonomie.mv_c_cor_vn_taxref ccvt on ccvt.cd_nom  =tb.cdnom_taxref
-where sc38_2015 is not null
-)
-select distinct
-	cor.groupe_taxo_fr,
+ SELECT DISTINCT row_number() OVER () AS id,
+    cor.groupe_taxo_fr,
     cor.vn_nom_fr,
     cor.vn_nom_sci,
     cor.cd_ref,
-    lr_auv.code_statut lr_auv,
-    lr_ra.code_statut lr_ra
-    ,lrra_nich
-    , lrra_hiv
-    , lrra_migr
-    , lr_aura.code_statut lr_aura
-    , lr_fr.lr_france
-    , lr_fr.lr_fr_nich
-    , lr_fr.lr_fr_hiv
-    , lr_fr.lr_fr_migr
-    , lr_euro.code_statut lr_euro
-    , lr_monde.code_statut lr_monde
-    , prot_nat.article prot_nat
-    , case when n2k.annexe in ('Annexe II, Annexe IV','Annexe IV, Annexe II') then 'Annexes II, IV' else n2k.annexe end n2k
-    , berne.annexe conv_berne
-    , bonn.annexe conv_bonn
-    , pna_en_cours.statut pna_en_cours
-    , pna_ex.statut pna_ex
-    ,sc38.sc38_2015
-from taxonomie.taxref t
-	left join (select * from taxonomie.mv_c_cor_vn_taxref mccvtd where vn_utilisation) cor on cor.cd_ref=t.cd_nom
-      left join lr_auv on lr_auv.cd_ref=cor.cd_ref
-		left join lr_ra on lr_ra.cd_ref=cor.cd_ref
-		left join lr_aura on lr_aura.cd_ref=cor.cd_ref
-	left join lr_fr on lr_fr.cd_ref=cor.cd_ref
-	left join lr_euro on lr_euro.cd_nom=cor.cd_ref
-	left join lr_monde on lr_monde.cd_nom=cor.cd_ref
-	left join prot_nat on prot_nat.cd_ref=cor.cd_ref
-	left join n2k on n2k.cd_ref=cor.cd_ref
-	left join berne on berne.cd_ref=cor.cd_ref
-	left join bonn on bonn.cd_ref=cor.cd_ref
-	left join pna_en_cours on pna_en_cours.cd_ref=cor.cd_ref
-	left join pna_ex on pna_ex.cd_ref=cor.cd_ref
-	left join sc38 on sc38.cd_ref=cor.cd_ref
-where t.cd_nom =t.cd_ref
-	order by groupe_taxo_fr, vn_nom_fr
-	);
+    string_agg(DISTINCT lr_auv.code_statut::text, ', '::text) AS lr_auv,
+    lr_ra.code_statut AS lr_ra,
+    lr_ra.lrra_nich,
+    lr_ra.lrra_hiv,
+    lr_ra.lrra_migr,
+    lr_aura.code_statut AS lr_aura,
+    string_agg(DISTINCT lr_fr.lr_france::text, ', '::text) AS lr_france,
+    lr_fr.lr_fr_nich,
+    lr_fr.lr_fr_hiv,
+    lr_fr.lr_fr_migr,
+    lr_euro.code_statut AS lr_euro,
+    lr_monde.code_statut AS lr_monde,
+    string_agg(DISTINCT 'Article '::text || prot_nat.article, ', '::text) AS prot_nat,
+        CASE
+            WHEN n2k.annexe = ANY (ARRAY['Annexe II, Annexe IV'::text, 'Annexe IV, Annexe II'::text]) THEN 'Annexes II, IV'::text
+            ELSE n2k.annexe
+        END AS n2k,
+    berne.annexe AS conv_berne,
+    bonn.annexe AS conv_bonn,
+    pna_en_cours.statut AS pna_en_cours,
+    pna_ex.statut AS pna_ex,
+    sc38.sc38_2015
+   FROM taxonomie.taxref t
+     LEFT JOIN taxonomie.mv_c_cor_vn_taxref_bkp cor ON cor.cd_ref = t.cd_nom
+     LEFT JOIN lr_auv ON lr_auv.cd_ref = cor.cd_ref
+     LEFT JOIN lr_ra ON lr_ra.cd_ref = cor.cd_ref
+     LEFT JOIN lr_aura ON lr_aura.cd_ref = cor.cd_ref
+     LEFT JOIN lr_fr ON lr_fr.cd_ref = cor.cd_ref
+     LEFT JOIN lr_euro ON lr_euro.cd_nom = cor.cd_ref
+     LEFT JOIN lr_monde ON lr_monde.cd_nom = cor.cd_ref
+     LEFT JOIN prot_nat ON prot_nat.cd_ref = cor.cd_ref
+     LEFT JOIN n2k ON n2k.cd_ref = cor.cd_ref
+     LEFT JOIN berne ON berne.cd_ref = cor.cd_ref
+     LEFT JOIN bonn ON bonn.cd_ref = cor.cd_ref
+     LEFT JOIN pna_en_cours ON pna_en_cours.cd_ref = cor.cd_ref
+     LEFT JOIN pna_ex ON pna_ex.cd_ref = cor.cd_ref
+     LEFT JOIN sc38 ON sc38.cd_ref::integer = cor.cd_ref
+  WHERE t.cd_nom = t.cd_ref
+  GROUP BY cor.vn_nom_fr, cor.vn_nom_sci, cor.cd_ref, lr_ra.code_statut, lr_ra.lrra_nich, lr_ra.lrra_hiv, lr_ra.lrra_migr, lr_aura.code_statut, lr_fr.lr_fr_nich, lr_fr.lr_fr_hiv, lr_fr.lr_fr_migr, lr_euro.code_statut, lr_monde.code_statut, n2k.annexe, berne.annexe, bonn.annexe, pna_en_cours.statut, pna_ex.statut, sc38.sc38_2015, cor.groupe_taxo_fr
+  ORDER BY cor.groupe_taxo_fr, cor.vn_nom_fr
+WITH DATA;
 
+-- View indexes:
+CREATE INDEX mv_c_statut_cd_ref_idx ON taxonomie.mv_c_statut USING btree (cd_ref);
 
-
-create index on taxonomie.mv_c_statut  (groupe_taxo_fr);
-create index on taxonomie.mv_c_statut  (vn_nom_fr);
-create index on taxonomie.mv_c_statut  (vn_nom_sci);
-create index on taxonomie.mv_c_statut  (cd_ref);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-select * from taxonomie.mv_c_cor_vn_taxref_dev mccvtd where vn_utilisation and cd_nom =65076;
-
-
-select * from taxonomie.mv_statut ms where cd_ref =65076;
-select * from taxonomie.mv_statut ms where vn_nom_sci ilike 'columbia liv%';
-select
-tx_nom_sci
-, vn_id
-, count(vcod.*)
-from taxonomie.mv_c_cor_vn_taxref_dev mccvtd
-join src_lpodatas.v_c_observations_dev vcod on mccvtd.vn_id =vcod.source_id_sp
-where vn_utilisation is false
-group by 1,2;
-
-select * from taxonomie.mv_c_cor_vn_taxref_dev mccvtd where vn_nom_sci ilike 'mustela ni%';
-select * from taxonomie.mv_c_cor_vn_taxref_dev mccvtd where cd_ref = 61281;
-
-
--- intégration de l'ensemble des tables sur bdc_statut
-  select distinct
-	*
-FROM taxonomie.bdc_statut bs
-	 join taxonomie.bdc_statut_text bst on (bst.cd_doc =bs.cd_doc and bst.cd_sig =bs.cd_sig )
-	 join taxonomie.bdc_statut_type bsty on bsty.cd_type_statut =bst.cd_type_statut
-	 join taxonomie.bdc_statut_cor_text_values bsctv2 on bsctv2.id_text =bst.id_text
-	 join taxonomie.bdc_statut_taxons bst2 on bst2.id_value_text =bsctv2.id_value_text and bst2.cd_nom =bs.cd_nom
-	 join taxonomie.bdc_statut_values bsv on bsv.id_value =bsctv2.id_value and bsv.code_statut =bs.code_statut
-where bst.cd_type_statut='LRN' and bst.lb_adm_tr='France métropolitaine' and bs.cd_ref  =54265 /*and bs.cd_type_statut='ZDET' and bs.lb_adm_tr ilike '%rhôn%'*/
-
-
-
--- contrôle de coérence
-
-select cd_ref, count(*)
-from taxonomie.mv_statut ms
-where lr_ra is not null or lr_auv is not null and vn_nom_fr is not null
-group by 1
-having count(*)>1;
-
-
-
-
--- bac à sable
-
-select * from taxonomie.mv_statut ms where cd_ref=61281 ;
-
-
-select *
-from lpo38_aat.tabesp1806 tb
-	left join taxonomie.mv_c_cor_vn_taxref_dev ccvt on ccvt.cd_nom  =tb.cdnom_taxref
---	left join taxonomie.taxref t on ccvt.cd_nom =t.cd_nom
-where ccvt.cd_nom =699157 ;
-
-select * from taxonomie.mv_c_cor_vn_taxref_dev where cd_nom =699157;
-select * from lpo38_aat.tabesp1806 t where id_species in (8640,15086);
-
-
-select * from taxonomie.taxref t where cd_nom in (219768,608318);
-select * from taxonomie.taxref t where lb_nom ilike 'phyllo%abietinus%';
-select * from taxonomie.bdc_statut_type;
-select * from taxonomie.bdc_statut_text bst ;
-select * from taxonomie.bdc_statut_values bsv  ;
-select * from taxonomie.bdc_statut_type;
-select * from taxonomie.bdc_statut where lb_adm_tr ilike '%rh%ne-alpes';
-select distinct lb_adm_tr from taxonomie.bdc_statut where cd_type_statut ='PN';
-select * from taxonomie.bdc_statut where cd_nom =2489 and lb_adm_tr ilike 'auvergne';
-select * from taxonomie.bdc_statut where cd_nom =2489 and lb_adm_tr ilike 'france';
-select * from taxonomie.bdc_statut_values where code_statut ='NO3'
-select * from taxonomie.taxref t where nom_vern ilike '%barge à que%'
-select * from taxonomie.taxref t where cd_nom =2492;
-select * from taxonomie.taxref t where nom_vern  ilike '%héron g%';
-select * from taxonomie.mv_statut ms where vn_nom_sci  ilike 'boloria%';
-
-select
-	 bs.cd_ref
-	, bs.code_statut
-	, bs.label_statut
-FROM taxonomie.bdc_statut bs
-where bs.cd_type_statut ='LRM' and cd_nom =69182
-
-select * from taxonomie.mv_c_cor_vn_taxref_dev mccvtd where vn_utilisation and cd_ref =69182;
-select * from taxonomie.mv_statut ms where cd_ref =69182;
-
-
---
-with
-lr_monde as (
-select
-	 bs.cd_nom
-	, bs.code_statut
-	, bs.label_statut
-FROM taxonomie.bdc_statut bs
-where bs.cd_type_statut ='LRM'
-)
-select distinct
-/*	cor.groupe_taxo_fr,
-    cor.vn_nom_fr,
-    cor.vn_nom_sci,
-    cor.cd_ref
-        , lr_monde.* */
-        lr_monde.*
-from taxonomie.taxref t
-	/*left join (SELECT cor.vn_id, t.cd_ref AS cd_ref
-						FROM taxonomie.mv_c_cor_vn_taxref_dev cor
-						LEFT JOIN taxonomie.taxref t ON cor.cd_ref = t.cd_nom) cor ON t.cd_nom =cor.cd_ref*/
-	left join (select * from taxonomie.mv_c_cor_vn_taxref_dev mccvtd where vn_utilisation) cor on cor.cd_nom=t.cd_nom
-   	left join lr_monde on lr_monde.cd_nom=cor.cd_ref
-where t.cd_nom =t.cd_ref and t.cd_nom =69182
-	--order by groupe_taxo_fr, vn_nom_fr
-;
-
-
-
-select
-	*
-FROM taxonomie.bdc_statut bs
-where bs.cd_type_statut ='LRM' and cd_ref =69182

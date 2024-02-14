@@ -7,17 +7,17 @@ AS SELECT s.id_synthese,
     ts.desc_source,
     s.entity_source_pk_value AS source_id_data,
     se.id_sp_source AS source_id_sp,
-    s.cd_nom AS taxref_cdnom,
     s.cd_nom,
     cor.cd_ref,
-    se.taxo_group AS groupe_taxo,
-    cor.tx_group1_inpn AS group1_inpn,
-    cor.tx_group2_inpn AS group2_inpn,
-    cor.tx_id_rang AS id_rang,
-    cor.tx_classe as classe,
+    cor.vn_id,
+    cor.groupe_taxo_fr::character varying(50) AS groupe_taxo,
+    cor.tx_group1_inpn::character varying(255) AS group1_inpn,
+    cor.tx_group2_inpn::character varying(255) AS group2_inpn,
+    cor.tx_classe::character varying(50) AS classe,
+    cor.tx_id_rang::character varying(10) AS id_rang,
     se.taxo_real AS taxon_vrai,
-    COALESCE(cor.vn_nom_fr, cor.tx_nom_fr::text) AS nom_vern,
-    COALESCE(cor.vn_nom_sci, cor.tx_nom_sci::text) AS nom_sci,
+    COALESCE(cor.vn_nom_fr, cor.tx_nom_fr) AS nom_vern,
+    COALESCE(cor.vn_nom_sci, cor.tx_nom_sci) AS nom_sci,
     s.observers AS observateur,
     se.pseudo_observer_uid,
     se.bird_breed_code AS oiso_code_nidif,
@@ -55,4 +55,5 @@ AS SELECT s.id_synthese,
    FROM gn_synthese.synthese s
      LEFT JOIN src_lpodatas.t_c_synthese_extended se ON s.id_synthese = se.id_synthese
      JOIN gn_synthese.t_sources ts ON s.id_source = ts.id_source
-     LEFT JOIN taxonomie.mv_c_cor_vn_taxref cor ON cor.cd_nom = s.cd_nom AND cor.cd_nom IS NOT NULL;
+     LEFT JOIN taxonomie.taxref t ON s.cd_nom = t.cd_nom
+     LEFT JOIN taxonomie.mv_c_cor_vn_taxref cor ON cor.cd_nom = t.cd_ref AND cor.cd_nom IS NOT NULL;
