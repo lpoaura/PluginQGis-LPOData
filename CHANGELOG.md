@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## 3.1.1 - 2024-03-07
 
 * update Changelog.md for `qgis-plugin-ci`
+* fix translation environment
 
 ### Changed
 
