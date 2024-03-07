@@ -51,9 +51,8 @@ jobs:
 
     - name: Deploy plugin
       run: >-
-        echo 'SECRETS ${{ secrets.GITHUB_TOKEN }}'
-        # && qgis-plugin-ci
-        # release ${GITHUB_REF/refs\/tags\//}
-        # --github-token ${{ secrets.GITHUB_TOKEN }}
-        # --allow-uncommitted-changes
-        # --create-plugin-repo
+        echo ${GITHUB_REF/refs\/tags\//} && qgis-plugin-ci
+        release ${GITHUB_REF/refs\/tags\//}
+        --github-token ${{ secrets.GITHUB_TOKEN }}
+        --allow-uncommitted-changes
+        --create-plugin-repo
