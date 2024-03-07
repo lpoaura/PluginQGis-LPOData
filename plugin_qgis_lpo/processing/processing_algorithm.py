@@ -583,7 +583,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         parameters: Dict[str, Any],
         context: QgsProcessingContext,
         feedback: QgsProcessingFeedback,
-    ) -> dict:
+    ) -> Optional[dict]:
         """
         Here is where the processing itself takes place.
         """
@@ -829,6 +829,11 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             self._uri.setDataSource("", f"({query})", geom_field, "", self._primary_key)  # type: ignore
 
         self._layer = QgsVectorLayer(self._uri.uri(), self._format_name, "postgres")
+        self.log(
+            message=f"features count {self._layer.countSymbolFeatures()}", log_level=4
+        )
+        if not self._layer.countSymbolFeatures():
+            return None
         check_layer_is_valid(feedback, self._layer)
 
         if self._histogram_option != "Pas d'histogramme" and self._output_histogram:

@@ -1,22 +1,35 @@
 # CHANGELOG
 
+All notable changes to this project will be documented in this file.
+
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
-<!--
+<!-- ## Unreleased [{version_tag}](https://github.com/opengisch/qgis-plugin-ci/releases/tag/{version_tag}) - YYYY-MM-DD -->
 
-Unreleased
+## Unreleased
 
-# >> version_tag - YYYY-DD-mm
+## 3.1.1 - 2024-03-07
 
-### Added
+* update Changelog.md for `qgis-plugin-ci`
 
 ### Changed
 
-### Removed
+* Update CHANGELOG.md (`qgis-plugin-ci` fix)
 
--->
+## 3.1.0 - 2024-02-14
 
-# [3.0.0]
+* test de changelog
+
+### Changed
+
+- Update database views
+
+
+## 3.0.0 - 2024-02-13
+
+### Added
+
+Nothing
 
 ### Changed
 
