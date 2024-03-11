@@ -1,22 +1,23 @@
 ci-cd:
-  - .github/workflows/*
-  - .github/labeler.yml
+  - changed-files:
+      - any-glob-to-any-file: [".github/workflows/*", ".github/labeler.yml"]
 
 dependencies:
-  - requirements.txt
-  - requirements/*.txt
-
+  - changed-files:
+      - any-glob-to-any-file: ["requirements.txt", "requirements/*.txt"]
 documentation:
-  - docs/**/*
+  - changed-files:
+      - any-glob-to-any-file: ["docs/**/*"]
 
 packaging:
-  - requirements/packaging.txt
-  - setup.py
+  - changed-files:
+      - any-glob-to-any-file: ["requirements/packaging.txt", "setup.py"]
 
 quality:
-  - tests/**/*
+  - changed-files:
+      - any-glob-to-any-file: ["tests/**/*"]
 
 tooling:
-  - .pre-commit-config.yaml
-  - .vscode/**/*
-  - setup.cfg
+  - changed-files:
+      - any-glob-to-any-file:
+          [".pre-commit-config.yaml", ".vscode/**/*", "setup.cfg"]
