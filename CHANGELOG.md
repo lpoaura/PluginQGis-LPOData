@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## Unreleased
 
+## 3.1.2 - 2024-03-11
+
+* fix error on empty layer check
+
 ## 3.1.1 - 2024-03-07
 
 * update Changelog.md for `qgis-plugin-ci`
