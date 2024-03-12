@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## Unreleased
 
+## 3.1.3 - 2024-03-12
+
+* Update metadata
+* Change experimental status to false
+
 ## 3.1.2 - 2024-03-11
 
 * fix error on empty layer check

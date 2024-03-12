@@ -1,9 +1,9 @@
 [general]
-name=Traitement des données LPO
-about=This plugin is a revolution!
+name=LPO GeoNature tools
+about=Awesome plugin for extracting and analyzing data from a GeoNature database
 category=Database
 hasProcessingProvider=True
-description=Extends QGIS with revolutionary features that every single GIS end-users was expected (or not)!
+description=Various processing tools for extracting and analyzing data from a geonature database
 icon=resources/images/logo_lpo_aura_carre.png
 tags=geonature,visionature,faune-france,postgresql,lpo
 
@@ -16,10 +16,10 @@ tracker=https://github.com/lpoaura/PluginQGis-LPOData/issues
 
 # experimental flag
 deprecated=False
-experimental=True
+experimental=False
 qgisMinimumVersion=3.16
 qgisMaximumVersion=3.99
 
 # versioning
-version=3.1.2
+version=3.1.3
 changelog=https://github.com/lpoaura/PluginQGis-LPOData/blob/master/CHANGELOG.md
