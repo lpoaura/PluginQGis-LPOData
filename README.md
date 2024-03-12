@@ -1,22 +1,22 @@
 # Scripts de processing framework de la LPO AuRA - QGIS Plugin
-![tests](https://github.com/lpoaura/PluginQGis-LPOData/workflows/Tests/badge.svg)
+[![🎳 Tester](https://github.com/lpoaura/PluginQGis-LPOData/actions/workflows/tester.yml/badge.svg)](https://github.com/lpoaura/PluginQGis-LPOData/actions/workflows/tester.yml)
 [![codecov](https://codecov.io/gh/lpoaura/PluginQGis-LPOData/graph/badge.svg?token=AKE1D4GKC3)](https://codecov.io/gh/lpoaura/PluginQGis-LPOData)
-![release](https://github.com/lpoaura/PluginQGis-LPOData/workflows/Release/badge.svg)
+[![✅ Linter](https://github.com/lpoaura/PluginQGis-LPOData/actions/workflows/linter.yml/badge.svg)](https://github.com/lpoaura/PluginQGis-LPOData/actions/workflows/linter.yml)
+[![🚀 Releaser](https://github.com/lpoaura/PluginQGis-LPOData/actions/workflows/releaser.yml/badge.svg)](https://github.com/lpoaura/PluginQGis-LPOData/actions/workflows/releaser.yml)
 
 [![GPLv3 license](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.html)
 
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
-
-[![pylint](https://github.com/lpoaura/PluginQGis-LPODatalint/pylint.svg)](https://github.com/lpoaura/PluginQGis-LPODatalint/)
+<!-- [![pylint](https://github.com/lpoaura/PluginQGis-LPODatalint/pylint.svg)](https://github.com/lpoaura/PluginQGis-LPODatalint/) -->
 [![flake8](https://img.shields.io/badge/linter-flake8-green)](https://flake8.pycqa.org/)
 
 
 Ce plugin ajoute à QGIS des scripts d'exploitation des données naturalistes de
-la [LPO Auvergne-Rhône-Alpes](https://auvergne-rhone-alpes.lpo.fr/). Il s'appuie sur une base de données [Géonature] (https://github.com/pnx-si/).
+la [LPO Auvergne-Rhône-Alpes](https://auvergne-rhone-alpes.lpo.fr/). Il s'appuie sur une base de données [Géonature](https://github.com/PnX-SI/).
 
-L'installation et l'utilisation sont documentatées [ici] (https://github.com/lpoaura/PluginQGis-LPOData/wiki).
+L'installation et l'utilisation sont documentatées [ici](https://github.com/lpoaura/PluginQGis-LPOData/wiki).
 
 Outre la structure de la base de données Géonature, il nécessite :
 - la présence de vues matérialisées dans le schéma `taxonomie` (sql dans le dossier config)
@@ -26,7 +26,7 @@ Outre la structure de la base de données Géonature, il nécessite :
     - Linux: `~/.local/share/QGIS/QGIS3/`
     - Windows: `%AppData%/QGIS/QGIS3/`
 
-La base de données sur laquelle les développements ont été faits dispose également des fonctionnalités de [gn_vn2synthese] (https://github.com/lpoaura/gn_vn2synthese).
+La base de données sur laquelle les développements ont été faits dispose également des fonctionnalités de [gn_vn2synthese](https://github.com/lpoaura/gn_vn2synthese).
 
 Pour permettre l'export des données formatées, il est nécessaire de disposer de la libraire `openpyxl`. Pour l'installer `py3_env` puis `python3 -m pip install --user openpyxl`.
 
@@ -43,32 +43,6 @@ This plugin is licenced with[GNU General Public License, version 3](https://www.
 
 See [LICENSE](LICENSE) for more information.
 
-# Generated options
-
-### Plugin
-
-| Cookiecutter option | Picked value |
-| :-- | :--: |
-| Plugin name | Traitement des données LPO |
-| Plugin name slugified | plugin_qgis_lpo |
-| Plugin name class (used in code) | QgisLpo |
-| Plugin category | Database |
-| Plugin description short | This plugin is a revolution! |
-| Plugin description long | Extends QGIS with revolutionary features that every single GIS end-users was expected (or not)! |
-| Plugin tags | geonature,visionature,faune-france,postgresql,lpo |
-| Plugin icon | default_icon.png |
-| Plugin with processing provider | True |
-| Author name | Pole VDC (LPOAuRA) |
-| Author organization | LPO Auvergne-Rhône-Alpes |
-| Author email | webadmin.aura@lpo.fr |
-| Minimum QGIS version | 3.16 |
-| Maximum QGIS version | 3.99 |
-| Git repository URL | https://github.com/lpoaura/PluginQGis-LPOData |
-| Git default branch | master |
-| License | GPLv3 |
-| Python linter | both |
-| CI/CD platform | GitHub |
-| IDE | VSCode |
 
 ### Tooling
 
@@ -131,6 +105,8 @@ The documentation is generated using Sphinx and is automatically generated throu
 
 ----
 
-# License
+# Contributors
 
-Distributed under the terms of the [`GPLv3` license](LICENSE).
+<a href="https://github.com/lpoaura/PluginQGis-LPOData/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=lpoaura/PluginQGis-LPOData" />
+</a>
