@@ -1,1 +1,5 @@
-CREATE INDEX ON gn_synthese.synthese USING btree (st_geometrytype(the_geom_local));
+/**********************************************************************************************************************
+ * 		Create missing index...
+ **********************************************************************************************************************/
+-- TODO: define if required
+CREATE INDEX ON gn_synthese.synthese USING btree (st_geometrytype (the_geom_local));
