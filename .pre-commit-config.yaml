@@ -17,6 +17,15 @@ repos:
       - id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
 
+  - repo: https://gitlab.com/Oslandia/pre-commit-hook
+    rev: 0.1.0
+    hooks:
+      - id: pgFormatter
+        args:
+          [
+            "-s4 -g -t -w120 -W5"
+          ]
+
   - repo: https://github.com/psf/black
     rev: 23.1.0
     hooks:
