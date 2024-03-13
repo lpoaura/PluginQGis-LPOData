@@ -1,6 +1,6 @@
 # Development
 
-# >> Environment setup
+# Environment setup
 
 Typically on Ubuntu:
 

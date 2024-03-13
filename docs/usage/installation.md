@@ -1,19 +1,25 @@
 # Installation
 
-# >> Stable version (recomended)
+## Configurations préalables
 
-This plugin is published on the official QGIS plugins repository: <https://plugins.qgis.org/plugins/plugin_qgis_lpo/>.
+### Création de la connexion `PostGIS`
 
-# >> Beta versions released
+Dans QGIS, créez une nouvelle connexion PostGIS et nommez-la `geonature_lpo`, en choisissant les paramètres d'identification adaptés à votre situation.
 
-Enable experimental extensions in the QGIS plugins manager settings panel.
+### Enregistrement du fichier `startup.py`
 
-# >> Earlier development version
+Téléchargez le fichier [`startup.py`](https://raw.githubusercontent.com/lpoaura/PluginQGis-LPOData/master/config/startup.py) et placez le dans votre dossier de configuration de QGIS (**sans modifier son nom !**) à l'emplacement suivant de votre ordinateur : `C:\Users\<VotreNomUtilisateur>\AppData\Roaming\QGIS\QGIS3`
 
-If you define yourself as early adopter or a tester and can't wait for the release, the plugin is automatically packaged for each commit to main, so you can use this address as repository URL in your QGIS extensions manager settings:
+> :warning: Le dossier `<VotreNomUtilisateur>` correspond à **VOTRE propre** dossier utilisateur.
 
-```url
-https://github.com/lpoaura/PluginQGis-LPOData/plugins.xml
-```
+> :information_source: Le dossier `AppData` est un dossier **caché**, il est possible que vous ayez besoin de l'afficher manuellement !
 
-Be careful, this version can be unstable.
+## Installation du plugin
+
+Ajouter le lien suivant à la liste des dépots d'extensions (Menu <kbd>Extension</kbd> > <kbd>Installer/Gérer les extensions...</kbd> puis sur le menu <kbd>Paramètres</kbd>):
+
+<https://github.com/lpoaura/PluginQGis-LPOData/releases/latest/download/plugins.xml>
+
+Rechargez ensuite les dépots et rendez-vous sur l'onglet <kbd>Toutes</kbd>, recherchez le plugin `LPO GeoNature tools` et installez le. Vous disposez maitenant d'une nouvelle liste de scripts votre **Boîte à outils de traitements** :
+
+![processing_toolbox](../images/processing_toolbox.png)

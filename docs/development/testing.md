@@ -5,7 +5,7 @@ Tests are written in 2 separate folders:
 - `tests/unit`: testing code which is independent of QGIS API
 - `tests/qgis`: testing code which depends on QGIS API
 
-# >> Requirements
+# Requirements
 
 - 3.16 < QGIS < 3.99
 
@@ -13,7 +13,7 @@ Tests are written in 2 separate folders:
 python -m pip install -U -r requirements/testing.txt
 ```
 
-# >> Run unit tests
+# Run unit tests
 
 ```bash
 # run all tests with PyTest and Coverage report
