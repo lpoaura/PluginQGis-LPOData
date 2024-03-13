@@ -22,17 +22,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 * update Changelog.md for `qgis-plugin-ci`
 * fix translation environment
 
-### Changed
-
-* Update CHANGELOG.md (`qgis-plugin-ci` fix)
 
 ## 3.1.0 - 2024-02-14
 
 * test de changelog
-
-### Changed
-
-- Update database views
 
 
 ## 3.0.0 - 2024-02-13
