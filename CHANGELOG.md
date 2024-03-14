@@ -8,7 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## Unreleased
 
-## 3.2.0-dev - 2024-xx-xx
+## 3.2.1 - 2024-03-14
+
+* Fix typing error on windows installs
+
+## 3.2.0 - 2024-03-14
 
 * Migrate startup tasks to a processing algorithm
 

@@ -146,9 +146,13 @@ class RefreshData(BaseProcessingAlgorithm):
         feedback.pushInfo(f"Populate {setting} settings from database")
         self._uri.setDataSource("", f"({query})", "", "", key_column)
         layer = QgsVectorLayer(self._uri.uri(), setting, "postgres")
+        query_output = None
         for feature in layer.getFeatures():
             query_output = feature[1]
-        self._db_variables.setValue(setting, query_output)
+
+        if query_output:
+            self._db_variables.setValue(setting, query_output)
+
         self.log(
             message=self.tr(f"Populate {setting} settings from database - END"),
             log_level=3,
