@@ -14,7 +14,7 @@
  ***************************************************************************/
 """
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from qgis.core import (
     QgsDataSourceUri,
@@ -78,7 +78,7 @@ class RefreshData(BaseProcessingAlgorithm):
         parameters: Dict[str, Any],
         context: QgsProcessingContext,
         feedback: QgsProcessingFeedback,
-    ) -> dict | None:
+    ) -> Optional[dict]:
         if feedback is None:
             feedback = QgsProcessingFeedback()
         self.log(
