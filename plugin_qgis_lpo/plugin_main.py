@@ -12,7 +12,13 @@ from typing import Optional
 import processing
 
 # PyQGIS
-from qgis.core import QgsApplication, QgsSettings
+from qgis.core import (
+    QgsApplication,
+    QgsProcessingException,
+    QgsProviderConnectionException,
+    QgsProviderRegistry,
+    QgsSettings,
+)
 from qgis.gui import QgisInterface
 from qgis.PyQt.QtCore import QCoreApplication, QLocale, QTranslator, QUrl
 from qgis.PyQt.QtGui import QDesktopServices, QIcon
@@ -21,11 +27,13 @@ from qgis.PyQt.QtWidgets import QAction, QMenu
 # project
 from plugin_qgis_lpo.__about__ import (
     DIR_PLUGIN_ROOT,
+    __icon_dir_path__,
     __icon_path__,
     __title__,
     __uri_homepage__,
 )
 from plugin_qgis_lpo.gui.dlg_settings import PlgOptionsFactory
+from plugin_qgis_lpo.gui.menu_tools import MenuTools
 from plugin_qgis_lpo.processing.provider import QgisLpoProvider
 from plugin_qgis_lpo.processing.qgis_processing_postgis import get_connection_name
 from plugin_qgis_lpo.processing.species_map import CarteParEspece
@@ -53,6 +61,8 @@ class QgisLpoPlugin:
         self.provider: Optional[QgisLpoProvider] = None
         self.log = PlgLogger().log
         self.iface: QgisInterface = iface
+        self.tools_menu: Optional[QMenu] = None
+        self.main_menu: Optional[QMenu] = None
         # translation
         # initialize the locale
         self.locale: str = QgsSettings().value("locale/userLocale", QLocale().name())[
@@ -74,10 +84,9 @@ class QgisLpoPlugin:
         """Set up plugin UI elements."""
 
         self.initSettings()
-
         self.provider = QgisLpoProvider()
+        # self.main_menu = self.iface.pluginMenu().parent().addMenu(__title__)
 
-        plugin_lpo_menu = self.iface.pluginMenu().parent().addMenu("Plugin LPO")
         # settings page within the QGIS preferences menu
         self.options_factory = PlgOptionsFactory()
         self.iface.registerOptionsWidgetFactory(self.options_factory)
@@ -127,7 +136,7 @@ class QgisLpoPlugin:
         QgsApplication.processingRegistry().addProvider(self.provider)
 
         self.especes_action = QAction(
-            #  QIcon(),
+            QIcon(str(__icon_dir_path__ / "map.png")),
             "Carte par espèces",
             self.iface.mainWindow(),
         )
@@ -139,7 +148,20 @@ class QgisLpoPlugin:
             #     for a in self.iface.pluginMenu().parent().findChildren(QMenu)
             #     if a.title() == "Plugin LPO"
             # ][0]
-            plugin_lpo_menu.addAction(self.especes_action)
+            self.main_menu = self.iface.pluginMenu().parent().addMenu(__title__)
+            self.tools_menu = MenuTools(self.iface.mainWindow())
+            self.main_menu.addAction(self.tools_menu.act_extract_data)
+            self.main_menu.addAction(self.tools_menu.act_extract_data_observers)
+            self.main_menu.addAction(self.tools_menu.addSeparator())
+            self.main_menu.addAction(self.tools_menu.act_summary_map)
+            self.main_menu.addAction(self.especes_action)
+            self.main_menu.addAction(self.tools_menu.addSeparator())
+            self.main_menu.addAction(self.tools_menu.act_summary_per_species)
+            self.main_menu.addAction(self.tools_menu.act_summary_per_time_interval)
+            self.main_menu.addAction(self.tools_menu.act_state_of_knowledge)
+            self.main_menu.addAction(self.tools_menu.addSeparator())
+            self.main_menu.addAction(self.tools_menu.act_refresh_data)
+
         except IndexError:
             # If not successful put the button in the Plugins toolbar
             self.iface.addToolBarIcon(self.especes_action)
@@ -148,7 +170,38 @@ class QgisLpoPlugin:
                 "La carte par espèces est accessible via la barre d'outils d'Extensions",
             )
 
-        processing.run("plugin_qgis_lpo:RefreshData", {"DATABASE": "geonature_lpo"})
+        self.populateSettings()
+
+    def populateSettings(self):
+        try:
+            postgres_metadata = QgsProviderRegistry.instance().providerMetadata(
+                "postgres"
+            )
+            if "geonature_lpo" in postgres_metadata.dbConnections():
+                self.log(
+                    message=f"Loading GeoNature required data",
+                    log_level=0,
+                    push=True,
+                    duration=60,
+                )
+                processing.run(
+                    "plugin_qgis_lpo:RefreshData", {"DATABASE": "geonature_lpo"}
+                )
+                self.log(
+                    message=f"Loading GeoNature terminated",
+                    log_level=0,
+                    push=True,
+                    duration=2,
+                )
+        except QgsProviderConnectionException as exc:
+            self.log(
+                message=self.tr("Houston, we've got a problem: {}".format(exc)),
+                log_level=2,
+                push=True,
+            )
+            raise QgsProcessingException(
+                f"Could not retrieve connection details : {str(exc)}"
+            ) from exc  # processing.run("plugin_qgis_lpo:RefreshData", {"DATABASE": "geonature_lpo"})
 
     def runEspeces(self):  # noqa N802
         connection_name = get_connection_name()
@@ -188,15 +241,13 @@ class QgisLpoPlugin:
         QgsApplication.processingRegistry().removeProvider(self.provider)
 
         try:
-            lpo_menu = [
-                a
-                for a in self.iface.pluginMenu().parent().findChildren(QMenu)
-                if a.title() == "Plugin LPO"
-            ][0]
-            lpo_menu.removeAction(self.especes_action)
+            self.main_menu.clear()
+            self.main_menu.setHidden(True)
+            del self.main_menu
         except IndexError:
             pass
         # teardown_logger(Plugin.name)
+
         self.iface.removeToolBarIcon(self.especes_action)
 
     def run(self):
@@ -204,7 +255,6 @@ class QgisLpoPlugin:
 
         :raises Exception: if there is no item in the feed
         """
-
         try:
             self.log(
                 message=self.tr("Everything ran OK."),
