@@ -73,7 +73,7 @@ jobs:
         run: python3 --version
 
       - name: Setup plugin
-        run: qgis_setup.sh qtribu
+        run: qgis_setup.sh plugin_qgis_lpo
 
       - name: Install Python requirements
         run: |
