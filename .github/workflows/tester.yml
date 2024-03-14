@@ -63,7 +63,7 @@ jobs:
       options: -v /tmp/.X11-unix:/tmp/.X11-unix -v ${{ github.workspace }}:/tests_directory
 
     steps:
-      - name: Get source code
+      - name: Get source_code
         uses: actions/checkout@v4
 
       - name: Print QGIS version
