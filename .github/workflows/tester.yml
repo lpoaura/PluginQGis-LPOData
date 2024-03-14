@@ -2,19 +2,24 @@ name: "🎳 Tester"
 
 on:
   push:
-    branches: [ master ]
+    branches:
+      - main
     paths:
-      - '**.py'
+      - "**.py"
+      - .github/workflows/tester.yml
+      - requirements/testing.txt
 
   pull_request:
-    branches: [ master ]
+    branches:
+      - main
     paths:
-      - '**.py'
+      - "**.py"
+      - .github/workflows/tester.yml
+      - requirements/testing.txt
 
 env:
   PROJECT_FOLDER: "plugin_qgis_lpo"
   PYTHON_VERSION: 3.9
-
 
 jobs:
   tests-unit:
@@ -22,14 +27,14 @@ jobs:
 
     steps:
       - name: Get source code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
+          python-version: ${{ env.PYTHON_VERSION }}
           cache: "pip"
           cache-dependency-path: "requirements/testing.txt"
-          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install Python requirements
         run: |
@@ -39,6 +44,9 @@ jobs:
       - name: Run Unit tests
         run: pytest tests/unit/
 
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+
   test-qgis:
     runs-on: ubuntu-latest
 
@@ -46,26 +54,26 @@ jobs:
       image: qgis/qgis:release-3_28
       env:
         CI: true
-        DISPLAY: ":99"
+        DISPLAY: ":1"
         MUTE_LOGS: true
         NO_MODALS: 1
         PYTHONPATH: "/usr/share/qgis/python/plugins:/usr/share/qgis/python:."
+        QT_QPA_PLATFORM: "offscreen"
         WITH_PYTHON_PEP: false
-      options: -v ${{ github.workspace }}:/tests_directory
+      options: -v /tmp/.X11-unix:/tmp/.X11-unix -v ${{ github.workspace }}:/tests_directory
 
     steps:
       - name: Get source code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Print QGIS version
         run: qgis --version
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          cache: "pip"
-          cache-dependency-path: "requirements/testing.txt"
-          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Print Python version
+        run: python3 --version
+
+      - name: Setup plugin
+        run: qgis_setup.sh qtribu
 
       - name: Install Python requirements
         run: |
@@ -75,8 +83,5 @@ jobs:
       - name: Run Unit tests
         run: pytest tests/qgis/
 
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v4.0.1
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          slug: lpoaura/PluginQGis-LPOData
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
