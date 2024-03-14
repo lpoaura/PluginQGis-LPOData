@@ -1,19 +1,35 @@
-name: "📚 Documentation Builder"
+name: "📚 Documentation"
 
 on:
   push:
-    branches: [ master ]
+    branches:
+      - master
     paths:
-      - '.github/workflows/documentation.yml'
-      - 'docs/**/*'
-      - 'requirements/documentation.txt'
+      - ".github/workflows/documentation.yml"
+      - "docs/*/**"
+      - "plugin_qgis_lpo/**/*.py"
+      - "plugin_qgis_lpo/metadata.txt"
+      - "requirements/documentation.txt"
     tags:
       - "*"
 
   pull_request:
-    branches: [ master ]
+    branches:
+      - master
     paths:
       - ".github/workflows/documentation.yml"
+      - docs/**/*
+      - requirements/documentation.txt
+
+  workflow_dispatch:
+
+# Allow one concurrent deployment per branch/pr
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: 3.9
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
@@ -21,67 +37,48 @@ permissions:
   pages: write
   id-token: write
 
-# Allow one concurrent deployment
-concurrency:
-  group: "pages"
-  cancel-in-progress: true
-
-env:
-  PYTHON_VERSION: 3.9
-
-
 jobs:
-  build-docs:
-
+  build:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Get source code
-      uses: actions/checkout@v3
+      - name: Get source code
+        uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
           cache: "pip"
           cache-dependency-path: "requirements/documentation.txt"
           python-version: ${{ env.PYTHON_VERSION }}
 
-    - name: Cache Sphinx cache
-      uses: actions/cache@v4
-      with:
-        path: docs/_build/cache
-        key: ${{ runner.os }}-sphinx-${{ hashFiles('docs/**/*') }}
-        restore-keys: |
-          ${{ runner.os }}-sphinx-
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install -U -r requirements/documentation.txt
 
-    - name: Install project requirements
-      run: |
-        python -m pip install -U pip setuptools wheel
-        python -m pip install -U -r requirements/documentation.txt
+      - name: Build doc using Sphinx
+        run: sphinx-build -b html -d docs/_build/cache -j auto docs docs/_build/html
 
-    - name: Build doc using Sphinx
-      run: sphinx-build -b html -j auto -d docs/_build/cache -q docs docs/_build/html
+      - name: Save build doc as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation
+          path: docs/_build/html/*
+          if-no-files-found: error
+          retention-days: 30
 
-    - name: Save build doc as artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: documentation
-        path: docs/_build/html/*
-        if-no-files-found: error
-        retention-days: 30
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+        if: github.event_name == 'push' && (startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/master')
 
-    - name: Setup Pages
-      uses: actions/configure-pages@v4
-      if: ${{ github.event_name == 'push' && ( startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/master' ) }}
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        if: github.event_name == 'push' && (startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/master')
+        with:
+          path: docs/_build/html/
 
-    - name: Upload artifact
-      uses: actions/upload-pages-artifact@v3
-      if: ${{ github.event_name == 'push' && ( startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/master' ) }}
-      with:
-        # Upload entire repository
-        path: docs/_build/html/
-
-    - name: Deploy to GitHub Pages
-      id: deployment
-      if: ${{ github.event_name == 'push' && ( startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/master' ) }}
-      uses: actions/deploy-pages@v1
+      - name: Deploy to GitHub Pages
+        id: deployment
+        if: github.event_name == 'push' && (startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/master')
+        uses: actions/deploy-pages@v4
