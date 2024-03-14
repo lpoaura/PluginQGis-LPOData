@@ -17,15 +17,6 @@ repos:
       - id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
 
-  - repo: https://gitlab.com/Oslandia/pre-commit-hook
-    rev: 0.1.0
-    hooks:
-      - id: pgFormatter
-        args:
-          [
-            "-s4 -g -t -w120 -W5"
-          ]
-
   - repo: https://github.com/psf/black
     rev: 23.1.0
     hooks:
@@ -48,6 +39,18 @@ repos:
             "--config=setup.cfg",
             "--select=E9,F63,F7,F82,QGS101,QGS102,QGS103,QGS104,QGS106",
           ]
+  - repo: https://github.com/sqlfluff/sqlfluff
+    rev: 2.1.2
+    hooks:
+      - id: sqlfluff-lint
+        args:
+          - "--dialect"
+          - "postgres"
+      - id: sqlfluff-fix
+        args:
+            - "--dialect"
+            - "postgres"
+
 
 ci:
     autoupdate_schedule: quarterly
