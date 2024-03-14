@@ -18,6 +18,9 @@ def classFactory(iface):  # noqa N802
     :param iface: A QGIS interface instance.
     :type iface: QgsInterface
     """
+    # import processing
+
     from .plugin_main import QgisLpoPlugin
 
+    # processing.run("plugin_qgis_lpo:RefreshData", {"DATABASE": "geonature_lpo"})
     return QgisLpoPlugin(iface)

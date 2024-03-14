@@ -41,7 +41,6 @@ class QgisLpoProvider(QgsProcessingProvider):
             SummaryTablePerTimeInterval(),
             StateOfKnowledge(),
             SummaryMap(),
-            RefreshData(),
         ]
         for alg in algorithms:
             self.addAlgorithm(alg)

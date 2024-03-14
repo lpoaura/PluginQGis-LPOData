@@ -7,6 +7,9 @@
 # standard
 from functools import partial
 from pathlib import Path
+from typing import Optional
+
+import processing
 
 # PyQGIS
 from qgis.core import QgsApplication, QgsSettings
@@ -42,18 +45,14 @@ class QgisLpoPlugin:
         :type iface: QgsInterface
         """
 
-        self.options_factory: PlgOptionsFactory
-        self.action_help: QAction
-        self.action_settings: QAction
-        self.action_help_plugin_menu_documentation: QAction
-        self.especes_action: QAction
-
-        self.initSettings()
-
-        self.provider = QgisLpoProvider()
-        self.iface = iface
+        self.options_factory: Optional[PlgOptionsFactory] = None
+        self.action_help: Optional[QAction] = None
+        self.action_settings: Optional[QAction] = None
+        self.action_help_plugin_menu_documentation: Optional[QAction] = None
+        self.especes_action: Optional[QAction] = None
+        self.provider: Optional[QgisLpoProvider] = None
         self.log = PlgLogger().log
-
+        self.iface: QgisInterface = iface
         # translation
         # initialize the locale
         self.locale: str = QgsSettings().value("locale/userLocale", QLocale().name())[
@@ -74,7 +73,11 @@ class QgisLpoPlugin:
     def initGui(self):
         """Set up plugin UI elements."""
 
-        self.iface.pluginMenu().parent().addMenu("Plugin LP0")
+        self.initSettings()
+
+        self.provider = QgisLpoProvider()
+
+        plugin_lpo_menu = self.iface.pluginMenu().parent().addMenu("Plugin LPO")
         # settings page within the QGIS preferences menu
         self.options_factory = PlgOptionsFactory()
         self.iface.registerOptionsWidgetFactory(self.options_factory)
@@ -131,12 +134,12 @@ class QgisLpoPlugin:
         self.especes_action.triggered.connect(self.runEspeces)
         try:
             # Try to put the button in the LPO menu bar
-            lpo_menu = [
-                a
-                for a in self.iface.pluginMenu().parent().findChildren(QMenu)
-                if a.title() == "Plugin LPO"
-            ][0]
-            lpo_menu.addAction(self.especes_action)
+            # lpo_menu = [
+            #     a
+            #     for a in self.iface.pluginMenu().parent().findChildren(QMenu)
+            #     if a.title() == "Plugin LPO"
+            # ][0]
+            plugin_lpo_menu.addAction(self.especes_action)
         except IndexError:
             # If not successful put the button in the Plugins toolbar
             self.iface.addToolBarIcon(self.especes_action)
@@ -144,6 +147,8 @@ class QgisLpoPlugin:
                 "Attention",
                 "La carte par espèces est accessible via la barre d'outils d'Extensions",
             )
+
+        processing.run("plugin_qgis_lpo:RefreshData", {"DATABASE": "geonature_lpo"})
 
     def runEspeces(self):  # noqa N802
         connection_name = get_connection_name()
@@ -199,12 +204,14 @@ class QgisLpoPlugin:
 
         :raises Exception: if there is no item in the feed
         """
+
         try:
             self.log(
                 message=self.tr("Everything ran OK."),
                 log_level=3,
                 push=False,
             )
+
         except Exception as err:
             self.log(
                 message=self.tr("Houston, we've got a problem: {}".format(err)),
