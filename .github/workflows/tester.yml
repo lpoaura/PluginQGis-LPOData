@@ -3,7 +3,7 @@ name: "🎳 Tester"
 on:
   push:
     branches:
-      - main
+      - master
     paths:
       - "**.py"
       - .github/workflows/tester.yml
@@ -11,7 +11,7 @@ on:
 
   pull_request:
     branches:
-      - main
+      - master
     paths:
       - "**.py"
       - .github/workflows/tester.yml
