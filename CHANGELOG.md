@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## Unreleased
 
+## 3.2.0-dev - 2024-xx-xx
+
+* Migrate startup tasks to a processing algorithm
+
 ## 3.1.3 - 2024-03-12
 
 * Update metadata

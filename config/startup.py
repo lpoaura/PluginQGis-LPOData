@@ -2,6 +2,7 @@
 Must be copied in QGIS root config directory
 (e.g. ~/.local/share/QGIS/QGIS3/)
 """
+
 from qgis.core import (
     Qgis,
     QgsDataSourceUri,
@@ -130,4 +131,4 @@ db_variables.setValue("source_data", source_data)
 db_variables.setValue("lr_columns", lr_columns)
 # Add Plugin LPO menu
 
-iface.pluginMenu().parent().addMenu("Plugin LPO")
+# iface.pluginMenu().parent().addMenu("Plugin LPO")

@@ -71,6 +71,7 @@ class QgisLpoPlugin:
     def initGui(self):
         """Set up plugin UI elements."""
 
+        self.iface.pluginMenu().parent().addMenu("Plugin LP0")
         # settings page within the QGIS preferences menu
         self.options_factory = PlgOptionsFactory()
         self.iface.registerOptionsWidgetFactory(self.options_factory)

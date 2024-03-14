@@ -221,7 +221,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         """
         return self.tr(self._display_name)
 
-    def groupId(self) -> str:  # noqa N802
+    def groupId(self) -> Optional[str]:  # noqa N802
         """
         Returns the unique ID of the group this algorithm belongs to. This
         string should be fixed for the algorithm, and must not be localised.
@@ -231,12 +231,12 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         """
         return self._group_id
 
-    def group(self) -> str:
+    def group(self) -> Optional[str]:
         """
         Returns the name of the group this algorithm belongs to. This string
         should be localised.
         """
-        return self.tr(self._group)
+        return self.tr(self._group) if self._group else self._group
 
     def icon(self) -> QIcon:
         """Icon script"""
