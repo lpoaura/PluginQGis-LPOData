@@ -41,11 +41,14 @@ class QgisLpoPlugin:
         provides the hook by which you can manipulate the QGIS application at run time.
         :type iface: QgsInterface
         """
+
         self.options_factory: PlgOptionsFactory
         self.action_help: QAction
         self.action_settings: QAction
         self.action_help_plugin_menu_documentation: QAction
         self.especes_action: QAction
+
+        self.initSettings()
 
         self.provider = QgisLpoProvider()
         self.iface = iface
@@ -208,3 +211,21 @@ class QgisLpoPlugin:
                 log_level=2,
                 push=True,
             )
+
+    def initSettings(self):
+        dbVariables = QgsSettings()
+        variables = [
+            "groupe_taxo",
+            "regne",
+            "phylum",
+            "classe",
+            "ordre",
+            "famille",
+            "group1_inpn",
+            "group2_inpn",
+            "source_data",
+            "lr_columns",
+        ]
+        for variable in variables:
+            if not dbVariables.value(variable):
+                dbVariables.setValue(variable, set())

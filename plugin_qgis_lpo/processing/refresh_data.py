@@ -86,6 +86,7 @@ class RefreshData(BaseProcessingAlgorithm):
             log_level=3,
             push=False,
         )
+        feedback.pushInfo("Starting to populate default settings from database")
         # Form values
         self._connection = self.parameterAsString(parameters, self.DATABASE, context)
         self._uri = uri_from_name(self._connection)
@@ -116,7 +117,7 @@ class RefreshData(BaseProcessingAlgorithm):
         where parameter_name like 'plugin_qgis_lpo_lr_columns'"""
 
         for key, query in queries.items():
-            self.populate_settings(key, query)
+            self.populate_settings(key, query, feedback=feedback)
         self.log(
             message=self.tr("All settings have been correctly populated"),
             log_level=3,
@@ -130,14 +131,19 @@ class RefreshData(BaseProcessingAlgorithm):
         return {}
 
     def populate_settings(
-        self, setting: str, query: str, key_column: str = "id"
+        self,
+        setting: str,
+        query: str,
+        feedback: QgsProcessingFeedback,
+        key_column: str = "id",
     ) -> None:
         """Querying database and populate Qgis Settings"""
         self.log(
             message=self.tr(f"Populate {setting} settings from database - BEGIN"),
-            log_level=3,
+            log_level=0,
             push=False,
         )
+        feedback.pushInfo(f"Populate {setting} settings from database")
         self._uri.setDataSource("", f"({query})", "", "", key_column)
         layer = QgsVectorLayer(self._uri.uri(), setting, "postgres")
         for feature in layer.getFeatures():
