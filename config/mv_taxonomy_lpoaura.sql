@@ -1,6 +1,6 @@
 /*****************************************************
  * 	   vue matérialisée permettant la consultation   *
- *     des listes de taxons par QGIS                 *  
+ *     des listes de taxons par QGIS                 *
  *****************************************************/
 CREATE MATERIALIZED VIEW dbadmin.mv_taxonomy AS
 WITH taxa AS (
@@ -108,7 +108,7 @@ FROM taxonomie.mv_c_cor_vn_taxref
 GROUP BY mv_c_cor_vn_taxref.cd_nom WITH DATA;
 
 -- View indexes:
-CREATE INDEX mv_c_cor_vn_taxref_synt_cd_nom_idx 
+CREATE INDEX mv_c_cor_vn_taxref_synt_cd_nom_idx
 ON taxonomie.mv_c_cor_vn_taxref_synt USING btree (
     cd_nom
 );
