@@ -143,6 +143,12 @@ class QgisLpoPlugin:
             self.iface.mainWindow(),
         )
         self.especes_action.triggered.connect(self.runEspeces)
+        self.refresh_data_action = QAction(
+            QIcon(str(__icon_dir_path__ / "refresh.png")),
+            "Rafraichir les données TEST",
+            self.iface.mainWindow(),
+        )
+        self.refresh_data_action.triggered.connect(self.populateSettings)
         try:
             # Try to put the button in the LPO menu bar
             # lpo_menu = [
@@ -162,7 +168,7 @@ class QgisLpoPlugin:
             self.main_menu.addAction(self.tools_menu.act_summary_per_time_interval)
             self.main_menu.addAction(self.tools_menu.act_state_of_knowledge)
             self.main_menu.addAction(self.tools_menu.addSeparator())
-            self.main_menu.addAction(self.tools_menu.act_refresh_data)
+            self.main_menu.addAction(self.refresh_data_action)
 
         except IndexError:
             # If not successful put the button in the Plugins toolbar
@@ -178,40 +184,68 @@ class QgisLpoPlugin:
             push=True,
             duration=60,
         )
-        self.iface.initializationCompleted.connect(self.populateSettings)
+        # self.iface.initializationCompleted.connect(self.populateSettings)
 
     def populateSettings(self):
-        try:
-            postgres_metadata = QgsProviderRegistry.instance().providerMetadata(
-                "postgres"
-            )
-            if "geonature_lpo" in postgres_metadata.dbConnections():
-                self.log(
-                    message=f"Loading GeoNature required data",
-                    log_level=0,
-                    push=True,
-                    duration=60,
-                )
-                self.tm.addTask(
-                    bg_task(
-                        "plugin_qgis_lpo:RefreshData", {"DATABASE": "geonature_lpo"}
-                    )
-                )
-                self.log(
-                    message=f"Loading GeoNature terminated",
-                    log_level=0,
-                    push=True,
-                    duration=2,
-                )
-        except QgsProviderConnectionException as exc:
-            self.log(
-                message=self.tr("Houston, we've got a problem: {}".format(exc)),
-                log_level=2,
-                push=True,
-            )
-            raise QgsProcessingException(
-                f"Could not retrieve connection details : {str(exc)}"
-            ) from exc  # processing.run("plugin_qgis_lpo:RefreshData", {"DATABASE": "geonature_lpo"})
+        self.log(
+            message="Loading GeoNature required data",
+            log_level=0,
+            push=True,
+            duration=60,
+        )
+        task_no = self.tm(
+            bg_task("plugin_qgis_lpo:RefreshData", {"DATABASE": "geonature_lpo"})
+        )
+        self.log(
+            message=f"{str(type(self.tm))} {str(dir(self.tm))}",
+            log_level=0,
+            push=True,
+            duration=2,
+        )
+        self.log(
+            message=f"task_no {task_no}",
+            log_level=0,
+            push=True,
+            duration=2,
+        )
+
+        # self.log(
+        #     message=f"Loading GeoNature terminated",
+        #     log_level=0,
+        #     push=True,
+        #     duration=2,
+        # )
+        # try:
+        #     postgres_metadata = QgsProviderRegistry.instance().providerMetadata(
+        #         "postgres"
+        #     )
+        #     if "geonature_lpo" in postgres_metadata.dbConnections():
+        #         self.log(
+        #             message=f"Loading GeoNature required data",
+        #             log_level=0,
+        #             push=True,
+        #             duration=60,
+        #         )
+        #         self.tm.addTask(
+        #             bg_task(
+        #                 "plugin_qgis_lpo:RefreshData", {"DATABASE": "geonature_lpo"}
+        #             )
+        #         )
+        #         self.log(
+        #             message=f"Loading GeoNature terminated",
+        #             log_level=0,
+        #             push=True,
+        #             duration=2,
+        #         )
+        # except QgsProviderConnectionException as exc:
+        #     self.log(
+        #         message=self.tr("Houston, we've got a problem: {}".format(exc)),
+        #         log_level=2,
+        #         push=True,
+        #     )
+        #     raise QgsProcessingException(
+        #         f"Could not retrieve connection details : {str(exc)}"
+        #     ) from exc  # processing.run("plugin_qgis_lpo:RefreshData", {"DATABASE": "geonature_lpo"})
         return
 
     def runEspeces(self):  # noqa N802
