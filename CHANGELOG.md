@@ -6,7 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 <!-- ## Unreleased [{version_tag}](https://github.com/opengisch/qgis-plugin-ci/releases/tag/{version_tag}) - YYYY-MM-DD -->
 
-## Unreleased
+## Unreleased - 2024-03-25
+
+* Migrate wiki docs to github pages using sphinx
+* Update github workflows
+* Update plugin name
+* Remove refresh data from plugin menu
+
+## 3.2.2 - 2024-03-
+
+* Load plugin menu on plugin startup
+* Update queries
+* New pre-commit SQL formatter
+* Update tester github workflow
 
 ## 3.2.1 - 2024-03-14
 
