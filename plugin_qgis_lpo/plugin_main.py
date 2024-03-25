@@ -159,8 +159,6 @@ class QgisLpoPlugin:
             self.main_menu.addAction(self.tools_menu.act_summary_per_species)
             self.main_menu.addAction(self.tools_menu.act_summary_per_time_interval)
             self.main_menu.addAction(self.tools_menu.act_state_of_knowledge)
-            self.main_menu.addAction(self.tools_menu.addSeparator())
-            self.main_menu.addAction(self.tools_menu.act_refresh_data)
 
         except IndexError:
             # If not successful put the button in the Plugins toolbar
