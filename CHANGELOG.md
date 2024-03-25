@@ -11,9 +11,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 * Migrate wiki docs to github pages using sphinx
 * Update github workflows
 * Update plugin name
-* Remove refresh data from plugin menu
+* Move refresh data from plugin menu to plugin settings window
 
-## 3.2.2 - 2024-03-
+## 3.2.2 - 2024-03-14
 
 * Load plugin menu on plugin startup
 * Update queries
