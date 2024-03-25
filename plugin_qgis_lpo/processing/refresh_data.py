@@ -139,7 +139,7 @@ class RefreshData(BaseProcessingAlgorithm):
     ) -> None:
         """Querying database and populate Qgis Settings"""
         self.log(
-            message=self.tr(f"Populate {setting} settings from database - BEGIN"),
+            message=self.tr(f"{setting} - Data download"),
             log_level=0,
             push=False,
         )
@@ -154,7 +154,7 @@ class RefreshData(BaseProcessingAlgorithm):
             self._db_variables.setValue(setting, query_output)
 
         self.log(
-            message=self.tr(f"Populate {setting} settings from database - END"),
+            message=self.tr(f"{setting} - Data successfully downloaded"),
             log_level=3,
             push=False,
         )
