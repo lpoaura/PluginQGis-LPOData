@@ -16,6 +16,7 @@ caption: Usage
 maxdepth: 1
 ---
 Installation <usage/installation>
+Filtrage avancé (SQL) <usage/advanced_filter>
 ```
 
 ```{toctree}
