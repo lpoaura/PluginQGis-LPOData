@@ -1,6 +1,6 @@
 [general]
-name=LPO GeoNature tools
-about=Awesome plugin for extracting and analyzing data from a GeoNature database
+name=Plugin LPO
+about=Awesome plugin for extracting and analyzing data from a LPO GeoNature database
 category=Database
 hasProcessingProvider=True
 description=Various processing tools for extracting and analyzing data from a geonature database
