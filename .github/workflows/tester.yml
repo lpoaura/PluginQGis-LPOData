@@ -3,7 +3,7 @@ name: "🎳 Tester"
 on:
   push:
     branches:
-      - main
+      - master
     paths:
       - "**.py"
       - .github/workflows/tester.yml
@@ -11,7 +11,7 @@ on:
 
   pull_request:
     branches:
-      - main
+      - master
     paths:
       - "**.py"
       - .github/workflows/tester.yml
@@ -46,6 +46,9 @@ jobs:
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: lpoaura/PluginQGis-LPOData
 
   test-qgis:
     runs-on: ubuntu-latest
@@ -73,7 +76,7 @@ jobs:
         run: python3 --version
 
       - name: Setup plugin
-        run: qgis_setup.sh qtribu
+        run: qgis_setup.sh plugin_qgis_lpo
 
       - name: Install Python requirements
         run: |
@@ -85,3 +88,7 @@ jobs:
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: lpoaura/PluginQGis-LPOData
+
