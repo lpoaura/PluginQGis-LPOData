@@ -4,8 +4,10 @@
 
 ## Filtres classiques
 
-> [!IMPORTANT]  
-> A partir de la version `3.0.0`, le `and` en début de requête n'est plus à mentionner.
+:::{Warning}
+A partir de la version `3.0.0`, le `and` en début de requête n'est plus à mentionner.
+:::
+
 
 |Filtrer sur...|Un seul critère|Plusieurs critères|
 |-|-|-|
