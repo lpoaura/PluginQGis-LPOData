@@ -37,7 +37,7 @@ class SummaryTablePerTimeInterval(BaseProcessingAlgorithm):
         self._group = "Tableaux de synthèse"
         self._short_description = """<font style="font-size:18px"><b>Besoin d'aide ?</b>
         Vous pouvez vous référer au <b>Wiki</b> accessible sur ce lien :
-        <a href="https://github.com/lpoaura/PluginQGis-LPOData/wiki" target="_blank">https://github.com/lpoaura/PluginQGis-LPOData/wiki</a>.</font><br/><br/>
+        <a href="https://lpoaura.github.io/PluginQGis-LPOData/index.html" target="_blank">https://lpoaura.github.io/PluginQGis-LPOData/index.html</a>.</font><br/><br/>
             Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données LPO,  d'obtenir un <b>tableau bilan</b> (couche PostgreSQL)...
             <ul><li>par année <u>ou</u> par mois (au choix)</li>
             <li>et par espèce <u>ou</u> par groupe taxonomique (au choix)</li></ul>

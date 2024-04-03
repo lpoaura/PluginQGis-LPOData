@@ -30,8 +30,8 @@ class ExtractData(BaseProcessingAlgorithm):
         self._group = "Données brutes"
         self._short_description = """<font style="font-size:18px"><b>Besoin d'aide ?</b>
         Vous pouvez vous référer au <b>Wiki</b>accessible sur ce lien : <a
-        href="https://github.com/lpoaura/PluginQGis-LPOData/wiki"
-        target="_blank">https://github.com/lpoaura/PluginQGis-LPOData/wiki</a>.</font>
+        href="https://lpoaura.github.io/PluginQGis-LPOData/index.html"
+        target="_blank">https://lpoaura.github.io/PluginQGis-LPOData/index.html</a>.</font>
         <br /><br />
 Cet algorithme vous permet d'<b>extraire des données d'observation</b> contenues dans la
 base de données LPO (couche PostGIS de type points) à partir d'une <b>zone d'étude</b>
