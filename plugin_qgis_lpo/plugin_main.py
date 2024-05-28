@@ -182,7 +182,7 @@ class QgisLpoPlugin:
             push=True,
             duration=60,
         )
-        # self.iface.initializationCompleted.connect(self.populateSettings)
+        self.iface.initializationCompleted.connect(self.populateSettings)
 
     def populateSettings(self):
         self.log(
@@ -191,7 +191,7 @@ class QgisLpoPlugin:
             push=True,
             duration=60,
         )
-        task_no = self.tm(
+        task_no = self.tm.addTask(
             bg_task("plugin_qgis_lpo:RefreshData", {"DATABASE": "geonature_lpo"})
         )
         self.log(
