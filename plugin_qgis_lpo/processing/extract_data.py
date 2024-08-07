@@ -36,8 +36,8 @@ class ExtractData(BaseProcessingAlgorithm):
 Cet algorithme vous permet d'<b>extraire des données d'observation</b> contenues dans la
 base de données LPO (couche PostGIS de type points) à partir d'une <b>zone d'étude</b>
 présente dans votre projet QGIS (couche de type polygones).<br /><br />
-<b>Toutes les données sont prises en compte, y-compris les données non validées.</b><br /><br />
-<font style='color:#0a84db'><u>IMPORTANT</u> : Prenez le temps de lire
+<font style='color:#0a84db'><b>Toutes les données sont prises en compte, y-compris les données non valides.</b><br /><br />
+<u>IMPORTANT</u> : Prenez le temps de lire
 <u>attentivement</U> les instructions pour chaque étape, et particulièrement les</font>
 <font style='color:#952132'>informations en rouge</font>
 <font style='color:#0a84db'>!</font>"""
