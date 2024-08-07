@@ -41,7 +41,7 @@ class SummaryTablePerSpecies(BaseProcessingAlgorithm):
 Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données LPO, d'obtenir un
 <b>tableau de synthèse</b> par espèce (couche PostgreSQL) basé sur une <b>zone d'étude</b> présente dans votre projet
 QGIS (couche de type polygones).
-<b style='color:#952132'>Les données d'absence, ainsi que les données non valides sont exclues de ce traitement.</b><br /><br />
+<b style='color:#952132'>Les données d'absence sont exclues de ce traitement.</b><br /><br />
 <b>Pour chaque espèce</b> observée dans la zone d'étude considérée, le tableau fournit les informations suivantes :
 <ul>
     <li>Identifiant VisioNature de l'espèce</li>
