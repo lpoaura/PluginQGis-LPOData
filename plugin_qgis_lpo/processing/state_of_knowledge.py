@@ -30,7 +30,7 @@ class StateOfKnowledge(BaseProcessingAlgorithm):
         self._short_help_string = ""
         self._icon = "table.png"
         self._short_description = """<font style="font-size:18px"><b>Besoin d'aide ?</b> Vous pouvez vous référer au <b>Wiki</b> accessible sur ce lien : <a href="https://lpoaura.github.io/PluginQGis-LPOData/index.html" target="_blank">https://lpoaura.github.io/PluginQGis-LPOData/index.html</a>.</font><br/><br/>
-            Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données LPO,  d'obtenir un <b>état des connaissances</b> par groupe taxonomique, basé sur une <b>zone d'étude</b> présente dans votre projet QGIS (couche de type polygones). <b style='color:#952132'>Les données d'absence sont exclues de ce traitement.</b><br/><br/>
+            Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données LPO,  d'obtenir un <b>état des connaissances</b> par groupe taxonomique, basé sur une <b>zone d'étude</b> présente dans votre projet QGIS (couche de type polygones). <b style='color:#952132'>Les données d'absence sont exclues de ce traitement ainsi que les données non valides.</b><br/><br/>
             Cet état des connaissances correspond en fait à un <b>tableau</b>, qui, <b>pour chaque taxon</b> observé dans la zone d'étude considérée, fournit les informations suivantes :
             <ul><li>Nombre de données</li>
             <li>Nombre de données / Nombre de données TOTAL</li>

@@ -38,7 +38,7 @@ class SummaryMap(BaseProcessingAlgorithm):
             dans la base de données LPO, de générer une <b>carte de synthèse</b>
             (couche PostGIS de type polygones) par maille ou par commune (au choix)
             basée sur une <b>zone d'étude</b> présente dans votre projet QGIS (couche
-            de type polygones). <b style='color:#952132'>Les données d'absence sont
+            de type polygones). <b style='color:#952132'>Les données d'absence ainsi que les données non valides sont
             exclues de ce traitement.</b><br/><br/>
             <b>Pour chaque entité géographique</b>, la table attributaire de la
             nouvelle couche fournit les informations suivantes :
