@@ -42,7 +42,7 @@ class SummaryTablePerTimeInterval(BaseProcessingAlgorithm):
             <ul><li>par année <u>ou</u> par mois (au choix)</li>
             <li>et par espèce <u>ou</u> par groupe taxonomique (au choix)</li></ul>
             ... basé sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones) et selon une période de votre choix.
-            <b style='color:#952132'>Les données d'absence ainsi que les données non valides sont exclues de ce traitement.</b><br/><br/>
+            <b style='color:#952132'>Les données d'absence sont exclues de ce traitement.</b><br/><br/>
             <font style='color:#0a84db'><u>IMPORTANT</u> : Les <b>étapes indispensables</b> sont marquées d'une <b>étoile *</b> avant leur numéro. Prenez le temps de lire <u>attentivement</U> les instructions pour chaque étape, et particulièrement les</font> <font style ='color:#952132'>informations en rouge</font> <font style='color:#0a84db'>!</font>"""
         self._icon = "table.png"
         # self._short_description = ""
