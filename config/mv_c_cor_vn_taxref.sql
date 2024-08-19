@@ -3,7 +3,6 @@
  *      d'espèces dans scr_lpo_datas.v_c_observations             *
  ******************************************************************/
 CREATE MATERIALIZED VIEW taxonomie.mv_c_cor_vn_taxref
-TABLESPACE pg_default
 AS WITH prep_vn AS (
          SELECT DISTINCT sp.id AS vn_id,
             tg.item ->> 'name'::text AS groupe_taxo_fr,

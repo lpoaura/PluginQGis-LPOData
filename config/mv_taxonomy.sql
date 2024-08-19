@@ -3,7 +3,6 @@
  *     des listes de taxons par QGIS                 *
  *****************************************************/
 CREATE MATERIALIZED VIEW dbadmin.mv_taxonomy
-TABLESPACE pg_default
 AS WITH taxa AS (
          SELECT DISTINCT tcse.taxo_group AS groupe_taxo,
             t.regne,

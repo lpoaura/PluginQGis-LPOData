@@ -26,7 +26,6 @@
  *
  */
 CREATE MATERIALIZED VIEW taxonomie.mv_c_statut
-TABLESPACE pg_default
 AS WITH prep_t_redlist_fr AS (
          SELECT DISTINCT sp.id_redlist,
             sp.status_order,
