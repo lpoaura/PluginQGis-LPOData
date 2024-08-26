@@ -48,6 +48,7 @@ class ExtractDataObservers(BaseProcessingAlgorithm):
             LEFT JOIN utilisateurs.t_roles r on s.id_digitiser=r.id_role
         WHERE
             st_intersects(obs.geom, st_union({array_polygons})) AND {where_filters}"""
+        self._is_data_extraction = True
 
     # def createInstance(self):  # noqa N802
     #     return SummaryMap()
