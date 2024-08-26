@@ -36,15 +36,14 @@ class RefreshData(BaseProcessingAlgorithm):
         super().__init__()
 
         self._name = "RefreshData"
-        self._display_name = "Rafraichissement des données"
-        self._output_name = "Etat des connaissances"
-        self._group_id = None
-        self._group = None
-        self._short_help_string = ""
+        self._display_name = "Rafraichissement manuel des données du plugin"
+        self._output_name = "Refreshed data"
+        self._group_id = "plugin_settings"
+        self._group = "Pas touche ! (utilisateurs avancés uniquement)"
+        self._short_help_string = """Forcer le rafraissement manuel des données
+        nécessaires au fonctionnement du plugin"""
         self._icon = "refresh.png"
-        self._short_description = (
-            "Rafraissement manuel des données nécessaires au fonctionnement du plugin"
-        )
+        self._short_description = self._short_help_string
         self._is_map_layer = False
         self._has_histogram = False
         self._db_variables = QgsSettings()
@@ -139,7 +138,7 @@ class RefreshData(BaseProcessingAlgorithm):
     ) -> None:
         """Querying database and populate Qgis Settings"""
         self.log(
-            message=self.tr(f"Populate {setting} settings from database - BEGIN"),
+            message=self.tr(f"{setting} - Data download"),
             log_level=0,
             push=False,
         )
@@ -154,7 +153,7 @@ class RefreshData(BaseProcessingAlgorithm):
             self._db_variables.setValue(setting, query_output)
 
         self.log(
-            message=self.tr(f"Populate {setting} settings from database - END"),
+            message=self.tr(f"{setting} - Data successfully downloaded"),
             log_level=3,
             push=False,
         )

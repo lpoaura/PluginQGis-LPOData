@@ -10,8 +10,16 @@ from functools import partial
 from pathlib import Path
 from urllib.parse import quote
 
+import processing
+
 # PyQGIS
-from qgis.core import Qgis, QgsApplication
+from qgis.core import (
+    Qgis,
+    QgsApplication,
+    QgsProcessingException,
+    QgsProviderConnectionException,
+    QgsProviderRegistry,
+)
 from qgis.gui import QgsOptionsPageWidget, QgsOptionsWidgetFactory
 from qgis.PyQt import uic
 from qgis.PyQt.Qt import QUrl
@@ -25,6 +33,7 @@ from plugin_qgis_lpo.__about__ import (
     __uri_tracker__,
     __version__,
 )
+from plugin_qgis_lpo.processing.refresh_data import RefreshData
 from plugin_qgis_lpo.toolbelt import PlgLogger, PlgOptionsManager
 from plugin_qgis_lpo.toolbelt.preferences import PlgSettingsStructure
 
@@ -76,14 +85,26 @@ class ConfigOptionsPage(FORM_CLASS, QgsOptionsPageWidget):
         )
 
         self.btn_report.pressed.connect(
-            partial(QDesktopServices.openUrl, QUrl(f"{__uri_tracker__}new/choose"))
+            partial(QDesktopServices.openUrl, QUrl(f"{__uri_tracker__}/new/choose"))
         )
 
         self.btn_reset.setIcon(QIcon(QgsApplication.iconPath("mActionUndo.svg")))
         self.btn_reset.pressed.connect(self.reset_settings)
 
+        self.btn_refresh_data.setIcon(QIcon(str(__icon_dir_path__ / "refresh.png")))
+        self.btn_refresh_data.pressed.connect(
+            lambda: self.openRefreshProcessing(parent)
+        )
+        self.log(f"TYPE PARENT {type(parent)}", log_level=0, push=True)
         # load previously saved settings
         self.load_settings()
+
+    def openRefreshProcessing(self, parent):
+        """Open refresh data processing algorithm and close settings window"""
+        processing.createAlgorithmDialog(
+            f"plugin_qgis_lpo:{RefreshData().name()}"
+        ).show()
+        parent.close()
 
     def apply(self):
         """Called to permanently apply the settings shown in the options page (e.g. \
