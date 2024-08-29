@@ -16,7 +16,7 @@
 Ce plugin ajoute à QGIS des scripts d'exploitation des données naturalistes de
 la [LPO Auvergne-Rhône-Alpes](https://auvergne-rhone-alpes.lpo.fr/). Il s'appuie sur une base de données [Géonature](https://github.com/PnX-SI/).
 
-L'installation et l'utilisation sont documentatées [ici](https://github.com/lpoaura/PluginQGis-LPOData/wiki).
+L'installation et l'utilisation sont documentées [ici](https://github.com/lpoaura/PluginQGis-LPOData/wiki).
 
 Outre la structure de la base de données Géonature, il nécessite :
 - la présence de vues matérialisées dans le schéma `taxonomie` (sql dans le dossier config)
