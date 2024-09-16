@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 <!-- ## Unreleased [{version_tag}](https://github.com/opengisch/qgis-plugin-ci/releases/tag/{version_tag}) - YYYY-MM-DD -->
 
+## 3.3.3 - 2024-08-26
+* update documentation
+
 ## 3.3.2 - 2024-08-26
 
 * Restore `_is_extraction_data` var, fix #136
