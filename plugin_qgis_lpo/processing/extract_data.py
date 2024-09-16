@@ -29,17 +29,19 @@ class ExtractData(BaseProcessingAlgorithm):
         self._group_id = "raw_data"
         self._group = "Données brutes"
         self._short_description = """<font style="font-size:18px"><b>Besoin d'aide ?</b>
-        Vous pouvez vous référer au <b>Wiki</b>accessible sur ce lien : <a
-        href="https://lpoaura.github.io/PluginQGis-LPOData/index.html"
-        target="_blank">https://lpoaura.github.io/PluginQGis-LPOData/index.html</a>.</font>
-        <br /><br />
-Cet algorithme vous permet d'<b>extraire des données d'observation</b> contenues dans la
-base de données LPO (couche PostGIS de type points) à partir d'une <b>zone d'étude</b>
-présente dans votre projet QGIS (couche de type polygones).<br /><br />
-<font style='color:#0a84db'><u>IMPORTANT</u> : Prenez le temps de lire
-<u>attentivement</U> les instructions pour chaque étape, et particulièrement les</font>
-<font style='color:#952132'>informations en rouge</font>
-<font style='color:#0a84db'>!</font>"""
+            <br/><br/>
+            Vous pouvez vous référer aux options de 
+            <a href="https://lpoaura.github.io/PluginQGis-LPOData/usage/advanced_filter.html" target="_blank">
+            filtrage avancé</a>.</font><br/><br/>
+            Cet algorithme vous permet d'<b>extraire des données d'observation</b> contenues dans la
+            base de données LPO (couche type points) à partir d'une <b>zone d'étude</b>
+            présente dans votre projet QGIS (couche de type polygones).<br /><br />
+            <font style='color:#0a84db'><u>IMPORTANT</u> : Prenez le temps de lire
+            <u>attentivement</U> les instructions pour chaque étape, et particulièrement les</font>
+            <font style='color:#952132'>informations en rouge</font>
+            <font style='color:#0a84db'>!</font>
+            <br /><br />
+            <font style='color:#952132'>Cette extraction <b>inlut les données non valides et d'absence<b>.</font>"""
         self._icon = "extract_data.png"
         self._short_help_string = ""
         self._is_map_layer = True

@@ -36,14 +36,16 @@ class SummaryTablePerTimeInterval(BaseProcessingAlgorithm):
         self._group_id = "summary_tables"
         self._group = "Tableaux de synthèse"
         self._short_description = """<font style="font-size:18px"><b>Besoin d'aide ?</b>
-        Vous pouvez vous référer au <b>Wiki</b> accessible sur ce lien :
-        <a href="https://lpoaura.github.io/PluginQGis-LPOData/index.html" target="_blank">https://lpoaura.github.io/PluginQGis-LPOData/index.html</a>.</font><br/><br/>
-            Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données LPO,  d'obtenir un <b>tableau bilan</b> (couche PostgreSQL)...
+            <br/><br/>
+            Vous pouvez vous référer aux options de         
+          <a href="https://lpoaura.github.io/PluginQGis-LPOData/usage/advanced_filter.html" target="_blank">
+            filtrage avancé</a>.</font><br/><br/>
+            Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données LPO,  d'obtenir un <b>tableau bilan</b>...
             <ul><li>par année <u>ou</u> par mois (au choix)</li>
             <li>et par espèce <u>ou</u> par groupe taxonomique (au choix)</li></ul>
-            ... basé sur une <b>zone d'étude</b> présente dans votre projet QGis (couche de type polygones) et selon une période de votre choix.
-            <b style='color:#952132'>Les données d'absence sont exclues de ce traitement.</b><br/><br/>
-            <font style='color:#0a84db'><u>IMPORTANT</u> : Les <b>étapes indispensables</b> sont marquées d'une <b>étoile *</b> avant leur numéro. Prenez le temps de lire <u>attentivement</U> les instructions pour chaque étape, et particulièrement les</font> <font style ='color:#952132'>informations en rouge</font> <font style='color:#0a84db'>!</font>"""
+            ... basé sur une <b>zone d'étude</b> présente dans votre projet QGIS (couche de type polygones) et selon une période de votre choix.
+            <b style='color:#952132'>Les données d'absence et non valides sont exclues de ce traitement.</b><br/><br/>
+            <font style='color:#0a84db'><u>IMPORTANT</u> : Prenez le temps de lire <u>attentivement</U> les instructions pour chaque étape, et particulièrement les</font> <font style ='color:#952132'>informations en rouge</font> <font style='color:#0a84db'>!</font>"""
         self._icon = "table.png"
         # self._short_description = ""
         self._is_map_layer = False

@@ -31,14 +31,15 @@ class SummaryMap(BaseProcessingAlgorithm):
         self._group_id = "Map"
         self._group = "Cartes"
         self._short_description = """<font style="font-size:18px"><b>Besoin d'aide ?</b>
-        Vous pouvez vous référer au <b>Wiki</b> accessible sur ce lien :
-        <a href="https://lpoaura.github.io/PluginQGis-LPOData/index.html" target="_blank">
-        https://lpoaura.github.io/PluginQGis-LPOData/index.html</a>.</font><br/><br/>
+            <br/><br/>
+            Vous pouvez vous référer aux options de         
+          <a href="https://lpoaura.github.io/PluginQGis-LPOData/usage/advanced_filter.html" target="_blank">
+            filtrage avancé</a>.</font><br/><br/>
             Cet algorithme vous permet, à partir des données d'observation enregistrées
             dans la base de données LPO, de générer une <b>carte de synthèse</b>
-            (couche PostGIS de type polygones) par maille ou par commune (au choix)
+            (couche de type polygones) par maille ou par commune (au choix)
             basée sur une <b>zone d'étude</b> présente dans votre projet QGIS (couche
-            de type polygones). <b style='color:#952132'>Les données d'absence sont
+            de type polygones). <b style='color:#952132'>Les données d'absence et non valides sont
             exclues de ce traitement.</b><br/><br/>
             <b>Pour chaque entité géographique</b>, la table attributaire de la
             nouvelle couche fournit les informations suivantes :
