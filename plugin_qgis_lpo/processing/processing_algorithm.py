@@ -449,22 +449,6 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         )
 
         if self._has_histogram:
-            # add_histogram = QgsProcessingParameterEnum(
-            #     self.ADD_HISTOGRAM,
-            #     self.tr(
-            #         """<b>10/</b> Cochez la case ci-dessous si vous souhaitez <u>exporter</u> les résultats sous la forme d'un <u>histogramme</u> du total par<br/> pas de temps choisi."""
-            #     ),
-            #     [
-            #         "Oui, je souhaite exporter les résultats sous la forme d'un histogramme du total par pas de temps choisi"
-            #     ],
-            #     allowMultiple=True,
-            #     optional=True,
-            # )
-            # add_histogram.setMetadata(
-            #     {"widget_wrapper": {"useCheckBoxes": True, "columns": 1}}
-            # )
-            # self.addParameter(add_histogram)
-
             histogram_options = QgsProcessingParameterEnum(
                 self.HISTOGRAM_OPTIONS,
                 self.tr(
@@ -518,23 +502,6 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
-        # Output PostGIS layer = summary map data
-        # if self._is_map_layer:
-        #     self.addParameter(
-        #         QgsProcessingParameterFeatureSink(
-        #             self.OUTPUT,
-        #             self.tr(
-        #                 f"""<b style="color:#DF7401">EXPORT DES RESULTATS</b> {optional_text}<br/>
-        #                 <b>7/</b> Si cela vous intéresse, vous pouvez <u>exporter</u> votre nouvelle couche sur votre ordinateur. <u>Sinon</u>, vous pouvez ignorer cette étape.<br/>
-        #                 <u>Précisions</u> : La couche exportée est une couche figée qui n'est pas rafraîchie à chaque réouverture de QGis, contrairement à la couche PostGIS.<br/>
-        #                 <font style='color:#DF7401'><u>Aide</u> : Cliquez sur le bouton [...] puis sur le type d'export qui vous convient</font>"""
-        #             ),
-        #             QgsProcessing.TypeVectorPolygon,
-        #             optional=True,
-        #             createByDefault=False,
-        #         )
-        #     )
-
         if self._has_source_data_filter:
             source_data_where = QgsProcessingParameterEnum(
                 self.SOURCE_DATA,
@@ -579,7 +546,6 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             extra_where.flags() | QgsProcessingParameterDefinition.FlagAdvanced
         )
         self.addParameter(extra_where)
-        # self.log(message=f"initAlgorithm <{self._name}> end")
 
     def processAlgorithm(  # noqa N802
         self,

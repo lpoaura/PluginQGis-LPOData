@@ -165,7 +165,6 @@ def sql_datetime_filter_builder(
     """
     Construct the sql "where" clause with the datetime filter.
     """
-    # self.log(message='sql_datetime_filter_builder', log_level=4)
     datetime_where = None
     if period_type_filter in ("5 dernières années", "10 dernières années"):
         end_year = int(timestamp.strftime("%Y"))
