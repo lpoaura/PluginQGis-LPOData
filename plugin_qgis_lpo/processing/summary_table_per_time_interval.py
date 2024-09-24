@@ -47,7 +47,6 @@ class SummaryTablePerTimeInterval(BaseProcessingAlgorithm):
             <b style='color:#952132'>Les données d'absence et non valides sont exclues de ce traitement.</b><br/><br/>
             <font style='color:#0a84db'><u>IMPORTANT</u> : Prenez le temps de lire <u>attentivement</U> les instructions pour chaque étape, et particulièrement les</font> <font style ='color:#952132'>informations en rouge</font> <font style='color:#0a84db'>!</font>"""
         self._icon = "table.png"
-        # self._short_description = ""
         self._is_map_layer = False
         self._has_histogram = False
         self._has_time_interval_form = True

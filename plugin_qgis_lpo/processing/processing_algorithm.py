@@ -408,9 +408,11 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             )
             start_date.setMetadata({"widget_wrapper": {"class": DateTimeWidget}})
             self.addParameter(start_date)
+            
             end_date = QgsProcessingParameterString(
                 self.END_DATE,
                 f"Date de fin {optional_text}",
+                defaultValue="",
                 optional=True,
             )
             end_date.setMetadata({"widget_wrapper": {"class": DateTimeWidget}})
@@ -577,6 +579,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             extra_where.flags() | QgsProcessingParameterDefinition.FlagAdvanced
         )
         self.addParameter(extra_where)
+        # self.log(message=f"initAlgorithm <{self._name}> end")
 
     def processAlgorithm(  # noqa N802
         self,
@@ -587,6 +590,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         """
         Here is where the processing itself takes place.
         """
+        self.log(message=f"processAlgorithm <{self._name}> start")
         # PARAMETERS
         # Retrieve the input vector layer = study area
         if feedback is None:
@@ -732,11 +736,11 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             self._time_interval = self._time_interval_variables[
                 self.parameterAsEnum(parameters, self.TIME_INTERVAL, context)
             ]
-            self.log(message=f"time_interval {self._time_interval}", log_level=4)
+            self.log(message=f"time_interval {self._time_interval}")
             self._start_year = self.parameterAsInt(parameters, self.START_YEAR, context)
-            self.log(message=f"start_year {self._start_year}", log_level=4)
+            self.log(message=f"start_year {self._start_year}")
             self._end_year = self.parameterAsInt(parameters, self.END_YEAR, context)
-            self.log(message=f"end_year {self._end_year}", log_level=4)
+            self.log(message=f"end_year {self._end_year}")
             if self._end_year < self._start_year:
                 raise QgsProcessingException(
                     "Veuillez renseigner une année de fin postérieure à l'année de début !"
@@ -744,7 +748,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             taxonomic_rank = self._taxonomic_ranks_labels[
                 self.parameterAsEnum(parameters, self.TAXONOMIC_RANK, context)
             ]
-            self.log(message=f"taxonomic_rank {taxonomic_rank}", log_level=4)
+            self.log(message=f"taxonomic_rank {taxonomic_rank}")
             aggregation_type = "Nombre de données"
             self._group_by_species = (
                 "obs.cd_nom, obs.cd_ref, nom_rang, nom_sci, obs.nom_vern, "
@@ -781,7 +785,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
                 if taxonomic_rank == "Espèces"
                 else select_taxo_groups_info
             )
-            self.log(message=self._taxa_fields, log_level=4)
+            self.log(message=self._taxa_fields)
 
         lr_columns = self._db_variables.value("lr_columns")
         if lr_columns:
@@ -813,7 +817,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             lr_columns_fields="\n, ".join(self._lr_columns_db),
             lr_columns_with_alias="\n, ".join(self._lr_columns_with_alias),
         )
-        self.log(message=query, log_level=4)
+        self.log(message=query)
         geom_field = "geom" if self._is_map_layer else None
         if self._add_table:
             # Define the name of the PostGIS summary table which will be created in the DB
@@ -829,7 +833,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             self._uri.setDataSource("", f"({query})", geom_field, "", self._primary_key)  # type: ignore
 
         self._layer = QgsVectorLayer(self._uri.uri(), self._format_name, "postgres")
-        self.log(message=f"features count {self._layer.featureCount()}", log_level=4)
+        self.log(message=f"features count {self._layer.featureCount()}")
 
         if self._layer.featureCount() == 0:
             raise QgsProcessingException(f"Couche de résultat vide")
