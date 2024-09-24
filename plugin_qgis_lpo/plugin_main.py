@@ -241,6 +241,16 @@ class QgisLpoPlugin:
         try:
             self.main_menu.clear()
             self.main_menu.setHidden(True)
+            menu_bar = self.main_menu.parent()
+            menu_to_remove = __title__
+            for index in range(menu_bar.actions().__len__()):
+                menu = menu_bar.actions()[index].menu()
+                if menu and menu.title() == menu_to_remove:
+                    menu_bar.removeAction(menu_bar.actions()[index])
+                    print(f"Removed menu: {menu_to_remove}")
+                    break
+            else:
+                self.log(message=f"Menu '{menu_to_remove}' not found.", log_level=4)
             del self.main_menu
         except IndexError:
             pass
