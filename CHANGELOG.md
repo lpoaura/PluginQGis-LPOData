@@ -6,7 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 <!-- ## Unreleased [{version_tag}](https://github.com/opengisch/qgis-plugin-ci/releases/tag/{version_tag}) - YYYY-MM-DD -->
 
+## 3.3.5 - 2024-09-25
+
+* Time interval script (fix #145 from PR #147) is now fixed and usable as expected
+
+## 3.3.4 - 2024-09-24
+
+* Plugin menu is now correctly removed from bar when plugin is uninstalled or reloaded
+
 ## 3.3.3 - 2024-08-26
+
 * update documentation
 
 ## 3.3.2 - 2024-08-26

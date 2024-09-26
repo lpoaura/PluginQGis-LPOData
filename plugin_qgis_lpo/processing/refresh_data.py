@@ -59,18 +59,17 @@ class RefreshData(BaseProcessingAlgorithm):
 
         # self._ts = datetime.now()
         # self._db_variables = QgsSettings()
-        self.addParameter(
-            QgsProcessingParameterProviderConnection(
-                self.DATABASE,
-                self.tr(
-                    f"""<b style="color:#0a84db">BASE DE DONNÉES</b> {required_text} :
+        database = QgsProcessingParameterProviderConnection(
+            self.DATABASE,
+            self.tr(
+                f"""<b style="color:#0a84db">BASE DE DONNÉES</b> {required_text} :
                     sélectionnez votre <u>connexion</u> à la base de données LPO"""
-                ),
-                "postgres",
-                defaultValue="geonature_lpo",
-                optional=False,
-            )
+            ),
+            "postgres",
+            defaultValue="geonature_lpo",
+            optional=False,
         )
+        self.addParameter(database)
 
     def processAlgorithm(
         self,
