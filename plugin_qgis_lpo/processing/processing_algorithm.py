@@ -77,10 +77,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
     TIME_INTERVAL = "TIME_INTERVAL"
     ADD_FIVE_YEARS = "ADD_FIVE_YEARS"
     TEST = "TEST"
-    START_MONTH = "START_MONTH"
-    START_YEAR = "START_YEAR"
-    END_MONTH = "END_MONTH"
-    END_YEAR = "END_YEAR"
+    MONTHES = "MONTHES"
     EXTRA_WHERE = "EXTRA_WHERE"
     OUTPUT = "OUTPUT"
     OUTPUT_NAME = "OUTPUT_NAME"
@@ -194,8 +191,6 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         self._lr_columns_db: List[str] = ["lr_r"]
         self._lr_columns_with_alias: List[str] = ['lr_r as "LR Régionale"']
         self._time_interval: str
-        self._start_year: int
-        self._end_year: int
 
     def tr(self, string: str) -> str:
         """QgsProcessingAlgorithm translatable string with the self.tr() function."""
@@ -263,30 +258,28 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         optional_text = "(facultatif)"
         # self._ts = datetime.now()
         # self._db_variables = QgsSettings()
-        self.addParameter(
-            QgsProcessingParameterProviderConnection(
-                self.DATABASE,
-                self.tr(
-                    f"""<b style="color:#0a84db">BASE DE DONNÉES</b> {required_text} :
+        database = QgsProcessingParameterProviderConnection(
+            self.DATABASE,
+            self.tr(
+                f"""<b style="color:#0a84db">BASE DE DONNÉES</b> {required_text} :
                     sélectionnez votre <u>connexion</u> à la base de données LPO"""
-                ),
-                "postgres",
-                defaultValue="geonature_lpo",
-                optional=False,
-            )
+            ),
+            "postgres",
+            defaultValue="geonature_lpo",
+            optional=False,
         )
+        self.addParameter(database)
         # Input vector layer = study area
-        self.addParameter(
-            QgsProcessingParameterFeatureSource(
-                self.STUDY_AREA,
-                self.tr(
-                    f"""<b style="color:#0a84db">ZONE D'ÉTUDE</b> {required_text} :
+        study_area = QgsProcessingParameterFeatureSource(
+            self.STUDY_AREA,
+            self.tr(
+                f"""<b style="color:#0a84db">ZONE D'ÉTUDE</b> {required_text} :
                     sélectionnez votre <u>zone d'étude</u>,
                     à partir de laquelle seront extraits les résultats"""
-                ),
-                [QgsProcessing.TypeVectorPolygon],
-            )
+            ),
+            [QgsProcessing.TypeVectorPolygon],
         )
+        self.addParameter(study_area)
 
         if self._has_taxonomic_rank_form and self._taxonomic_ranks:
             self._taxonomic_ranks_labels = [
@@ -317,6 +310,48 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             )
             self.addParameter(taxonomic_rank)
 
+        period_type = QgsProcessingParameterEnum(
+            self.PERIOD,
+            self.tr(
+                f"""<b style="color:#0a84db">PÉRIODE</b> {required_text} :
+                    sélectionnez une <u>période</u> pour filtrer vos données
+                    d'observations"""
+            ),
+            self._period_variables,
+            allowMultiple=False,
+            optional=True,
+        )
+        period_type.setMetadata(
+            {
+                "widget_wrapper": {
+                    "useCheckBoxes": True,
+                    "columns": len(self._period_variables) / 2,
+                }
+            }
+        )
+        # period_type.setFlags(period_type.flags() | QgsProcessingParameterDefinition.FlagHidden)
+        self.addParameter(period_type)
+
+        start_date = QgsProcessingParameterString(
+            self.START_DATE,
+            f"Date de début {optional_text}",
+            defaultValue="",
+            optional=True,
+        )
+        start_date.setMetadata({"widget_wrapper": {"class": DateTimeWidget}})
+        # start_date.setFlags(start_date.flags() | QgsProcessingParameterDefinition.FlagHidden)
+        self.addParameter(start_date)
+
+        end_date = QgsProcessingParameterString(
+            self.END_DATE,
+            f"Date de fin {optional_text}",
+            defaultValue="",
+            optional=True,
+        )
+        end_date.setMetadata({"widget_wrapper": {"class": DateTimeWidget}})
+        # end_date.setFlags(end_date.flags() | QgsProcessingParameterDefinition.FlagHidden)
+        self.addParameter(end_date)
+
         if self._has_time_interval_form:
             # ## Time interval and period ###
             time_interval = QgsProcessingParameterEnum(
@@ -337,86 +372,16 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             )
             self.addParameter(time_interval)
 
-            self.addParameter(
-                QgsProcessingParameterEnum(
-                    self.START_MONTH,
-                    self.tr("Mois de début"),
-                    self._months_names_variables,
-                    allowMultiple=False,
-                    optional=True,
-                )
-            )
-
-            self.addParameter(
-                QgsProcessingParameterNumber(
-                    self.START_YEAR,
-                    self.tr("Année de début"),
-                    QgsProcessingParameterNumber.Integer,
-                    defaultValue=2010,
-                    minValue=1800,
-                    maxValue=int(self._ts.strftime("%Y")),
-                )
-            )
-
-            self.addParameter(
-                QgsProcessingParameterEnum(
-                    self.END_MONTH,
-                    self.tr("Mois de fin"),
-                    self._months_names_variables,
-                    allowMultiple=False,
-                    optional=True,
-                )
-            )
-
-            self.addParameter(
-                QgsProcessingParameterNumber(
-                    self.END_YEAR,
-                    self.tr("Année de fin"),
-                    QgsProcessingParameterNumber.Integer,
-                    defaultValue=self._ts.strftime("%Y"),
-                    minValue=1800,
-                    maxValue=int(self._ts.strftime("%Y")),
-                )
-            )
-        else:
-            period_type = QgsProcessingParameterEnum(
-                self.PERIOD,
-                self.tr(
-                    f"""<b style="color:#0a84db">PÉRIODE</b> {required_text} :
-                    sélectionnez une <u>période</u> pour filtrer vos données
-                    d'observations"""
-                ),
-                self._period_variables,
-                allowMultiple=False,
-                optional=False,
-            )
-            period_type.setMetadata(
-                {
-                    "widget_wrapper": {
-                        "useCheckBoxes": True,
-                        "columns": len(self._period_variables) / 2,
-                    }
-                }
-            )
-            self.addParameter(period_type)
-
-            start_date = QgsProcessingParameterString(
-                self.START_DATE,
-                f"Date de début {optional_text}",
-                defaultValue="",
+            monthes = QgsProcessingParameterEnum(
+                self.MONTHES,
+                self.tr("Mois de début"),
+                self._months_names_variables,
+                allowMultiple=True,
                 optional=True,
+                defaultValue=[v for v in range(12)]
             )
-            start_date.setMetadata({"widget_wrapper": {"class": DateTimeWidget}})
-            self.addParameter(start_date)
-            
-            end_date = QgsProcessingParameterString(
-                self.END_DATE,
-                f"Date de fin {optional_text}",
-                defaultValue="",
-                optional=True,
-            )
-            end_date.setMetadata({"widget_wrapper": {"class": DateTimeWidget}})
-            self.addParameter(end_date)
+            self.addParameter(monthes)
+
 
         if self._return_geo_agg:
             areas_types = QgsProcessingParameterEnum(
@@ -435,18 +400,17 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             self.addParameter(areas_types)
 
         # ## Taxons filters ##
-        self.addParameter(
-            QgsProcessingParameterEnum(
-                self.GROUPE_TAXO,
-                self.tr(
-                    f"""<b style="color:#0a84db">TAXONS</b> {optional_text} :
+        taxon_filter = QgsProcessingParameterEnum(
+            self.GROUPE_TAXO,
+            self.tr(
+                f"""<b style="color:#0a84db">TAXONS</b> {optional_text} :
                     filtrer les données par groupes taxonomiques"""
-                ),
-                self._db_variables.value("groupe_taxo"),
-                allowMultiple=True,
-                optional=True,
-            )
+            ),
+            self._db_variables.value("groupe_taxo"),
+            allowMultiple=True,
+            optional=True,
         )
+        self.addParameter(taxon_filter)
 
         if self._has_histogram:
             histogram_options = QgsProcessingParameterEnum(
@@ -479,28 +443,26 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             )
             self.addParameter(output_histogram)
 
-        self.addParameter(
-            QgsProcessingParameterString(
-                self.OUTPUT_NAME,
-                self.tr(
-                    f"""<b style="color:#0a84db">PARAMÉTRAGE DES RESULTATS EN SORTIE</b>
+        output_name = QgsProcessingParameterString(
+            self.OUTPUT_NAME,
+            self.tr(
+                f"""<b style="color:#0a84db">PARAMÉTRAGE DES RESULTATS EN SORTIE</b>
                     {optional_text} : personnalisez le nom de votre couche
                     en base de données"""
-                ),
-                self.tr(self._output_name),
-            )
+            ),
+            self.tr(self._output_name),
         )
+        self.addParameter(output_name)
 
         # Boolean : True = add the summary table in the DB ; False = don't
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.ADD_TABLE,
-                self.tr(
-                    "Enregistrer les résultats en sortie dans une nouvelle table en base de données"
-                ),
-                False,
-            )
+        add_table = QgsProcessingParameterBoolean(
+            self.ADD_TABLE,
+            self.tr(
+                "Enregistrer les résultats en sortie dans une nouvelle table en base de données"
+            ),
+            False,
         )
+        self.addParameter(add_table)
 
         if self._has_source_data_filter:
             source_data_where = QgsProcessingParameterEnum(
@@ -546,6 +508,9 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             extra_where.flags() | QgsProcessingParameterDefinition.FlagAdvanced
         )
         self.addParameter(extra_where)
+        self.log(
+            message=f"initAlgorithm {self._name} SD{self.START_DATE} ED{self.END_DATE} end"
+        )
 
     def processAlgorithm(  # noqa N802
         self,
@@ -703,14 +668,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
                 self.parameterAsEnum(parameters, self.TIME_INTERVAL, context)
             ]
             self.log(message=f"time_interval {self._time_interval}")
-            self._start_year = self.parameterAsInt(parameters, self.START_YEAR, context)
-            self.log(message=f"start_year {self._start_year}")
-            self._end_year = self.parameterAsInt(parameters, self.END_YEAR, context)
-            self.log(message=f"end_year {self._end_year}")
-            if self._end_year < self._start_year:
-                raise QgsProcessingException(
-                    "Veuillez renseigner une année de fin postérieure à l'année de début !"
-                )
+            self._monthes = self.parameterAsEnum(parameters, self.MONTHES, context)
             taxonomic_rank = self._taxonomic_ranks_labels[
                 self.parameterAsEnum(parameters, self.TAXONOMIC_RANK, context)
             ]
@@ -726,9 +684,8 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
                 self._x_var,
             ) = sql_timeinterval_cols_builder(
                 self,
+                self._period_type,
                 self._time_interval,
-                self._start_year,
-                self._end_year,
                 aggregation_type,
                 parameters,
                 context,

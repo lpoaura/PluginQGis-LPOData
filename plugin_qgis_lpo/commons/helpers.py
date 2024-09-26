@@ -193,9 +193,8 @@ def sql_datetime_filter_builder(
 
 def sql_timeinterval_cols_builder(  # noqa C901
     self: QgsProcessingAlgorithm,
-    time_interval_param,
-    start_year_param: int,
-    end_year_param: int,
+    period_type_filter: str,
+    time_interval_param: str,
     aggregation_type_param: str,
     parameters: Dict,
     context: QgsProcessingContext,
@@ -210,41 +209,41 @@ def sql_timeinterval_cols_builder(  # noqa C901
         "*" if aggregation_type_param == "Nombre de données" else "DISTINCT t.cd_ref"
     )
     if time_interval_param == "Par année":
-        add_five_years = self.parameterAsEnums(
-            parameters, self.ADD_FIVE_YEARS, context  # type: ignore
-        )
-        if len(add_five_years) > 0:
-            if (end_year_param - start_year_param + 1) % 5 != 0:
+        timestamp = datetime.now()
+        if period_type_filter in ("5 dernières années", "10 dernières années", "Pas de filtre temporel"):
+            end_year = int(timestamp.strftime("%Y"))
+            period = period_type_filter.split()[0] 
+            start_year = end_year - int(period if period.isdigit() else 10)
+            years = [str(year) for year in range(start_year,end_year)]
+
+        elif period_type_filter == "Cette année":
+            end_year = int(timestamp.strftime("%Y"))
+            start_year = end_year
+            years = [timestamp.strftime("%Y"),]
+
+        elif period_type_filter == "Date de début - Date de fin (à définir ci-dessous)":
+            # Retrieve the start and end dates
+            start_date = datetime.fromisoformat(self.parameterAsString(parameters, self.START_DATE, context))
+            end_date = datetime.fromisoformat(self.parameterAsString(parameters, self.END_DATE, context))
+            
+            if end_date < start_date:
                 raise QgsProcessingException(
-                    "Veuillez renseigner une période en année qui soit "
-                    "divisible par 5 ! Exemple : 2011 - 2020."
+                    "Veuillez renseigner une date de fin postérieure ou égale à la date de début !"
                 )
             else:
-                counter = start_year_param
-                step_limit = start_year_param
-                while counter <= end_year_param:
-                    select_data.append(
-                        f"""COUNT({count_param}) filter (WHERE date_an={counter}) AS \"{counter}\" """
-                    )
-                    x_var.append(str(counter))
-                    if counter == step_limit + 4:
-                        select_data.append(
-                            f"""COUNT({count_param}) filter (WHERE date_an>={counter-4} and date_an<={counter}) AS \"{counter-4} - {counter}\" """
-                        )
-                        step_limit += 5
-                    counter += 1
-        else:
-            for year in range(start_year_param, end_year_param + 1):
+                end_year = int(end_date.strftime("%Y"))
+                start_year = int(start_date.strftime("%Y"))
+                years = [str(year) for year in range(start_year,end_year)]
+
+        for year in years:
                 select_data.append(
                     f"""COUNT({count_param}) filter (WHERE date_an={year}) AS \"{year}\""""
                 )
                 x_var.append(str(year))
-        select_data.append(
-            f"""COUNT({count_param}) filter (WHERE date_an>={start_year_param} and date_an<={end_year_param}) AS \"TOTAL\""""
-        )
+
     else:
-        start_month = self.parameterAsEnum(parameters, self.START_MONTH, context)
-        end_month = self.parameterAsEnum(parameters, self.END_MONTH, context)
+        monthes = self.parameterAsEnums(parameters, self.MONTHES, context)
+        self.log(message=f'MONTHES {monthes}')
         months_numbers_variables = [
             "01",
             "02",
@@ -259,60 +258,17 @@ def sql_timeinterval_cols_builder(  # noqa C901
             "11",
             "12",
         ]
-        if start_year_param == end_year_param:
-            if end_month < start_month:
-                raise QgsProcessingException(
-                    "Veuillez renseigner un mois de fin postérieur ou égal au mois de début !"
+        for month in monthes:
+            select_data.append(
+                f"""COUNT({count_param}) filter (WHERE extract(month from date)={month+1}) AS \"{self._months_names_variables[month]}\""""
                 )
-            else:
-                for month in range(start_month, end_month + 1):
-                    select_data.append(
-                        f"""COUNT({count_param}) filter (WHERE to_char(date, 'YYYY-MM')='{start_year_param}-{months_numbers_variables[month]}') AS \"{self._months_names_variables[month]} {start_year_param}\""""
-                    )
-                    x_var.append(
-                        self._months_names_variables[month]  # type: ignore
-                        + " "
-                        + str(start_year_param)
-                    )
-        elif end_year_param == start_year_param + 1:
-            for month in range(start_month, 12):
-                select_data.append(
-                    f"""COUNT({count_param}) filter (WHERE to_char(date, 'YYYY-MM')='{start_year_param}-{months_numbers_variables[month]}') AS \"{self._months_names_variables[month]} {start_year_param}\""""
-                )
-                x_var.append(
-                    self._months_names_variables[month] + " " + str(start_year_param)  # type: ignore
-                )
-            for month in range(0, end_month + 1):
-                select_data.append(
-                    f"""COUNT({count_param}) filter (WHERE to_char(date, 'YYYY-MM')='{end_year_param}-{months_numbers_variables[month]}') AS \"{self._months_names_variables[month]} {end_year_param}\""""
-                )
-                x_var.append(
-                    self._months_names_variables[month] + " " + str(end_year_param)
-                )
-        else:
-            for month in range(start_month, 12):
-                select_data.append(
-                    f"""COUNT({count_param}) filter (WHERE to_char(date, 'YYYY-MM')='{start_year_param}-{months_numbers_variables[month]}') AS \"{self._months_names_variables[month]} {start_year_param}\""""
-                )
-                x_var.append(
-                    self._months_names_variables[month] + " " + str(start_year_param)
-                )
-            for year in range(start_year_param + 1, end_year_param):
-                for month in range(0, 12):
-                    select_data.append(
-                        f"""COUNT({count_param}) filter (WHERE to_char(date, 'YYYY-MM')='{year}-{months_numbers_variables[month]}') AS \"{self._months_names_variables[month]} {year}\""""
-                    )
-                    x_var.append(self._months_names_variables[month] + " " + str(year))
-            for month in range(0, end_month + 1):
-                select_data.append(
-                    f"""COUNT({count_param}) filter (WHERE to_char(date, 'YYYY-MM')='{end_year_param}-{months_numbers_variables[month]}') AS \"{self._months_names_variables[month]} {end_year_param}\""""
-                )
-                x_var.append(
-                    self._months_names_variables[month] + " " + str(end_year_param)
-                )
-        select_data.append(
-            f"""COUNT({count_param}) filter (WHERE to_char(date, 'YYYY-MM')>='{start_year_param}-{months_numbers_variables[start_month]}' and to_char(date, 'YYYY-MM')<='{end_year_param}-{months_numbers_variables[end_month]}') AS \"TOTAL\""""
-        )
+            x_var.append(
+                self._months_names_variables[month]  # type: ignore
+            )
+    # Adding total count
+    select_data.append(
+        f"""COUNT({count_param}) AS \"TOTAL\""""
+    )
     final_select_data = ", ".join(select_data)
     feedback.pushDebugInfo(final_select_data)
     return final_select_data, x_var
