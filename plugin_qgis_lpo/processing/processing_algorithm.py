@@ -374,7 +374,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
 
             monthes = QgsProcessingParameterEnum(
                 self.MONTHES,
-                self.tr("Mois de début"),
+                self.tr("Sélection des mois"),
                 self._months_names_variables,
                 allowMultiple=True,
                 optional=True,
