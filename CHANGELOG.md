@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 <!-- ## Unreleased [{version_tag}](https://github.com/opengisch/qgis-plugin-ci/releases/tag/{version_tag}) - YYYY-MM-DD -->
 
+## 3.3.6 - 2024-09-30
+
+* Refactor query area generator (fix #148 from PR #149).
+
 ## 3.3.5 - 2024-09-25
 
 * Time interval script (fix #145 from PR #147) is now fixed and usable as expected
