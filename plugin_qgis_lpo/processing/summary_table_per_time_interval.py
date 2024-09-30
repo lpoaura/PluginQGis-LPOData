@@ -67,7 +67,7 @@ class SummaryTablePerTimeInterval(BaseProcessingAlgorithm):
             FROM src_lpodatas.v_c_observations_light obs
             LEFT JOIN taxonomie.bib_taxref_rangs r ON obs.id_rang = r.id_rang
             WHERE
-                st_intersects(obs.geom, st_union({array_polygons}))
+                st_intersects(obs.geom, {query_area})
                 and {where_filters}
             GROUP BY {group_by_species}groupe_taxo
             ORDER BY groupe_taxo"""

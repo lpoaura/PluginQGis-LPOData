@@ -66,7 +66,7 @@ class SummaryMap(BaseProcessingAlgorithm):
 WITH prep AS (SELECT la.id_area, ((st_area(la.geom))::DECIMAL / 1000000) area_surface
               FROM ref_geo.l_areas la
               WHERE la.id_type = ref_geo.get_id_area_type('{areas_type}')
-                AND ST_intersects(la.geom, ST_union({array_polygons}))
+                AND ST_intersects(la.geom, {query_area})
                   ),
      data AS (SELECT
         row_number() OVER ()   AS id,
