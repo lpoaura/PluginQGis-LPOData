@@ -32,8 +32,6 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QVariant
 
 
-feedback = QgsProcessingFeedback()
-
 def simplify_name(string: str) -> str:
     """
     Simplify a layer name written by the user.
