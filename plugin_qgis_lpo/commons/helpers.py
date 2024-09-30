@@ -64,12 +64,12 @@ def check_layer_is_valid(feedback: QgsProcessingFeedback, layer: QgsVectorLayer)
     return None
 
 
-def sql_array_polygons_builder(layer: QgsVectorLayer):
+def sql_query_area_builder(feedback: QgsProcessingFeedback, layer: QgsVectorLayer):
     """
     Construct the sql array containing the input vector layer's features geometry.
     """
     # Initialization of the sql array containing the study area's features geometry
-    array_polygons = "array["
+    array_polygons = []
     # Retrieve the CRS of the layer
     crs = layer.sourceCrs().authid()
     if crs.split(":")[0] != "EPSG":
@@ -85,20 +85,25 @@ NB : 'EPSG:2154' pour Lambert 93 !"""
     for feature in layer.getFeatures():
         # Retrieve the geometry
         area = feature.geometry()  # QgsGeometry object
+        feedback.pushDebugInfo(f'area {area}')
         # Retrieve the geometry type (single or multiple)
         geom_single_type = QgsWkbTypes.isSingleType(area.wkbType())
+        feedback.pushDebugInfo(f'geom_single_type {geom_single_type}')
         # Increment the sql array
         if geom_single_type:
-            array_polygons += (
-                f"ST_transform(ST_PolygonFromText('{area.asWkt()}', {crs}), 2154), "
+            array_polygons.append(
+                f"ST_transform(ST_PolygonFromText('{area.asWkt()}', {crs}), 2154)"
             )
         else:
-            array_polygons += (
-                f"ST_transform(ST_MPolyFromText('{area.asWkt()}', {crs}), 2154), "
+            array_polygons.append(
+                f"ST_transform(ST_MPolyFromText('{area.asWkt()}', {crs}), 2154)"
             )
     # Remove the last "," in the sql array which is useless, and end the array
-    array_polygons = array_polygons[: len(array_polygons) - 2] + "]"
-    return array_polygons
+    if len(array_polygons) > 1 :
+        geom_list = ",".join(array_polygons)
+        return f'(select st_union(st_collect(ARRAY[{geom_list}])) as geom)'
+        
+    return f'(select st_union({array_polygons[0]}) as geom)'
 
 
 def sql_queries_list_builder(

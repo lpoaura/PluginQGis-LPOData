@@ -60,7 +60,7 @@ class StateOfKnowledge(BaseProcessingAlgorithm):
         self._query = """WITH obs AS (
             SELECT obs.*
             FROM src_lpodatas.v_c_observations_light obs
-            WHERE {where_filters} and st_intersects(obs.geom, st_union({array_polygons}))),
+            WHERE {where_filters} and st_intersects(obs.geom, {query_area})),
         communes AS (
             SELECT DISTINCT obs.id_synthese, la.area_name
             FROM obs

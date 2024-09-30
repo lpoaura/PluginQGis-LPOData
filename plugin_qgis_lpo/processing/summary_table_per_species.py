@@ -82,7 +82,7 @@ class SummaryTablePerSpecies(BaseProcessingAlgorithm):
         /* selection des cd_nom */
         SELECT observations.*
         FROM src_lpodatas.v_c_observations_light observations
-        WHERE ST_intersects(observations.geom, ST_union({array_polygons}))
+        WHERE ST_intersects(observations.geom, {query_area})
         and {where_filters}),
     communes AS (
         /* selection des communes */

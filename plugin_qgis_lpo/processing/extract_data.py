@@ -51,7 +51,7 @@ class ExtractData(BaseProcessingAlgorithm):
         self._query = """SELECT obs.*
         FROM src_lpodatas.v_c_observations obs
         LEFT JOIN taxonomie.taxref t ON obs.cd_nom = t.cd_nom
-        WHERE st_intersects(obs.geom, st_union({array_polygons})) AND {where_filters}"""
+        WHERE st_intersects(obs.geom, {query_area}) AND {where_filters}"""
         self._is_data_extraction = True
 
     # def createInstance(self):  # noqa N802

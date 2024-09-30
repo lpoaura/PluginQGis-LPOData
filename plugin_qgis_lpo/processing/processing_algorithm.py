@@ -37,7 +37,7 @@ from ..commons.helpers import (
     format_layer_export,
     load_layer,
     simplify_name,
-    sql_array_polygons_builder,
+    sql_query_area_builder,
     sql_datetime_filter_builder,
     sql_geom_type_filter_builder,
     sql_queries_list_builder,
@@ -172,7 +172,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         self._format_name: str = "output"
         self._areas_type: str
         self._ts = datetime.now()
-        self._array_polygons = None
+        self._query_area = None
         self._taxons_filters: Dict[str, List[str]] = {}
         self._is_data_extraction: bool = False
         self._filters: List[str] = []
@@ -378,10 +378,9 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
                 self._months_names_variables,
                 allowMultiple=True,
                 optional=True,
-                defaultValue=[v for v in range(12)]
+                defaultValue=[v for v in range(12)],
             )
             self.addParameter(monthes)
-
 
         if self._return_geo_agg:
             areas_types = QgsProcessingParameterEnum(
@@ -617,10 +616,13 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         # WHERE clauses builder
         # TODO: Manage use case
         # self._filters.append(
-        #     f"ST_Intersects(la.geom, ST_union({sql_array_polygons_builder(self._study_area)})"
+        #     f"ST_Intersects(la.geom, ST_union({sql_query_area_builder(self._study_area)})"
         # )
         if self._study_area:
-            self._array_polygons = sql_array_polygons_builder(self._study_area)
+            self._query_area = sql_query_area_builder(
+                feedback=feedback, layer=self._study_area
+            )
+            feedback.pushDebugInfo(f"_query_area {self._query_area}")
         if not self._is_data_extraction:
             self._filters += ["is_present", "is_valid"]
         taxon_filters = sql_taxons_filter_builder(self._taxons_filters)
@@ -730,7 +732,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         self._uri = uri_from_name(self._connection)
         query = self._query.format(
             areas_type=self._areas_type,
-            array_polygons=self._array_polygons,
+            query_area=self._query_area,
             where_filters=" AND ".join(self._filters),
             taxonomic_rank_label=self._taxonomic_rank_label,
             taxonomic_rank_db=self._taxonomic_rank_db,
