@@ -191,7 +191,7 @@ def sql_datetime_filter_builder(
             )
         else:
             datetime_where = (
-                f"(date >= '{start_date}'::date and date <= '{end_date}'::date)"
+                f"(date_jour >= '{start_date}'::date and date_jour <= '{end_date}'::date)"
             )
     return datetime_where
 
