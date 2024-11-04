@@ -7,7 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 <!-- ## Unreleased [{version_tag}](https://github.com/opengisch/qgis-plugin-ci/releases/tag/{version_tag}) - YYYY-MM-DD -->
 
 
-## 3.3.7 - 2024-1x-xx
+## 3.3.7 - 2024-11-04
 
 * Fix missing data when extracting from a specific date (start_date = end_date) (fix #150).
 
