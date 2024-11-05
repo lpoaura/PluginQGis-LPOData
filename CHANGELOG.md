@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 <!-- ## Unreleased [{version_tag}](https://github.com/opengisch/qgis-plugin-ci/releases/tag/{version_tag}) - YYYY-MM-DD -->
 
+## 3.3.8 - 2024-11-05
+
+* Condition attribute table display on layers containing less than 1000 data.
 
 ## 3.3.7 - 2024-11-04
 
