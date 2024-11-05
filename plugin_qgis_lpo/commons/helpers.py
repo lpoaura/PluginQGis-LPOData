@@ -174,9 +174,7 @@ def sql_datetime_filter_builder(
     if period_type_filter in ("5 dernières années", "10 dernières années"):
         end_year = int(timestamp.strftime("%Y"))
         start_year = end_year - int(period_type_filter.split()[0])
-        datetime_where = f"""
-            (date_an > {str(start_year)} and date_an <= {str(end_year)})
-            """
+        datetime_where = f"(date_an > {str(start_year)} and date_an <= {str(end_year)})"
 
     elif period_type_filter == "Cette année":
         year = int(timestamp.strftime("%Y"))

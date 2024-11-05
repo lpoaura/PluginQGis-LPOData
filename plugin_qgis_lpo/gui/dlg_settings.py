@@ -16,9 +16,6 @@ import processing
 from qgis.core import (
     Qgis,
     QgsApplication,
-    QgsProcessingException,
-    QgsProviderConnectionException,
-    QgsProviderRegistry,
 )
 from qgis.gui import QgsOptionsPageWidget, QgsOptionsWidgetFactory
 from qgis.PyQt import uic

@@ -119,6 +119,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         self._add_table: bool
         self._layer_name: str
         self._layer: QgsVectorLayer
+        self._layer_features_count: int = 0
         self._areas_variables: List[str] = [
             "Mailles 0.5*0.5",
             "Mailles 1*1",
@@ -633,6 +634,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         time_filter = sql_datetime_filter_builder(
             self, self._period_type, self._ts, parameters, context
         )
+        feedback.pushDebugInfo(f"time_filter {time_filter}")
         if time_filter:
             self._filters.append(time_filter)
         # Complete the "where" filter with the extra conditions
@@ -743,6 +745,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             lr_columns_with_alias="\n, ".join(self._lr_columns_with_alias),
         )
         self.log(message=query)
+        feedback.pushDebugInfo(f"query: {query}")
         geom_field = "geom" if self._is_map_layer else None
         if self._add_table:
             # Define the name of the PostGIS summary table which will be created in the DB
@@ -759,8 +762,9 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
 
         self._layer = QgsVectorLayer(self._uri.uri(), self._format_name, "postgres")
         self.log(message=f"features count {self._layer.featureCount()}")
-
-        if self._layer.featureCount() == 0:
+        feedback.pushDebugInfo(f"features count {self._layer.featureCount()}")
+        self._layer_features_count = self._layer.featureCount()
+        if self._layer_features_count == 0:
             raise QgsProcessingException(f"Couche de résultat vide")
         check_layer_is_valid(feedback, self._layer)
 
@@ -843,8 +847,9 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             return {self.OUTPUT: self._layer.id()}
 
     def postProcessAlgorithm(self, _context, _feedback) -> Dict:  # noqa N802
-        # Open the attribute table of the PostGIS layer
-        iface.showAttributeTable(self._layer)
+        # Open the attribute table of the PostGIS layer if there are less than 1000 features
+        if self._layer_features_count <= 1000:
+            iface.showAttributeTable(self._layer)
         iface.setActiveLayer(self._layer)
 
         return {}

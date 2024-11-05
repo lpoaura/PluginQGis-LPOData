@@ -167,7 +167,6 @@ class QgisLpoPlugin:
                 "Attention",
                 "La carte par espèces est accessible via la barre d'outils d'Extensions",
             )
-
         self.populateSettings()
 
     def populateSettings(self):
