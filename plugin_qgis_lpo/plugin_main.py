@@ -289,7 +289,11 @@ class QgisLpoPlugin:
             "group2_inpn",
             "source_data",
             "lr_columns",
+            "exclude_export_sinp",
         ]
         for variable in variables:
             if not dbVariables.value(variable):
-                dbVariables.setValue(variable, set())
+                if variable == "exclude_export_sinp":
+                    dbVariables.setValue(variable, 'false')
+                else: 
+                    dbVariables.setValue(variable, set())

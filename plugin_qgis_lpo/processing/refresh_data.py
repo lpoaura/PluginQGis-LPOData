@@ -114,6 +114,12 @@ class RefreshData(BaseProcessingAlgorithm):
         from gn_commons.t_parameters
         where parameter_name like 'plugin_qgis_lpo_lr_columns'"""
 
+        queries[
+            "exclude_export_sinp"
+        ] = """SELECT 1 as id, parameter_value as exclude_export_sinp
+        from gn_commons.t_parameters
+        where parameter_name like 'plugin_qgis_lpo_exclude_export_sinp'"""
+
         for key, query in queries.items():
             self.populate_settings(key, query, feedback=feedback)
         self.log(
@@ -149,6 +155,17 @@ class RefreshData(BaseProcessingAlgorithm):
             query_output = feature[1]
 
         if query_output:
+            if setting == "exclude_export_sinp":
+                query_output = (
+                    "true"
+                    if query_output.lower() in ["true", "1", "t", "y", "yes"]
+                    else "false"
+                )
+                self.log(
+                    message=f"exclude_export_sinp {query_output} {type(query_output)}",
+                    log_level=2,
+                    push=False,
+                )
             self._db_variables.setValue(setting, query_output)
 
         self.log(

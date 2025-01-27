@@ -64,7 +64,7 @@ def check_layer_is_valid(feedback: QgsProcessingFeedback, layer: QgsVectorLayer)
     return None
 
 
-def sql_query_area_builder(feedback: QgsProcessingFeedback, layer: QgsVectorLayer):
+def sql_query_area_builder(feedback: QgsProcessingFeedback, layer: QgsVectorLayer,layer_crs: str = "2154" ):
     """
     Construct the sql array containing the input vector layer's features geometry.
     """
@@ -92,11 +92,11 @@ NB : 'EPSG:2154' pour Lambert 93 !"""
         # Increment the sql array
         if geom_single_type:
             array_polygons.append(
-                f"ST_transform(ST_PolygonFromText('{area.asWkt()}', {crs}), 2154)"
+                f"ST_transform(ST_PolygonFromText('{area.asWkt()}', {crs}), {layer_crs})"
             )
         else:
             array_polygons.append(
-                f"ST_transform(ST_MPolyFromText('{area.asWkt()}', {crs}), 2154)"
+                f"ST_transform(ST_MPolyFromText('{area.asWkt()}', {crs}), {layer_crs})"
             )
     # Remove the last "," in the sql array which is useless, and end the array
     if len(array_polygons) > 1 :
