@@ -17,6 +17,7 @@ from qgis.PyQt.QtWidgets import QAction, QMenu
 from plugin_qgis_lpo.__about__ import __title__
 from plugin_qgis_lpo.processing.provider import (
     ExtractData,
+    ExtractSinpData,
     ExtractDataObservers,
     RefreshData,
     StateOfKnowledge,
@@ -60,6 +61,10 @@ class MenuTools(QMenu):
             icon=QIcon(ExtractDataObservers().icon()),
             text=ExtractDataObservers().displayName(),
         )
+        self.act_extract_sinp_data = QAction(
+            icon=QIcon(ExtractData().icon()),
+            text=ExtractSinpData().displayName(),
+        )
         self.act_state_of_knowledge = QAction(
             icon=QIcon(StateOfKnowledge().icon()),
             text=StateOfKnowledge().displayName(),
@@ -90,6 +95,11 @@ class MenuTools(QMenu):
         self.act_extract_data_observers.triggered.connect(
             lambda: processing.createAlgorithmDialog(
                 f"plugin_qgis_lpo:{ExtractDataObservers().name()}"
+            ).show()
+        )
+        self.act_extract_sinp_data.triggered.connect(
+            lambda: processing.createAlgorithmDialog(
+                f"plugin_qgis_lpo:{ExtractSinpData().name()}"
             ).show()
         )
         self.act_state_of_knowledge.triggered.connect(
@@ -126,6 +136,7 @@ class MenuTools(QMenu):
         self.addSeparator()
         self.addAction(self.act_extract_data)
         self.addAction(self.act_extract_data_observers)
+        self.addAction(self.act_extract_sinp_data)
         self.addSeparator()
         self.addAction(self.act_summary_per_species)
         self.addAction(self.act_summary_per_time_interval)

@@ -64,7 +64,9 @@ def check_layer_is_valid(feedback: QgsProcessingFeedback, layer: QgsVectorLayer)
     return None
 
 
-def sql_query_area_builder(feedback: QgsProcessingFeedback, layer: QgsVectorLayer,layer_crs: str = "2154" ):
+def sql_query_area_builder(
+    feedback: QgsProcessingFeedback, layer: QgsVectorLayer, layer_crs: str = "2154"
+):
     """
     Construct the sql array containing the input vector layer's features geometry.
     """
@@ -85,10 +87,10 @@ NB : 'EPSG:2154' pour Lambert 93 !"""
     for feature in layer.getFeatures():
         # Retrieve the geometry
         area = feature.geometry()  # QgsGeometry object
-        feedback.pushDebugInfo(f'area {area}')
+        feedback.pushDebugInfo(f"area {area}")
         # Retrieve the geometry type (single or multiple)
         geom_single_type = QgsWkbTypes.isSingleType(area.wkbType())
-        feedback.pushDebugInfo(f'geom_single_type {geom_single_type}')
+        feedback.pushDebugInfo(f"geom_single_type {geom_single_type}")
         # Increment the sql array
         if geom_single_type:
             array_polygons.append(
@@ -99,11 +101,11 @@ NB : 'EPSG:2154' pour Lambert 93 !"""
                 f"ST_transform(ST_MPolyFromText('{area.asWkt()}', {crs}), {layer_crs})"
             )
     # Remove the last "," in the sql array which is useless, and end the array
-    if len(array_polygons) > 1 :
+    if len(array_polygons) > 1:
         geom_list = ",".join(array_polygons)
-        return f'(select st_union(st_collect(ARRAY[{geom_list}])) as geom)'
-        
-    return f'(select st_union({array_polygons[0]}) as geom)'
+        return f"(select st_union(st_collect(ARRAY[{geom_list}])) as geom)"
+
+    return f"(select st_union({array_polygons[0]}) as geom)"
 
 
 def sql_queries_list_builder(
@@ -188,9 +190,7 @@ def sql_datetime_filter_builder(
                 "Veuillez renseigner une date de fin postérieure ou égale à la date de début !"
             )
         else:
-            datetime_where = (
-                f"(date_jour >= '{start_date}'::date and date_jour <= '{end_date}'::date)"
-            )
+            datetime_where = f"(date_jour >= '{start_date}'::date and date_jour <= '{end_date}'::date)"
     return datetime_where
 
 
@@ -213,22 +213,32 @@ def sql_timeinterval_cols_builder(  # noqa C901
     )
     if time_interval_param == "Par année":
         timestamp = datetime.now()
-        if period_type_filter in ("5 dernières années", "10 dernières années", "Pas de filtre temporel"):
+        if period_type_filter in (
+            "5 dernières années",
+            "10 dernières années",
+            "Pas de filtre temporel",
+        ):
             end_year = int(timestamp.strftime("%Y"))
-            period = period_type_filter.split()[0] 
+            period = period_type_filter.split()[0]
             start_year = end_year - int(period if period.isdigit() else 10)
-            years = [str(year) for year in range(start_year,end_year)]
+            years = [str(year) for year in range(start_year, end_year)]
 
         elif period_type_filter == "Cette année":
             end_year = int(timestamp.strftime("%Y"))
             start_year = end_year
-            years = [timestamp.strftime("%Y"),]
+            years = [
+                timestamp.strftime("%Y"),
+            ]
 
         elif period_type_filter == "Date de début - Date de fin (à définir ci-dessous)":
             # Retrieve the start and end dates
-            start_date = datetime.fromisoformat(self.parameterAsString(parameters, self.START_DATE, context))
-            end_date = datetime.fromisoformat(self.parameterAsString(parameters, self.END_DATE, context))
-            
+            start_date = datetime.fromisoformat(
+                self.parameterAsString(parameters, self.START_DATE, context)
+            )
+            end_date = datetime.fromisoformat(
+                self.parameterAsString(parameters, self.END_DATE, context)
+            )
+
             if end_date < start_date:
                 raise QgsProcessingException(
                     "Veuillez renseigner une date de fin postérieure ou égale à la date de début !"
@@ -236,17 +246,17 @@ def sql_timeinterval_cols_builder(  # noqa C901
             else:
                 end_year = int(end_date.strftime("%Y"))
                 start_year = int(start_date.strftime("%Y"))
-                years = [str(year) for year in range(start_year,end_year)]
+                years = [str(year) for year in range(start_year, end_year)]
 
         for year in years:
-                select_data.append(
-                    f"""COUNT({count_param}) filter (WHERE date_an={year}) AS \"{year}\""""
-                )
-                x_var.append(str(year))
+            select_data.append(
+                f"""COUNT({count_param}) filter (WHERE date_an={year}) AS \"{year}\""""
+            )
+            x_var.append(str(year))
 
     else:
         monthes = self.parameterAsEnums(parameters, self.MONTHES, context)
-        self.log(message=f'MONTHES {monthes}')
+        self.log(message=f"MONTHES {monthes}")
         months_numbers_variables = [
             "01",
             "02",
@@ -264,14 +274,10 @@ def sql_timeinterval_cols_builder(  # noqa C901
         for month in monthes:
             select_data.append(
                 f"""COUNT({count_param}) filter (WHERE extract(month from date)={month+1}) AS \"{self._months_names_variables[month]}\""""
-                )
-            x_var.append(
-                self._months_names_variables[month]  # type: ignore
             )
+            x_var.append(self._months_names_variables[month])  # type: ignore
     # Adding total count
-    select_data.append(
-        f"""COUNT({count_param}) AS \"TOTAL\""""
-    )
+    select_data.append(f"""COUNT({count_param}) AS \"TOTAL\"""")
     final_select_data = ", ".join(select_data)
     feedback.pushDebugInfo(final_select_data)
     return final_select_data, x_var
@@ -327,4 +333,3 @@ def format_layer_export(layer: QgsVectorLayer) -> QgsFields:
     # for i,field in enumerate(new_fields):
     #     feedback.pushInfo('Elt : {}- {} {}'.format(i, field.name(), field.typeName()))
     return new_fields
-
