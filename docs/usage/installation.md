@@ -23,3 +23,27 @@ Ajouter le lien suivant à la liste des dépots d'extensions (Menu <kbd>Extensio
 Rechargez ensuite les dépots et rendez-vous sur l'onglet <kbd>Toutes</kbd>, recherchez le plugin `LPO GeoNature tools` et installez le. Vous disposez maitenant d'une nouvelle liste de scripts votre **Boîte à outils de traitements** :
 
 ![processing_toolbox](../images/processing_toolbox.png)
+
+
+## Personnalisation
+
+Le script d'extraction des données au format SINP est désactivable sur demande, à l'échelle de l'instance GeoNature. Cela se fait en ajoutant un paramètre dans la table gn_commons.t_parameters comme suit:
+
+```sql
+INSERT INTO gn_commons.t_parameters ( id_organism, parameter_name, parameter_desc, parameter_value
+                                    , parameter_extra_value)
+VALUES ( 0, 'plugin_qgis_lpo_exclude_export_sinp_off'
+       , 'Option pour exclure le script d''export SINP du plugin QGIS LPO (valeurs possibles: "false","true")', 'true'
+       , NULL);
+```
+
+Il est également possible de personnaliser la liste des colonnes liste rouge supplémentaires souhaitée avec cette variable (à adapter selon le besoin):
+
+```sql
+
+INSERT INTO gn_commons.t_parameters ( id_organism, parameter_name, parameter_desc, parameter_value
+                                    , parameter_extra_value)
+VALUES ( 0, 'plugin_qgis_lpo_lr_columns', 'Liste des colonnes LR régionales utilisées pour le plugin QGIS LPO'
+       , '"{''lr_ra'': ''LR Rhône-Alpes'',''lr_auv'': ''LR Auvergne'',''lr_aura'': ''LR Auvergne-Rhône-Alpes''}"'
+       , NULL);
+```
