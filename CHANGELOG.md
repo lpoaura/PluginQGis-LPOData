@@ -17,7 +17,7 @@ To disable this new feature, execute this SQL script
 ```sql
 INSERT INTO gn_commons.t_parameters ( id_organism, parameter_name, parameter_desc, parameter_value
                                     , parameter_extra_value)
-VALUES ( 0, 'plugin_qgis_lpo_exclude_export_sinp_off'
+VALUES ( 0, 'plugin_qgis_lpo_exclude_export_sinp'
        , 'Option pour exclure le script d''export SINP du plugin QGIS LPO (valeurs possibles: "false","true")', 'true'
        , NULL);
 ```
