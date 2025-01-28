@@ -152,6 +152,7 @@ class QgisLpoPlugin:
             self.tools_menu = MenuTools(self.iface.mainWindow())
             self.main_menu.addAction(self.tools_menu.act_extract_data)
             self.main_menu.addAction(self.tools_menu.act_extract_data_observers)
+            self.main_menu.addAction(self.tools_menu.act_extract_sinp_data)
             self.main_menu.addAction(self.tools_menu.addSeparator())
             self.main_menu.addAction(self.tools_menu.act_summary_map)
             self.main_menu.addAction(self.especes_action)
@@ -184,12 +185,20 @@ class QgisLpoPlugin:
                 processing.run(
                     "plugin_qgis_lpo:RefreshData", {"DATABASE": "geonature_lpo"}
                 )
+                exclude_export_sinp = eval(
+                    (self._dbVariables.value("exclude_export_sinp")).capitalize()
+                )
+                if exclude_export_sinp:
+                    self.main_menu.removeAction(self.tools_menu.act_extract_sinp_data)
+                    
+                self.provider.refreshAlgorithms()
                 self.log(
                     message=f"Loading GeoNature terminated",
                     log_level=0,
                     push=True,
                     duration=2,
                 )
+                
         except QgsProviderConnectionException as exc:
             self.log(
                 message=self.tr("Houston, we've got a problem: {}".format(exc)),
@@ -277,7 +286,7 @@ class QgisLpoPlugin:
             )
 
     def initSettings(self):
-        dbVariables = QgsSettings()
+        self._dbVariables = QgsSettings()
         variables = [
             "groupe_taxo",
             "regne",
@@ -289,7 +298,11 @@ class QgisLpoPlugin:
             "group2_inpn",
             "source_data",
             "lr_columns",
+            "exclude_export_sinp",
         ]
         for variable in variables:
-            if not dbVariables.value(variable):
-                dbVariables.setValue(variable, set())
+            if not self._dbVariables.value(variable):
+                if variable == "exclude_export_sinp":
+                    self._dbVariables.setValue(variable, "false")
+                else:
+                    self._dbVariables.setValue(variable, set())

@@ -106,6 +106,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         # processAlgorithm settings
         self._is_map_layer = False
         self._is_table_layer = False
+        self._layer_crs = '2154'
         self._has_time_interval_form = False
         self._has_histogram = False
         self._has_taxonomic_rank_form = False
@@ -621,7 +622,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         # )
         if self._study_area:
             self._query_area = sql_query_area_builder(
-                feedback=feedback, layer=self._study_area
+                feedback=feedback, layer=self._study_area, layer_crs=self._layer_crs
             )
             feedback.pushDebugInfo(f"_query_area {self._query_area}")
         if not self._is_data_extraction:
