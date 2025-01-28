@@ -161,11 +161,6 @@ class RefreshData(BaseProcessingAlgorithm):
                     if query_output.lower() in ["true", "1", "t", "y", "yes"]
                     else "false"
                 )
-                self.log(
-                    message=f"exclude_export_sinp {query_output} {type(query_output)}",
-                    log_level=2,
-                    push=False,
-                )
             self._db_variables.setValue(setting, query_output)
 
         self.log(

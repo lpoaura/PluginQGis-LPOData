@@ -189,12 +189,6 @@ class QgisLpoPlugin:
                     (self._dbVariables.value("exclude_export_sinp")).capitalize()
                 )
                 if exclude_export_sinp:
-                    self.log(
-                        message="Remove export SINP action",
-                        log_level=0,
-                        push=True,
-                        duration=2,
-                    )
                     self.main_menu.removeAction(self.tools_menu.act_extract_sinp_data)
                     
                 self.provider.refreshAlgorithms()

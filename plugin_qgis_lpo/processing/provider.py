@@ -47,11 +47,6 @@ class QgisLpoProvider(QgsProcessingProvider):
             SummaryMap(),
         ]
         export_sinp = not eval((self._db_variables.value("exclude_export_sinp")).capitalize())
-        self.log(
-            message=f"loadAlgo export SINP {self._db_variables.value('exclude_export_sinp')} {export_sinp}",
-            log_level=2,
-            push=False,
-        )
         if export_sinp:
             algorithms += [
                 ExtractSinpData(),
