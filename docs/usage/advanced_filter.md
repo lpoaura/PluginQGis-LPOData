@@ -24,7 +24,7 @@ Pour les versions antérieures à la version `3.0.0` un `and` en début de requ�
 |Cause de mortalité|`mortalite_cause = 'ROAD_VEHICLE'`|`mortalite_cause in ('ROAD_VEHICLE', 'HUNTING')`|
 |Code étude|`code_etude = 'EPOC'`|`code_etude in ('EPOC', 'EPOC-ODF')`|
 
-La fonction `ilike` permet de s'affranchir des majuscules et minuscules. Le % remplace un ou plusieurs caractères (et ne fonctionne qu'avec ilike).
+La fonction `ilike` permet de s'affranchir des majuscules et minuscules. Le `%` remplace un ou plusieurs caractères (et ne fonctionne qu'avec ilike).
 
 :::{Info}
 Le langage SQL est sensible aux caractères accentué `mésange`est différent de `mesange`. Par ailleurs, il est possible d'utiliser `%` pour remplacer un ou plusieurs caractères.
