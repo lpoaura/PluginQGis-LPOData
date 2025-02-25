@@ -18,7 +18,7 @@ Pour les versions antérieures à la version `3.0.0` un `and` en début de requ�
 |cd_nom|`obs.cd_nom = 4001`|`obs.cd_nom in (4001, 4035, 3764)`|
 |Nom vernaculaire|`t.nom_vern ilike 'Rougegorge familier'` ou `t.nom_vern ilike '%rougegorge%'`|`t.nom_vern in ('Rougegorge familier', 'Rougequeue noir', 'Mésange charbonnière')`|
 |Nom scientifique|`t.lb_nom ilike 'erithacus rubecula'`|`t.lb_nom in ('Erithacus rubecula', 'Phoenicurus ochruros', 'Parus major')`|
-|Observateur|`observateur = 'NOM Prénom'`|`observateur in ('NOM Prénom', 'NOM Prénom', 'NOM Prénom')`|
+|Observateur|`observateur = 'NOM Prénom'` ou `observateur ilike '%toto%'` ou `observateur ilike '%toto%' or observateur ilike '%tata%'`|`observateur in ('NOM Prénom', 'NOM Prénom', 'NOM Prénom')`|
 |Code de nidification|`oiso_code_nidif = 1`|`oiso_code_nidif in (1, 2, 3)`|
 |Statut de reproduction (valable pour tous les groupes taxo)|`statut_repro = 'Certain'`|`statut_repro in ('Certain', 'Probable', 'Possible')`|
 |Cause de mortalité|`mortalite_cause = 'ROAD_VEHICLE'`|`mortalite_cause in ('ROAD_VEHICLE', 'HUNTING')`|
