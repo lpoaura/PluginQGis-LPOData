@@ -752,7 +752,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             # Define the name of the PostGIS summary table which will be created in the DB
             table_name = simplify_name(self._format_name)
             # Define the SQL queries
-            queries = sql_queries_list_builder(table_name, query)
+            queries = sql_queries_list_builder(table_name, query, self._primary_key)
             # Execute the SQL queries
             execute_sql_queries(context, feedback, self._connection, queries)
             # Format the URI
