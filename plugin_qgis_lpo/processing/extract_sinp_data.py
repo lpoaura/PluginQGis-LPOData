@@ -39,7 +39,7 @@ class ExtractSinpData(BaseProcessingAlgorithm):
         <p style="font-size:18px">
             <strong>Besoin d'aide ?</strong>
             
-            <br/><br/>
+            <br/>
             
             Vous pouvez vous référer aux options de 
             <a href="https://lpoaura.github.io/PluginQGis-LPOData/usage/advanced_filter.html" target="_blank">

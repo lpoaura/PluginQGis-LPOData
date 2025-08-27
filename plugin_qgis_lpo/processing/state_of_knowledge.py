@@ -39,7 +39,7 @@ class StateOfKnowledge(BaseProcessingAlgorithm):
             <p style="font-size:18px">
                 <strong>Besoin d'aide ?</strong>
                 
-                <br/><br/> 
+                <br/> 
                 
                 Vous pouvez vous référer au <strong>Wiki</strong> accessible sur ce lien : <a href="https://lpoaura.github.io/PluginQGis-LPOData/index.html" target="_blank">https://lpoaura.github.io/PluginQGis-LPOData/index.html</a>.
             </p>

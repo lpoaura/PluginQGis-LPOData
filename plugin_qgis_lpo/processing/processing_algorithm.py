@@ -106,7 +106,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         # processAlgorithm settings
         self._is_map_layer = False
         self._is_table_layer = False
-        self._layer_crs = '2154'
+        self._layer_crs = "2154"
         self._has_time_interval_form = False
         self._has_histogram = False
         self._has_taxonomic_rank_form = False
@@ -632,12 +632,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             self._filters.append(taxon_filters)
 
         # Complete the "where" filter with the datetime filter
-        time_filter = sql_datetime_filter_builder(
-            self, self._period_type, self._ts, parameters, context
-        )
-        feedback.pushDebugInfo(f"time_filter {time_filter}")
-        if time_filter:
-            self._filters.append(time_filter)
+
         # Complete the "where" filter with the extra conditions
         if self._source_data_where:
             self._filters.append(f"({self._source_data_where})")
@@ -677,6 +672,14 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             taxonomic_rank = self._taxonomic_ranks_labels[
                 self.parameterAsEnum(parameters, self.TAXONOMIC_RANK, context)
             ]
+            if (
+                self._name == "SummaryTablePerTimeInterval"
+                and self._time_interval == "Par année"
+                and self._period_type == "Pas de filtre temporel"
+            ):
+                # Exception for time interval syntheses without any time filters, 
+                # automatically restricted to the 10 last years
+                self._period_type = "10 dernières années"
             self.log(message=f"taxonomic_rank {taxonomic_rank}")
             aggregation_type = "Nombre de données"
             self._group_by_species = (
@@ -714,6 +717,14 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
                 else select_taxo_groups_info
             )
             self.log(message=self._taxa_fields)
+
+        time_filter = sql_datetime_filter_builder(
+            self, self._period_type, self._ts, parameters, context
+        )
+        feedback.pushDebugInfo(f"time_filter {time_filter}")
+        
+        if time_filter:
+            self._filters.append(time_filter)
 
         lr_columns = self._db_variables.value("lr_columns")
         if lr_columns:

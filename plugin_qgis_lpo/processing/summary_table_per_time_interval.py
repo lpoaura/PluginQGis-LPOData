@@ -41,11 +41,17 @@ class SummaryTablePerTimeInterval(BaseProcessingAlgorithm):
                     Cette extraction exclut les données <strong>non valides</strong> et 
                     <strong>d'absence</strong>.
             </p>
+
+            <p style='background-color:#edb48e;color:black;font-style:bold;'>
+                    <span style="color:yellow">⚠️</span>
+                    Si vous choisissez la <strong>PERIODE</strong> <kbd>[Pas de filtre temporel]</kbd>, alors la période 
+                    <kbd>[10 dernières années]</kbd> s'appliquera par défaut.
+            </p>
         
             <p style="font-size:18px">
                 <strong>Besoin d'aide ?</strong>
                 
-                <br/><br/>
+                <br/>
                 
                 Vous pouvez vous référer aux options de         
                 <a href="https://lpoaura.github.io/PluginQGis-LPOData/usage/advanced_filter.html" target="_blank">
@@ -60,7 +66,8 @@ class SummaryTablePerTimeInterval(BaseProcessingAlgorithm):
                 
                 </ul>
                 ... basé sur une <strong>zone d'étude</strong> présente dans votre projet QGIS (couche de type polygones) et selon une période de votre choix.
-            
+            </p>
+
             <p>
                 <span style='color:#0a84db'><u>IMPORTANT</u> : Prenez le temps de lire <u>attentivement</U> les instructions pour chaque étape, et particulièrement les</span> <span style ='color:#952132'>informations en rouge</span> <span style='color:#0a84db'>!</span>
             </p>
