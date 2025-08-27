@@ -176,7 +176,7 @@ def sql_datetime_filter_builder(
     if period_type_filter in ("5 dernières années", "10 dernières années"):
         end_year = int(timestamp.strftime("%Y"))
         start_year = end_year - int(period_type_filter.split()[0])
-        datetime_where = f"(date_an > {str(start_year)} and date_an <= {str(end_year)})"
+        datetime_where = f"(date_an >= {str(start_year)} and date_an < {str(end_year)})"
 
     elif period_type_filter == "Cette année":
         year = int(timestamp.strftime("%Y"))
@@ -257,20 +257,6 @@ def sql_timeinterval_cols_builder(  # noqa C901
     else:
         monthes = self.parameterAsEnums(parameters, self.MONTHES, context)
         self.log(message=f"MONTHES {monthes}")
-        months_numbers_variables = [
-            "01",
-            "02",
-            "03",
-            "04",
-            "05",
-            "06",
-            "07",
-            "08",
-            "09",
-            "10",
-            "11",
-            "12",
-        ]
         for month in monthes:
             select_data.append(
                 f"""COUNT({count_param}) filter (WHERE extract(month from date)={month+1}) AS \"{self._months_names_variables[month]}\""""
