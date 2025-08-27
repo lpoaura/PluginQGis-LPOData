@@ -38,7 +38,7 @@ class SummaryTablePerTimeInterval(BaseProcessingAlgorithm):
         self._short_description = """
             <p style='background-color:#61d8c6;color:white;font-style:bold;'>
                     <span style="color:green">✔</span> 
-                    Cette extraction exclue les données <strong>non valides</strong> et 
+                    Cette extraction exclut les données <strong>non valides</strong> et 
                     <strong>d'absence</strong>.
             </p>
         
