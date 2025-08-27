@@ -62,7 +62,7 @@ class RefreshData(BaseProcessingAlgorithm):
         database = QgsProcessingParameterProviderConnection(
             self.DATABASE,
             self.tr(
-                f"""<b style="color:#0a84db">BASE DE DONNÉES</b> {required_text} :
+                f"""<strong style="color:#0a84db">BASE DE DONNÉES</strong> {required_text} :
                     sélectionnez votre <u>connexion</u> à la base de données LPO"""
             ),
             "postgres",

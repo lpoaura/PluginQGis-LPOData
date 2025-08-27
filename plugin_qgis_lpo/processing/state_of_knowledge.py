@@ -29,22 +29,47 @@ class StateOfKnowledge(BaseProcessingAlgorithm):
         self._group = "Tableaux de synthèse"
         self._short_help_string = ""
         self._icon = "table.png"
-        self._short_description = """<font style="font-size:18px"><b>Besoin d'aide ?</b> Vous pouvez vous référer au <b>Wiki</b> accessible sur ce lien : <a href="https://lpoaura.github.io/PluginQGis-LPOData/index.html" target="_blank">https://lpoaura.github.io/PluginQGis-LPOData/index.html</a>.</font><br/><br/>
-            Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données LPO,  d'obtenir un <b>état des connaissances</b> par groupe taxonomique, basé sur une <b>zone d'étude</b> présente dans votre projet QGIS (couche de type polygones). <b style='color:#952132'>Les données d'absence sont exclues de ce traitement.</b><br/><br/>
-            Cet état des connaissances correspond en fait à un <b>tableau</b>, qui, <b>pour chaque taxon</b> observé dans la zone d'étude considérée, fournit les informations suivantes :
-            <ul><li>Nombre de données</li>
-            <li>Nombre de données / Nombre de données TOTAL</li>
-            <li>Nombre d'espèces</li>
-            <li>Nombre d'observateurs</li>
-            <li>Nombre de dates</li>
-            <li>Nombre de données de mortalité</li>
-            <li>Nombre d'individus maximum recensé pour une observation</li>
-            <li>Année de la première observation</li>
-            <li>Année de la dernière observation</li>
-            <li>Liste des espèces impliquées</li>
-            <li>Liste des communes</li>
-            <li>Liste des sources VisioNature</li></ul><br/>
-            <font style='color:#0a84db'><u>IMPORTANT</u> : Prenez le temps de lire <u>attentivement</U> les instructions pour chaque étape, et particulièrement les</font> <font style ='color:#952132'>informations en rouge</font> <font style='color:#0a84db'>!</font>"""
+        self._short_description = """     
+            <p style='background-color:#61d8c6;color:white;font-style:bold;'>
+                    <span style="color:green">✔</span> 
+                    Cette extraction exclue les données <strong>non valides</strong> et 
+                    <strong>d'absence</strong>.
+            </p>
+            
+            <p style="font-size:18px">
+                <strong>Besoin d'aide ?</strong>
+                
+                <br/><br/> 
+                
+                Vous pouvez vous référer au <strong>Wiki</strong> accessible sur ce lien : <a href="https://lpoaura.github.io/PluginQGis-LPOData/index.html" target="_blank">https://lpoaura.github.io/PluginQGis-LPOData/index.html</a>.
+            </p>
+
+            <p>
+                Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données LPO,  d'obtenir un <strong>état des connaissances</strong> par groupe taxonomique, basé sur une <strong>zone d'étude</strong> présente dans votre projet QGIS (couche de type polygones). <strong style='color:#952132'>Les données d'absence sont exclues de ce traitement.</strong>
+            </p>
+
+            <p>
+                Cet état des connaissances correspond en fait à un <strong>tableau</strong>, qui, <strong>pour chaque taxon</strong> observé dans la zone d'étude considérée, fournit les informations suivantes :
+                <ul>
+                    <li>Nombre de données</li>
+                    <li>Nombre de données / Nombre de données TOTAL</li>
+                    <li>Nombre d'espèces</li>
+                    <li>Nombre d'observateurs</li>
+                    <li>Nombre de dates</li>
+                    <li>Nombre de données de mortalité</li>
+                    <li>Nombre d'individus maximum recensé pour une observation</li>
+                    <li>Année de la première observation</li>
+                    <li>Année de la dernière observation</li>
+                    <li>Liste des espèces impliquées</li>
+                    <li>Liste des communes</li>
+                    <li>Liste des sources VisioNature</li>
+                </ul>
+            <p>
+
+            <p>
+                <span style='color:#0a84db'><u>IMPORTANT</u> : Prenez le temps de lire <u>attentivement</U> les instructions pour chaque étape, et particulièrement les</span> <span style ='color:#952132'>informations en rouge</span> <span style='color:#0a84db'>!</span>
+            </p>
+            """
         self._is_map_layer = False
         self._has_histogram = True
         # self._has_taxonomic_rank_form = True

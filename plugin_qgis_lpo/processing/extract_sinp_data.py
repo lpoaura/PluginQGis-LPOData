@@ -28,20 +28,34 @@ class ExtractSinpData(BaseProcessingAlgorithm):
         self._output_name = self._display_name
         self._group_id = "raw_data"
         self._group = "Données brutes"
-        self._short_description = """<font style="font-size:18px"><b>Besoin d'aide ?</b>
+        self._short_description = """
+        <p style='background-color:#952132;color:white;font-style:bold;'>
+            <span style="color:yellow">⚠️</span> 
+            Cette extraction inlut les données <strong>non valides</strong> et 
+            <strong>d'absence</strong>.
+        </p>
+        
+        
+        <p style="font-size:18px">
+            <strong>Besoin d'aide ?</strong>
+            
             <br/><br/>
+            
             Vous pouvez vous référer aux options de 
             <a href="https://lpoaura.github.io/PluginQGis-LPOData/usage/advanced_filter.html" target="_blank">
-            filtrage avancé</a>.</font><br/><br/>
-            Cet algorithme vous permet d'<b>extraire des données d'observation</b> contenues dans la
-            base de données LPO (couche type points) à partir d'une <b>zone d'étude</b>
+            filtrage avancé</a>.
+        </p>
+
+        <p>
+            Cet algorithme vous permet d'<strong>extraire des données d'observation</strong> contenues dans la
+            base de données LPO (couche type points) à partir d'une <strong>zone d'étude</strong>
             présente dans votre projet QGIS (couche de type polygones).<br /><br />
-            <font style='color:#0a84db'><u>IMPORTANT</u> : Prenez le temps de lire
-            <u>attentivement</U> les instructions pour chaque étape, et particulièrement les</font>
-            <font style='color:#952132'>informations en rouge</font>
-            <font style='color:#0a84db'>!</font>
-            <br /><br />
-            <font style='color:#952132'>Cette extraction <b>inlut les données non valides et d'absence<b>.</font>"""
+            <span style='color:#0a84db'><u>IMPORTANT</u> : Prenez le temps de lire
+            <u>attentivement</U> les instructions pour chaque étape, et particulièrement les</span>
+            <span style='color:#952132'>informations en rouge</span>
+            <span style='color:#0a84db'>!</span>
+        </p>
+        """
         self._icon = "extract_data.png"
         self._short_help_string = ""
         self._is_map_layer = True

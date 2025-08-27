@@ -30,34 +30,57 @@ class SummaryMap(BaseProcessingAlgorithm):
         self._output_name = self._display_name
         self._group_id = "Map"
         self._group = "Cartes"
-        self._short_description = """<font style="font-size:18px"><b>Besoin d'aide ?</b>
-            <br/><br/>
-            Vous pouvez vous référer aux options de         
-          <a href="https://lpoaura.github.io/PluginQGis-LPOData/usage/advanced_filter.html" target="_blank">
-            filtrage avancé</a>.</font><br/><br/>
-            Cet algorithme vous permet, à partir des données d'observation enregistrées
-            dans la base de données LPO, de générer une <b>carte de synthèse</b>
-            (couche de type polygones) par maille ou par commune (au choix)
-            basée sur une <b>zone d'étude</b> présente dans votre projet QGIS (couche
-            de type polygones). <b style='color:#952132'>Les données d'absence et non valides sont
-            exclues de ce traitement.</b><br/><br/>
-            <b>Pour chaque entité géographique</b>, la table attributaire de la
-            nouvelle couche fournit les informations suivantes :
-            <ul><li>Code de l'entité</li>
-            <li>Surface (en km<sup>2</sup>)</li>
-            <li>Nombre de données</li>
-            <li>Nombre de données / Nombre de données TOTAL</li>
-            <li>Nombre d'espèces</li>
-            <li>Nombre d'observateurs</li>
-            <li>Nombre de dates</li>
-            <li>Nombre de données de mortalité</li>
-            <li>Liste des espèces observées</li></ul><br/>
-            Vous pouvez ensuite modifier la <b>symbologie</b> de la couche comme bon
-            vous semble, en fonction du critère de votre choix.<br/><br/>
-            <font style='color:#0a84db'><u>IMPORTANT</u> : prenez le temps de lire
-            <u>attentivement</u> les instructions pour chaque étape, et particulièrement
-            les</font> <font style ='color:#952132'>informations en rouge</font>
-            <font style='color:#0a84db'>!</font>"""
+        self._short_description = """
+            <p style='background-color:#61d8c6;color:white;font-style:bold;'>
+                    <span style="color:green">✔</span> 
+                    Cette extraction exclue les données <strong>non valides</strong> et 
+                    <strong>d'absence</strong>.
+            </p>
+        
+            <p style="font-size:18px">
+                <strong>Besoin d'aide ?</strong>
+                
+                <br/><br/>
+                
+                Vous pouvez vous référer aux options de         
+                <a href="https://lpoaura.github.io/PluginQGis-LPOData/usage/advanced_filter.html" target="_blank">
+                filtrage avancé</a>.
+            </p>
+
+            <p>
+                Cet algorithme vous permet, à partir des données d'observation enregistrées
+                dans la base de données LPO, de générer une <strong>carte de synthèse</strong>
+                (couche de type polygones) par maille ou par commune (au choix)
+                basée sur une <strong>zone d'étude</strong> présente dans votre projet QGIS (couche
+                de type polygones). <strong style='color:#952132'>Les données d'absence et non valides sont
+                exclues de ce traitement.</strong>
+            </p>
+            
+            <p>
+                <strong>Pour chaque entité géographique</strong>, la table attributaire de la
+                nouvelle couche fournit les informations suivantes :
+                <ul>
+                    <li>Code de l'entité</li>
+                    <li>Surface (en km<sup>2</sup>)</li>
+                    <li>Nombre de données</li>
+                    <li>Nombre de données / Nombre de données TOTAL</li>
+                    <li>Nombre d'espèces</li>
+                    <li>Nombre d'observateurs</li>
+                    <li>Nombre de dates</li>
+                    <li>Nombre de données de mortalité</li>
+                    <li>Liste des espèces observées</li>
+                </ul>                    
+                Vous pouvez ensuite modifier la <strong>symbologie</strong> de la couche comme bon
+                vous semble, en fonction du critère de votre choix.
+            </p>
+
+            <p>
+                <span style='color:#0a84db'><u>IMPORTANT</u> : prenez le temps de lire
+                <u>attentivement</u> les instructions pour chaque étape, et particulièrement
+                les</span> <span style ='color:#952132'>informations en rouge</span>
+                <span style='color:#0a84db'>!</span>
+            </p>
+            """
         self._icon = "map.png"
         self._short_help_string = ""
         self._is_map_layer = True

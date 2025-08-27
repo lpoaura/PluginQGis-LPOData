@@ -263,7 +263,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         database = QgsProcessingParameterProviderConnection(
             self.DATABASE,
             self.tr(
-                f"""<b style="color:#0a84db">BASE DE DONNÉES</b> {required_text} :
+                f"""<strong style="color:#0a84db">BASE DE DONNÉES</strong> {required_text} :
                     sélectionnez votre <u>connexion</u> à la base de données LPO"""
             ),
             "postgres",
@@ -275,7 +275,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         study_area = QgsProcessingParameterFeatureSource(
             self.STUDY_AREA,
             self.tr(
-                f"""<b style="color:#0a84db">ZONE D'ÉTUDE</b> {required_text} :
+                f"""<strong style="color:#0a84db">ZONE D'ÉTUDE</strong> {required_text} :
                     sélectionnez votre <u>zone d'étude</u>,
                     à partir de laquelle seront extraits les résultats"""
             ),
@@ -293,7 +293,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             taxonomic_rank = QgsProcessingParameterEnum(
                 self.TAXONOMIC_RANK,
                 self.tr(
-                    f"""<b style="color:#0a84db">RANG TAXONOMIQUE</b> {required_text}"""
+                    f"""<strong style="color:#0a84db">RANG TAXONOMIQUE</strong> {required_text}"""
                 ),
                 self._taxonomic_ranks_labels,
                 allowMultiple=False,
@@ -315,7 +315,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         period_type = QgsProcessingParameterEnum(
             self.PERIOD,
             self.tr(
-                f"""<b style="color:#0a84db">PÉRIODE</b> {required_text} :
+                f"""<strong style="color:#0a84db">PÉRIODE</strong> {required_text} :
                     sélectionnez une <u>période</u> pour filtrer vos données
                     d'observations"""
             ),
@@ -359,7 +359,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             time_interval = QgsProcessingParameterEnum(
                 self.TIME_INTERVAL,
                 self.tr(
-                    f"""<b style="color:#0a84db">AGRÉGATION TEMPORELLE</b> {required_text}"""
+                    f"""<strong style="color:#0a84db">AGRÉGATION TEMPORELLE</strong> {required_text}"""
                 ),
                 self._time_interval_variables,
                 allowMultiple=False,
@@ -388,7 +388,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             areas_types = QgsProcessingParameterEnum(
                 self.AREAS_TYPE,
                 self.tr(
-                    f"""<b style="color:#0a84db">TYPE D'ENTITÉS GÉOGRAPHIQUES</b> {required_text} :
+                    f"""<strong style="color:#0a84db">TYPE D'ENTITÉS GÉOGRAPHIQUES</strong> {required_text} :
                     Sélectionnez le <u>type d'entités géographiques</u>
                     qui vous intéresse"""
                 ),
@@ -404,7 +404,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         taxon_filter = QgsProcessingParameterEnum(
             self.GROUPE_TAXO,
             self.tr(
-                f"""<b style="color:#0a84db">TAXONS</b> {optional_text} :
+                f"""<strong style="color:#0a84db">TAXONS</strong> {optional_text} :
                     filtrer les données par groupes taxonomiques"""
             ),
             self._db_variables.value("groupe_taxo"),
@@ -417,7 +417,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             histogram_options = QgsProcessingParameterEnum(
                 self.HISTOGRAM_OPTIONS,
                 self.tr(
-                    f"""<b style="color:#0a84db">HISTOGRAMME</b> {optional_text} :
+                    f"""<strong style="color:#0a84db">HISTOGRAMME</strong> {optional_text} :
                     générer un histogramme à partir des résultats."""
                 ),
                 self._histogram_variables,
@@ -447,7 +447,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         output_name = QgsProcessingParameterString(
             self.OUTPUT_NAME,
             self.tr(
-                f"""<b style="color:#0a84db">PARAMÉTRAGE DES RESULTATS EN SORTIE</b>
+                f"""<strong style="color:#0a84db">PARAMÉTRAGE DES RESULTATS EN SORTIE</strong>
                     {optional_text} : personnalisez le nom de votre couche
                     en base de données"""
             ),
