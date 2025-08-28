@@ -90,7 +90,7 @@ class SummaryTablePerTimeInterval(BaseProcessingAlgorithm):
             row_number() OVER () AS id,
             {taxa_fields},
             {custom_fields}
-            FROM src_lpodatas.v_c_observations_light obs
+            FROM src_lpodatas.v_c_observations obs
             LEFT JOIN taxonomie.bib_taxref_rangs r ON obs.id_rang = r.id_rang
             WHERE
                 st_intersects(obs.geom, {query_area})
