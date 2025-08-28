@@ -104,17 +104,14 @@ layer = QgsVectorLayer(uri.uri(), "source_data", "postgres")
 for feature in layer.getFeatures():
     source_data = feature[1]
 
-lr_columns_query = """SELECT parameter_value
+status_columns_query = """SELECT parameter_value
 from gn_commons.t_parameters
-where parameter_name like 'plugin_qgis_lpo_lr_columns'"""
-uri.setDataSource("", "(" + lr_columns_query + ")", None, "", "parameter_value")
-layer = QgsVectorLayer(uri.uri(), "lr_columns", "postgres")
+where parameter_name like 'plugin_qgis_lpo_status_columns'"""
+uri.setDataSource("", "(" + status_columns_query + ")", None, "", "parameter_value")
+layer = QgsVectorLayer(uri.uri(), "status_columns", "postgres")
 for feature in layer.getFeatures():
-    lr_columns = feature[0]
+    status_columns = feature[0]
 
-# lr_columns = {
-#     "lr_r": "LR régionale",
-# }
 
 # Add lists to QgsSettings
 db_variables = QgsSettings()
@@ -128,7 +125,7 @@ db_variables.setValue("famille", famille)
 db_variables.setValue("group1_inpn", group1_inpn)
 db_variables.setValue("group2_inpn", group2_inpn)
 db_variables.setValue("source_data", source_data)
-db_variables.setValue("lr_columns", lr_columns)
+db_variables.setValue("status_columns", status_columns)
 # Add Plugin LPO menu
 
 # iface.pluginMenu().parent().addMenu("Plugin LPO")

@@ -190,8 +190,8 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         self._taxa_fields: Optional[str] = None
         self._custom_fields: Optional[str] = None
         self._x_var: Optional[List[str]] = None
-        self._lr_columns_db: List[str] = ["lr_r"]
-        self._lr_columns_with_alias: List[str] = ['lr_r as "LR Régionale"']
+        self._status_columns_db: List[str] = ["lr_r"]
+        self._status_columns_with_alias: List[str] = ['lr_r as "LR Régionale"']
         self._time_interval: str
 
     def tr(self, string: str) -> str:
@@ -726,20 +726,23 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         if time_filter:
             self._filters.append(time_filter)
 
-        lr_columns = self._db_variables.value("lr_columns")
-        if lr_columns:
+        status_columns = self._db_variables.value("status_columns")
+        feedback.pushDebugInfo(f"status_columns {status_columns}")
+        if status_columns:
+            feedback.pushDebugInfo(f"in status_columns condition {status_columns}")
             try:
-                lr_columns_as_dict = ast.literal_eval(
-                    json.loads(self._db_variables.value("lr_columns"))
+                status_columns_as_dict = ast.literal_eval(
+                    json.loads(self._db_variables.value("status_columns"))
                 )
-                self._lr_columns_db = [
-                    key for key, _value in lr_columns_as_dict.items()
+                feedback.pushDebugInfo(f"status_columns_as_dict {status_columns_as_dict}")
+                self._status_columns_db = [
+                    key for key, _value in status_columns_as_dict.items()
                 ]
-                self._lr_columns_with_alias = [
-                    f'{key} as "{value}"' for key, value in lr_columns_as_dict.items()
+                self._status_columns_with_alias = [
+                    f'{key} as "{value}"' for key, value in status_columns_as_dict.items()
                 ]
             except Exception as e:
-                print(e)
+                feedback.pushDebugInfo(f"status column ERROR {e}")
                 pass
 
         # EXECUTE THE SQL QUERY
@@ -753,8 +756,8 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             group_by_species=self._group_by_species,
             taxa_fields=self._taxa_fields,
             custom_fields=self._custom_fields,
-            lr_columns_fields="\n, ".join(self._lr_columns_db),
-            lr_columns_with_alias="\n, ".join(self._lr_columns_with_alias),
+            status_columns_fields="\n, ".join(self._status_columns_db),
+            status_columns_with_alias="\n, ".join(self._status_columns_with_alias),
         )
         self.log(message=query)
         feedback.pushDebugInfo(f"query: {query}")

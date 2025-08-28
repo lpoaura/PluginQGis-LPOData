@@ -109,10 +109,10 @@ class RefreshData(BaseProcessingAlgorithm):
         SELECT 1 as id, list_source as source_data FROM dbadmin.mv_source
         """
         queries[
-            "lr_columns"
-        ] = """SELECT 1 as id, parameter_value as lr_columns
+            "status_columns"
+        ] = """SELECT 1 as id, parameter_value as status_columns
         from gn_commons.t_parameters
-        where parameter_name like 'plugin_qgis_lpo_lr_columns'"""
+        where parameter_name like 'plugin_qgis_lpo_status_columns'"""
 
         queries[
             "exclude_export_sinp"

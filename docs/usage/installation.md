@@ -37,13 +37,20 @@ VALUES ( 0, 'plugin_qgis_lpo_exclude_export_sinp'
        , NULL);
 ```
 
-Il est également possible de personnaliser la liste des colonnes liste rouge supplémentaires souhaitée avec cette variable (à adapter selon le besoin):
+Il est également nécessaire de personnaliser la liste des colonnes de statuts de protection/conservation des espèces souhaitées avec cette variable (à adapter selon le besoin). Ils correspondent à la liste des statuts de la vue matérialisée `taxonomie.mv_c_statut`:
 
 ```sql
-
-INSERT INTO gn_commons.t_parameters ( id_organism, parameter_name, parameter_desc, parameter_value
-                                    , parameter_extra_value)
-VALUES ( 0, 'plugin_qgis_lpo_lr_columns', 'Liste des colonnes LR régionales utilisées pour le plugin QGIS LPO'
-       , '"{''lr_ra'': ''LR Rhône-Alpes'',''lr_auv'': ''LR Auvergne'',''lr_aura'': ''LR Auvergne-Rhône-Alpes''}"'
+INSERT INTO gn_commons.t_parameters ( 
+       id_organism, 
+       parameter_name, 
+       parameter_desc, 
+       parameter_value,
+       parameter_extra_value
+       )
+VALUES (
+       0, 
+       'plugin_qgis_lpo_status_columns',
+       'Liste des colonnes de statuts de protection/conservation à utilisées pour le plugin QGIS LPO',
+       , '"{''lr_france'':''LR France'',''lr_r'': ''LR Régionale'',''n2k'':''Natura 2000'',''protection_nat'':''Protection nationale'',''conv_berne'':''Convention de Berne'',''conv_bonn'':''Convention de Bonn''}"'
        , NULL);
 ```

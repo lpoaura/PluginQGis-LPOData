@@ -95,7 +95,19 @@ class SummaryTablePerSpecies(BaseProcessingAlgorithm):
         self._query = """
     WITH obs AS (
         /* selection des cd_nom */
-        SELECT observations.*
+        SELECT observations.id_synthese
+            , observations.cd_nom
+            , observations.nom_vern
+            , observations.nom_sci
+            , observations.observateur
+            , observations.date
+            , observations.date_an
+            , observations.nombre_total
+            , observations.source
+            , observations.oiso_code_nidif
+            , observations.id_rang
+            , observations.groupe_taxo
+            , observations.mortalite
         FROM src_lpodatas.v_c_observations observations
         WHERE ST_intersects(observations.geom, {query_area})
         and {where_filters}),
@@ -115,14 +127,13 @@ class SummaryTablePerSpecies(BaseProcessingAlgorithm):
             )
     ),
     total_count AS (
-        /* comptage nb total individus */
+        /* comptage nb total d'observations */
         SELECT COUNT(*) AS total_count
         FROM obs),
      data AS (
         /* selection des données + statut */
         SELECT
-         obs.cd_ref
-        , obs.vn_id
+         obs.cd_nom
         , r.nom_rang
         , groupe_taxo
         , string_agg(distinct obs.nom_vern, ', ') nom_vern
@@ -131,12 +142,7 @@ class SummaryTablePerSpecies(BaseProcessingAlgorithm):
         , COUNT(DISTINCT obs.observateur)               AS nb_observateurs
         , COUNT(DISTINCT obs.date)                      AS nb_dates
         , SUM(CASE WHEN mortalite THEN 1 ELSE 0 END)    AS nb_mortalite
-        , st.lr_france
-        , {lr_columns_fields}
-        , st.n2k
-        , st.prot_nat as protection_nat
-        , st.conv_berne
-        , st.conv_bonn
+        , {status_columns_fields}
         , max(ac.hierarchy)                             AS max_hierarchy_atlas_code
         , max(obs.nombre_total)                         AS nb_individus_max
         , min(obs.date_an)                              AS premiere_observation
@@ -147,22 +153,15 @@ class SummaryTablePerSpecies(BaseProcessingAlgorithm):
         LEFT JOIN atlas_code ac ON obs.oiso_code_nidif = ac.cd_nomenclature::int
         LEFT JOIN taxonomie.bib_taxref_rangs r ON obs.id_rang = r.id_rang
         LEFT JOIN communes com ON obs.id_synthese = com.id_synthese
-        left join taxonomie.mv_c_statut st on st.cd_ref=obs.cd_ref
+        left join taxonomie.mv_c_statut st on st.cd_ref=obs.cd_nom
        GROUP BY
          groupe_taxo
-        , obs.cd_ref
-        , obs.vn_id
+        , obs.cd_nom
         , r.nom_rang
-        , st.lr_france
-        , {lr_columns_fields}
-        , st.n2k
-        , st.prot_nat
-        , st.conv_berne
-        , st.conv_bonn),
+        , {status_columns_fields}),
     synthese AS (
         SELECT DISTINCT
-         d.cd_ref
-        , array_to_string(vn_id,', ')                       as vn_id
+         d.cd_nom
         , nom_rang                                          AS "Rang"
         , d.groupe_taxo              AS "Groupe taxo"
         , nom_vern                                          AS "Nom vernaculaire"
@@ -172,12 +171,7 @@ class SummaryTablePerSpecies(BaseProcessingAlgorithm):
         , nb_observateurs                                   AS "Nb d'observateurs"
         , nb_dates                                          AS "Nb de dates"
         , nb_mortalite                                      AS "Nb de données de mortalité"
-        , lr_france                                         AS "LR France"
-        , {lr_columns_with_alias}
-        , n2k                                               AS "Natura 2000"
-        , protection_nat                                    AS "Protection nationale"
-        , conv_berne                                        AS "Convention de Berne"
-        , conv_bonn                                         AS "Convention de Bonn"
+        , {status_columns_with_alias}
         , ac.label_fr                                       AS "Statut nidif"
         , nb_individus_max                                  AS "Nb d'individus max"
         , premiere_observation                              AS "Année première obs"
@@ -186,6 +180,6 @@ class SummaryTablePerSpecies(BaseProcessingAlgorithm):
         , sources                                           AS "Sources"
         FROM total_count, data d
         LEFT JOIN atlas_code ac ON d.max_hierarchy_atlas_code = ac.hierarchy
-        ORDER BY groupe_taxo,vn_id, nom_vern)
+        ORDER BY groupe_taxo, nom_vern)
     SELECT row_number() OVER () AS id, *
     FROM synthese"""

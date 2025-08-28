@@ -79,7 +79,7 @@ SELECT sd.id_synthese
      , ds.unique_dataset_id                                                                              AS jdd_uuid
      , sd.entity_source_pk_value                                                                         AS source_id_data
      , se.id_sp_source                                                                                   AS source_id_sp
-     , sd.cd_nom
+     , t.cd_ref                                                                                          AS cd_nom
      , cor.groupe_taxo_fr                                                                                AS groupe_taxo
      , t.group1_inpn
      , t.group2_inpn

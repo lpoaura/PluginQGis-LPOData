@@ -297,7 +297,7 @@ class QgisLpoPlugin:
             "group1_inpn",
             "group2_inpn",
             "source_data",
-            "lr_columns",
+            "status_columns",
             "exclude_export_sinp",
         ]
         for variable in variables:
