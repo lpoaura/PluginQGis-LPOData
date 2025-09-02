@@ -84,7 +84,7 @@ class StateOfKnowledge(BaseProcessingAlgorithm):
         ]
         self._query = """WITH obs AS (
             SELECT obs.*
-            FROM src_lpodatas.v_c_observations obs
+            FROM src_lpodatas.v_c_observations_new obs
             WHERE {where_filters} and st_intersects(obs.geom, {query_area})),
         communes AS (
             SELECT DISTINCT obs.id_synthese, la.area_name

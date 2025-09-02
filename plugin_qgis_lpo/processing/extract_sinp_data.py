@@ -66,7 +66,7 @@ class ExtractSinpData(BaseProcessingAlgorithm):
         self._query = """SELECT obs.*
         FROM gn_exports.v_synthese_sinp obs
          JOIN (SELECT id_synthese, date_an, date_jour, desc_source, is_present, is_valid, type_geom, groupe_taxo
-               FROM src_lpodatas.v_c_observations) AS t
+               FROM src_lpodatas.v_c_observations_new) AS t
                 ON t.id_synthese = obs.id_synthese
         WHERE st_intersects(obs.geom, {query_area}) AND {where_filters}"""
         self._is_data_extraction = True

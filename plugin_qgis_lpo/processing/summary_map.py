@@ -105,7 +105,7 @@ WITH prep AS (SELECT la.id_area, ((st_area(la.geom))::DECIMAL / 1000000) area_su
 FROM prep la
     LEFT JOIN gn_synthese.cor_area_synthese cor
 ON la.id_area=cor.id_area
-    LEFT JOIN src_lpodatas.v_c_observations obs ON cor.id_synthese=obs.id_synthese
+    LEFT JOIN src_lpodatas.v_c_observations_new obs ON cor.id_synthese=obs.id_synthese
 WHERE {where_filters}
 GROUP BY la.id_area, la.area_surface)
 SELECT data.id

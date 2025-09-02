@@ -108,7 +108,7 @@ class SummaryTablePerSpecies(BaseProcessingAlgorithm):
             , observations.id_rang
             , observations.groupe_taxo
             , observations.mortalite
-        FROM src_lpodatas.v_c_observations observations
+        FROM src_lpodatas.v_c_observations_new observations
         WHERE ST_intersects(observations.geom, {query_area})
         and {where_filters}),
     communes AS (
@@ -153,7 +153,7 @@ class SummaryTablePerSpecies(BaseProcessingAlgorithm):
         LEFT JOIN atlas_code ac ON obs.oiso_code_nidif = ac.cd_nomenclature::int
         LEFT JOIN taxonomie.bib_taxref_rangs r ON obs.id_rang = r.id_rang
         LEFT JOIN communes com ON obs.id_synthese = com.id_synthese
-        left join taxonomie.mv_c_statut st on st.cd_ref=obs.cd_nom
+        LEFT JOIN taxonomie.mv_c_statut st ON st.cd_ref=obs.cd_nom
        GROUP BY
          groupe_taxo
         , obs.cd_nom
