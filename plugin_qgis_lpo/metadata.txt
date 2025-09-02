@@ -21,5 +21,5 @@ qgisMinimumVersion=3.16
 qgisMaximumVersion=3.99
 
 # versioning
-version=3.4.0
+version=3.5.0
 changelog=https://github.com/lpoaura/PluginQGis-LPOData/blob/master/CHANGELOG.md
