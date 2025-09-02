@@ -81,7 +81,6 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
     EXTRA_WHERE = "EXTRA_WHERE"
     OUTPUT = "OUTPUT"
     OUTPUT_NAME = "OUTPUT_NAME"
-    ADD_TABLE = "ADD_TABLE"
     OUTPUT_HISTOGRAM = "OUTPUT_HISTOGRAM"
     ADD_HISTOGRAM = "ADD_HISTOGRAM"
     HISTOGRAM_OPTIONS = "HISTOGRAM_OPTIONS"
@@ -117,7 +116,6 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         self._return_geo_agg: bool = False
         self._db_variables = QgsSettings()
         self._connection: str
-        self._add_table: bool
         self._layer_name: str
         self._layer: QgsVectorLayer
         self._layer_features_count: int = 0
@@ -187,6 +185,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         self._primary_key = "id"
         self._output_histogram: str
         self._group_by_species: str = ""
+        self._taxonomic_rank: str = "Espèces"
         self._taxa_fields: Optional[str] = None
         self._custom_fields: Optional[str] = None
         self._x_var: Optional[List[str]] = None
@@ -455,15 +454,6 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         )
         self.addParameter(output_name)
 
-        # Boolean : True = add the summary table in the DB ; False = don't
-        add_table = QgsProcessingParameterBoolean(
-            self.ADD_TABLE,
-            self.tr(
-                "Enregistrer les résultats en sortie dans une nouvelle table en base de données"
-            ),
-            False,
-        )
-        self.addParameter(add_table)
 
         if self._has_source_data_filter:
             source_data_where = QgsProcessingParameterEnum(
@@ -530,7 +520,6 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
 
         # Form values
         self._connection = self.parameterAsString(parameters, self.DATABASE, context)
-        self._add_table = self.parameterAsBool(parameters, self.ADD_TABLE, context)
         self._study_area = self.parameterAsSource(parameters, self.STUDY_AREA, context)
         self.log(
             message=str(
@@ -669,7 +658,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             ]
             self.log(message=f"time_interval {self._time_interval}")
             self._monthes = self.parameterAsEnum(parameters, self.MONTHES, context)
-            taxonomic_rank = self._taxonomic_ranks_labels[
+            self._taxonomic_rank = self._taxonomic_ranks_labels[
                 self.parameterAsEnum(parameters, self.TAXONOMIC_RANK, context)
             ]
             if (
@@ -680,11 +669,11 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
                 # Exception for time interval syntheses without any time filters, 
                 # automatically restricted to the 10 last years
                 self._period_type = "10 dernières années"
-            self.log(message=f"taxonomic_rank {taxonomic_rank}")
+            self.log(message=f"taxonomic_rank {self._taxonomic_rank}")
             aggregation_type = "Nombre de données"
             self._group_by_species = (
-                "obs.cd_nom, obs.cd_ref, nom_rang, nom_sci, obs.nom_vern, "
-                if taxonomic_rank == "Espèces"
+                "obs.cd_nom, nom_rang, nom_sci, obs.nom_vern, "
+                if self._taxonomic_rank == "Espèces"
                 else ""
             )
             (
@@ -701,19 +690,17 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             )
             # Select species info (optional)
             select_species_info = """
-                /*source_id_sp, */
                 obs.cd_nom,
-                obs.cd_ref,
                 nom_rang as "Rang",
                 groupe_taxo AS "Groupe taxo",
                 obs.nom_vern AS "Nom vernaculaire",
-                nom_sci AS "Nom scientifique\"
+                nom_sci AS "Nom scientifique"
                 """
             # Select taxonomic groups info (optional)
             select_taxo_groups_info = 'groupe_taxo AS "Groupe taxo"'
             self._taxa_fields = (
                 select_species_info
-                if taxonomic_rank == "Espèces"
+                if self._taxonomic_rank == "Espèces"
                 else select_taxo_groups_info
             )
             self.log(message=self._taxa_fields)
@@ -756,24 +743,14 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             group_by_species=self._group_by_species,
             taxa_fields=self._taxa_fields,
             custom_fields=self._custom_fields,
-            status_columns_fields="\n, ".join(self._status_columns_db),
-            status_columns_with_alias="\n, ".join(self._status_columns_with_alias),
+            status_columns_fields="\n, ".join(self._status_columns_db if self._taxonomic_rank == "Espèces" else []),
+            status_columns_with_alias="\n, ".join(self._status_columns_with_alias if self._taxonomic_rank == "Espèces" else []),
         )
         self.log(message=query)
         feedback.pushDebugInfo(f"query: {query}")
         geom_field = "geom" if self._is_map_layer else None
-        if self._add_table:
-            # Define the name of the PostGIS summary table which will be created in the DB
-            table_name = simplify_name(self._format_name)
-            # Define the SQL queries
-            queries = sql_queries_list_builder(table_name, query, self._primary_key)
-            # Execute the SQL queries
-            execute_sql_queries(context, feedback, self._connection, queries)
-            # Format the URI
-            self._uri.setDataSource(None, table_name, geom_field, "", self._primary_key)  # type: ignore
-        else:
-            # Format the URI with the query
-            self._uri.setDataSource("", f"({query})", geom_field, "", self._primary_key)  # type: ignore
+        
+        self._uri.setDataSource("", f"({query})", geom_field, "", self._primary_key)  # type: ignore
 
         self._layer = QgsVectorLayer(self._uri.uri(), self._format_name, "postgres")
         self.log(message=f"features count {self._layer.featureCount()}")
@@ -788,78 +765,45 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
 
         load_layer(context, self._layer)
 
-        # if self._is_map_layer:
-        if False:
-            new_fields = format_layer_export(self._layer)
-            (sink, dest_id) = self.parameterAsSink(
-                parameters,
-                self.OUTPUT,
-                context,
-                new_fields,
-                self._layer.wkbType(),
-                self._layer.sourceCrs(),
-            )
-            if sink is None:
-                # Return the PostGIS layer
-                return {self.OUTPUT: self._layer.id()}
-            else:
-                # Dealing with jsonb fields
-                old_fields = self._layer.fields()
-                invalid_fields = []
-                invalid_formats = ["jsonb"]
-                for field in old_fields:
-                    if field.typeName() in invalid_formats:
-                        invalid_fields.append(field.name())
-                # Fill the sink and return it
-                for feature in self._layer.getFeatures():
-                    for invalid_field in invalid_fields:
-                        if feature[invalid_field] is not None:
-                            feature[invalid_field] = json.dumps(
-                                feature[invalid_field],
-                                sort_keys=True,
-                                indent=4,
-                                separators=(",", ": "),
-                            )
-                    sink.addFeature(feature)
-                return {self.OUTPUT: dest_id}
-        else:
-            with open(
-                os.path.join(
-                    plugin_path, os.pardir, "action_scripts", "csv_formatter.py"
-                ),
-                "r",
-                encoding="utf-8",
-            ) as file:
-                action_code = file.read()
-            action = QgsAction(
-                QgsAction.GenericPython,
-                "Exporter la couche sous format Excel dans mon dossier utilisateur avec la mise en forme adaptée",
-                action_code,
-                os.path.join(plugin_path, os.pardir, "icons", "excel.png"),
-                False,
-                "Exporter sous format Excel",
-                {"Layer"},
-            )
-            self._layer.actions().addAction(action)
-            # JOKE
-            with open(
-                os.path.join(plugin_path, os.pardir, "action_scripts", "joke.py"),
-                "r",
-                encoding="utf-8",
-            ) as file:
-                joke_action_code = file.read()
-            joke_action = QgsAction(
-                QgsAction.GenericPython,
-                "Rédiger mon rapport",
-                joke_action_code,
-                os.path.join(plugin_path, os.pardir, "icons", "word.png"),
-                False,
-                "Rédiger mon rapport",
-                {"Layer"},
-            )
-            self._layer.actions().addAction(joke_action)
 
-            return {self.OUTPUT: self._layer.id()}
+        with open(
+            os.path.join(
+                plugin_path, os.pardir, "action_scripts", "csv_formatter.py"
+            ),
+            "r",
+            encoding="utf-8",
+        ) as file:
+            action_code = file.read()
+        action = QgsAction(
+            QgsAction.GenericPython,
+            "Exporter la couche sous format Excel dans mon dossier utilisateur avec la mise en forme adaptée",
+            action_code,
+            os.path.join(plugin_path, os.pardir, "icons", "excel.png"),
+            False,
+            "Exporter sous format Excel",
+            {"Layer"},
+        )
+        self._layer.actions().addAction(action)
+        # JOKE
+        with open(
+            os.path.join(plugin_path, os.pardir, "action_scripts", "joke.py"),
+            "r",
+            encoding="utf-8",
+        ) as file:
+            joke_action_code = file.read()
+        joke_action = QgsAction(
+            QgsAction.GenericPython,
+            "Rédiger mon rapport",
+            joke_action_code,
+            os.path.join(plugin_path, os.pardir, "icons", "word.png"),
+            False,
+            "Rédiger mon rapport",
+            {"Layer"},
+        )
+        self._layer.actions().addAction(joke_action)
+
+        return {self.OUTPUT: self._layer.id()}
+    
 
     def postProcessAlgorithm(self, _context, _feedback) -> Dict:  # noqa N802
         # Open the attribute table of the PostGIS layer if there are less than 1000 features
