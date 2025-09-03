@@ -1,5 +1,5 @@
-DROP VIEW IF EXISTS src_lpodatas.v_c_observations;
-CREATE VIEW src_lpodatas.v_c_observations AS
+DROP VIEW IF EXISTS src_lpodatas.v_c_observations_new;
+CREATE VIEW src_lpodatas.v_c_observations_new AS
 WITH synthese_data AS (SELECT s.id_synthese
                             , s.id_source
                             , s.id_dataset

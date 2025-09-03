@@ -6,6 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 <!-- ## Unreleased [{version_tag}](https://github.com/opengisch/qgis-plugin-ci/releases/tag/{version_tag}) - YYYY-MM-DD -->
 
+## 3.5.0 - 2025-01-28
+
+* ...
+
+### Version note
+
+La liste des colonnes de statuts de protection/conservation des espèces attendues dans les synthèses espèces sont à définir dans une variable de la table gn_commons.t_parameters comme dans l'exemple suivant. Elles correspondent à la liste des statuts de la vue matérialisée `taxonomie.mv_c_statut`:
+
+```sql
+INSERT INTO gn_commons.t_parameters ( 
+       id_organism, 
+       parameter_name, 
+       parameter_desc, 
+       parameter_value,
+       parameter_extra_value
+       )
+VALUES (
+       0, 
+       'plugin_qgis_lpo_status_columns',
+       'Liste des colonnes de statuts de protection/conservation à utilisées pour le plugin QGIS LPO',
+       , '"{''lr_france'':''LR France'',''lr_r'': ''LR Régionale'',''n2k'':''Natura 2000'',''prot_nat'':''Protection nationale'',''conv_berne'':''Convention de Berne'',''conv_bonn'':''Convention de Bonn''}"'
+       , NULL);
+```
+
+
 ## 3.4.0 - 2025-01-28
 
 * Add new algorithm script to extract data from `gn_exports.v_synthese_sinp`. This algorithm script can be disabled by setting a new parameter in database (tables `gn_commons.t_parameters`) (fix #159).

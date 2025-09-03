@@ -27,9 +27,13 @@ from qgis.core import (
     QgsProcessingException,
     QgsProcessingFeedback,
     QgsVectorLayer,
-    QgsWkbTypes,
+    QgsDistanceArea,
+    QgsGeometry,
 )
 from qgis.PyQt.QtCore import QVariant
+
+d = QgsDistanceArea()
+d.setEllipsoid("WGS84")
 
 
 def simplify_name(string: str) -> str:
@@ -63,6 +67,43 @@ def check_layer_is_valid(feedback: QgsProcessingFeedback, layer: QgsVectorLayer)
         )
     return None
 
+def get_deep_count(nested_list):
+    total_count = 0
+    for item in nested_list:
+        if isinstance(item, list):
+            total_count += get_deep_count(item)
+        else:
+            total_count += 1
+    return total_count
+
+
+def get_geom_vertices_count(geom: QgsGeometry) -> int:
+    if geom.isMultipart():
+        # For multipart geometries
+        lgeom = geom.asMultiPolygon()
+    else:
+        lgeom = geom.asPolygon()
+    return get_deep_count(lgeom)
+
+
+def get_geom_info(geom: QgsGeometry) -> dict:
+    """Information data on geometry: Area, Mean distance between each vertice
+
+    Args:
+        geom (QgsGeometry): _description_
+
+    Returns:
+        dict: _description_
+    """
+    num_vertices = get_geom_vertices_count(geom)
+    area, perimiter = d.measureArea(geom), d.measurePerimeter(geom)
+    return {
+        "area": area,
+        "perimiter": perimiter,
+        "count_nodes": num_vertices,
+        "node_mean_dist": perimiter / num_vertices,
+    }
+
 
 def sql_query_area_builder(
     feedback: QgsProcessingFeedback, layer: QgsVectorLayer, layer_crs: str = "2154"
@@ -71,7 +112,7 @@ def sql_query_area_builder(
     Construct the sql array containing the input vector layer's features geometry.
     """
     # Initialization of the sql array containing the study area's features geometry
-    array_polygons = []
+
     # Retrieve the CRS of the layer
     crs = layer.sourceCrs().authid()
     if crs.split(":")[0] != "EPSG":
@@ -83,29 +124,24 @@ NB : 'EPSG:2154' pour Lambert 93 !"""
         )
     else:
         crs = crs.split(":")[1]
-    # For each entity in the study area...
-    for feature in layer.getFeatures():
-        # Retrieve the geometry
-        area = feature.geometry()  # QgsGeometry object
-        feedback.pushDebugInfo(f"area {area}")
-        # Retrieve the geometry type (single or multiple)
-        geom_single_type = QgsWkbTypes.isSingleType(area.wkbType())
-        feedback.pushDebugInfo(f"geom_single_type {geom_single_type}")
-        # Increment the sql array
-        if geom_single_type:
-            array_polygons.append(
-                f"ST_transform(ST_PolygonFromText('{area.asWkt()}', {crs}), {layer_crs})"
-            )
-        else:
-            array_polygons.append(
-                f"ST_transform(ST_MPolyFromText('{area.asWkt()}', {crs}), {layer_crs})"
-            )
-    # Remove the last "," in the sql array which is useless, and end the array
-    if len(array_polygons) > 1:
-        geom_list = ",".join(array_polygons)
-        return f"(select st_union(st_collect(ARRAY[{geom_list}])) as geom)"
 
-    return f"(select st_union({array_polygons[0]}) as geom)"
+    geoms = [f.geometry() for f in layer.getFeatures()]
+    ugeom = QgsGeometry.unaryUnion(geoms)
+    geom_info = get_geom_info(ugeom)
+    # If area hover 10km² and mean distance between node on perimeter is less than 500m
+    if geom_info['area'] > 10e6 and geom_info['node_mean_dist'] < 500:
+    #if False:
+        feedback.pushInfo(f'!!! Complexe geometry: {geom_info}')
+        # I need to simplify geometry with a tolerance of 500 meters
+        if crs == "4326":  # Lambert 93
+            degrees_per_meter = 1 / 111320  # Roughly 1 degree = 111.32 km
+            tolerance = 500 * degrees_per_meter
+        elif crs == "4326":  # WGS84
+            # Convert 500 meters to degrees (approximate conversion)
+            tolerance = 500  # in meters
+        ugeom = ugeom.simplify(tolerance)
+        feedback.pushDebugInfo(f'new geom: {get_geom_info(ugeom)}')
+    return f"(select ST_transform(st_geomfromtext('{ugeom.asWkt()}',{crs}),{layer_crs}) as geom)"
 
 
 def sql_queries_list_builder(
