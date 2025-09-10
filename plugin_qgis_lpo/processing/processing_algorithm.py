@@ -613,7 +613,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             self._query_area = sql_query_area_builder(
                 feedback=feedback, layer=self._study_area, layer_crs=self._layer_crs
             )
-            feedback.pushDebugInfo(f"_query_area {self._query_area}")
+            # feedback.pushDebugInfo(f"_query_area {self._query_area}")
         if not self._is_data_extraction:
             self._filters += ["is_present", "is_valid"]
         taxon_filters = sql_taxons_filter_builder(self._taxons_filters)
@@ -763,7 +763,9 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         if self._histogram_option != "Pas d'histogramme" and self._output_histogram:
             self.histogram_builder(self._taxonomic_rank_label)
 
+        feedback.pushDebugInfo(f"before load_layer")
         load_layer(context, self._layer)
+        feedback.pushDebugInfo(f"after load_layer")
 
 
         with open(
@@ -802,14 +804,16 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         )
         self._layer.actions().addAction(joke_action)
 
+
         return {self.OUTPUT: self._layer.id()}
+
     
 
     def postProcessAlgorithm(self, _context, _feedback) -> Dict:  # noqa N802
         # Open the attribute table of the PostGIS layer if there are less than 1000 features
-        if self._layer_features_count <= 1000:
-            iface.showAttributeTable(self._layer)
-        iface.setActiveLayer(self._layer)
+        # if self._layer_features_count <= 1000:
+        #     iface.showAttributeTable(self._layer)
+        # iface.setActiveLayer(self._layer)
 
         return {}
 

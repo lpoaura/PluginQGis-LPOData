@@ -91,7 +91,7 @@ class SummaryTablePerTimeInterval(BaseProcessingAlgorithm):
             {taxa_fields},
             {status_columns_with_alias},
             {custom_fields}
-            FROM src_lpodatas.v_c_observations_new obs
+            FROM src_lpodatas.v_c_observations obs
             LEFT JOIN taxonomie.bib_taxref_rangs r ON obs.id_rang = r.id_rang
             LEFT JOIN taxonomie.mv_c_statut st ON st.cd_ref=obs.cd_nom
             WHERE

@@ -62,7 +62,7 @@ class ExtractData(BaseProcessingAlgorithm):
         self._has_type_geom_filter = True
         self._primary_key = "id_synthese"
         self._query = """SELECT obs.*
-        FROM src_lpodatas.v_c_observations_new obs
+        FROM src_lpodatas.v_c_observations obs
         LEFT JOIN taxonomie.taxref t ON obs.cd_nom = t.cd_nom
         WHERE st_intersects(obs.geom, {query_area}) AND {where_filters}"""
         self._is_data_extraction = True

@@ -25,6 +25,7 @@ from qgis.core import (
     QgsProcessingAlgorithm,
     QgsProcessingContext,
     QgsProcessingException,
+    QgsWkbTypes,
     QgsProcessingFeedback,
     QgsVectorLayer,
     QgsDistanceArea,
@@ -60,12 +61,15 @@ def check_layer_is_valid(feedback: QgsProcessingFeedback, layer: QgsVectorLayer)
             de QGis, puis l'onglet "PostGIS"."""
         )
     else:
+
         # iface.messageBar().pushMessage("Info", "La couche PostGIS demandée est valide, la requête SQL a été exécutée avec succès !", level=Qgis.Info, duration=10)
         feedback.pushInfo(
             "La couche PostGIS demandée est valide, "
             "la requête SQL a été exécutée avec succès !"
+            f"{layer} {layer.featureCount()}"
         )
     return None
+
 
 def get_deep_count(nested_list):
     total_count = 0
@@ -86,7 +90,7 @@ def get_geom_vertices_count(geom: QgsGeometry) -> int:
     return get_deep_count(lgeom)
 
 
-def get_geom_info(geom: QgsGeometry) -> dict:
+def get_geom_info(geom: QgsGeometry, feedback) -> dict:
     """Information data on geometry: Area, Mean distance between each vertice
 
     Args:
@@ -96,7 +100,9 @@ def get_geom_info(geom: QgsGeometry) -> dict:
         dict: _description_
     """
     num_vertices = get_geom_vertices_count(geom)
+    feedback.pushInfo(f"Type geom: {type(geom)}")
     area, perimiter = d.measureArea(geom), d.measurePerimeter(geom)
+    # feedback.pushInfo(f'Unit: {d.areaUnits(geom)}, ellipsoid {d.ellipsoid(geom)}, elipsoidCrs {d.ellipsoidCrs(geom)}')
     return {
         "area": area,
         "perimiter": perimiter,
@@ -105,7 +111,73 @@ def get_geom_info(geom: QgsGeometry) -> dict:
     }
 
 
+def simplify_area(area, crs, feedback):
+    geom_info = get_geom_info(area, feedback)
+    feedback.pushInfo(f"Geom specs: {geom_info}")
+    # If area hover 10km² and mean distance between node on perimeter is less than 500m
+    if geom_info['area'] > 10e6 and geom_info['node_mean_dist'] < 500:
+    # if True:
+        feedback.pushInfo(f"!!! Géométrie complexe, une dégradation sera appliquée")
+        # I need to simplify geometry with a tolerance of 500 meters
+        if crs == "4326":  # Lambert 93
+            degrees_per_meter = 1 / 111320  # Roughly 1 degree = 111.32 km
+            tolerance = 500 * degrees_per_meter
+        else:  # WGS84
+            # Convt     500 meters to (approximate conversion)
+            tolerance = 50  # in meters
+        return area.simplify(tolerance)
+    return area
+
+
 def sql_query_area_builder(
+    feedback: QgsProcessingFeedback, layer: QgsVectorLayer, layer_crs: str = "2154"
+):
+    """
+    Construct the sql array containing the input vector layer's features geometry.
+    """
+    # Initialization of the sql array containing the study area's features geometry
+    array_polygons = []
+    # Retrieve the CRS of the layer
+    crs = layer.sourceCrs().authid()
+    if crs.split(":")[0] != "EPSG":
+        raise QgsProcessingException(
+            """Le SCR (système de coordonnées de référence) de votre couche zone \
+d'étude n'est pas de type 'EPSG'.
+Veuillez choisir un SCR adéquat.
+NB : 'EPSG:2154' pour Lambert 93 !"""
+        )
+    else:
+        crs = crs.split(":")[1]
+    # For each entity in the study area...
+    for feature in layer.getFeatures():
+        # Retrieve the geometry
+        area = feature.geometry()  # QgsGeometry object
+
+        # TODO: Fix geometry simplification that make QGIS crash
+        # geom = simplify_area(area, crs, feedback)
+        geom = area
+        # Retrieve the geometry type (single or multiple)
+        geom_single_type = QgsWkbTypes.isSingleType(geom.wkbType())
+        feedback.pushDebugInfo(f"geom_single_type {geom_single_type}")
+
+        # Increment the sql array
+        if geom_single_type:
+            array_polygons.append(
+                f"ST_transform(ST_PolygonFromText('{geom.asWkt()}', {crs}), {layer_crs})"
+            )
+        else:
+            array_polygons.append(
+                f"ST_transform(ST_MPolyFromText('{geom.asWkt()}', {crs}), {layer_crs})"
+            )
+    # Remove the last "," in the sql array which is useless, and end the array
+    if len(array_polygons) > 1:
+        geom_list = ",".join(array_polygons)
+        return f"(select st_union(st_collect(ARRAY[{geom_list}])) as geom)"
+
+    return f"(select st_union({array_polygons[0]}) as geom)"
+
+
+def sql_query_area_builder_new(
     feedback: QgsProcessingFeedback, layer: QgsVectorLayer, layer_crs: str = "2154"
 ):
     """
@@ -130,18 +202,20 @@ NB : 'EPSG:2154' pour Lambert 93 !"""
     geom_info = get_geom_info(ugeom)
     # If area hover 10km² and mean distance between node on perimeter is less than 500m
     if geom_info['area'] > 10e6 and geom_info['node_mean_dist'] < 500:
-    #if False:
-        feedback.pushInfo(f'!!! Complexe geometry: {geom_info}')
+    # if True:
+        feedback.pushInfo(f"!!! Complexe geometry: {geom_info}")
         # I need to simplify geometry with a tolerance of 500 meters
-        if crs == "4326":  # Lambert 93
-            degrees_per_meter = 1 / 111320  # Roughly 1 degree = 111.32 km
-            tolerance = 500 * degrees_per_meter
-        elif crs == "4326":  # WGS84
-            # Convert 500 meters to degrees (approximate conversion)
-            tolerance = 500  # in meters
-        ugeom = ugeom.simplify(tolerance)
-        feedback.pushDebugInfo(f'new geom: {get_geom_info(ugeom)}')
-    return f"(select ST_transform(st_geomfromtext('{ugeom.asWkt()}',{crs}),{layer_crs}) as geom)"
+        ugeom = simplify_area(ugeom, crs, feedback)
+        feedback.pushDebugInfo(f"new geom: {get_geom_info(ugeom)}")
+
+    geom_single_type = QgsWkbTypes.isSingleType(ugeom.wkbType())
+    feedback.pushDebugInfo(f"geom_single_type {geom_single_type}")
+    feedback.pushDebugInfo(f"new geom: {get_geom_info(ugeom)}")
+    if geom_single_type:
+        geom = f"ST_PolygonFromText('{ugeom.asWkt()}', {crs})"
+    else:
+        geom = f"ST_MPolyFromText('{ugeom.asWkt()}', {crs})"
+    return f"ST_transform({geom},{layer_crs})"
 
 
 def sql_queries_list_builder(

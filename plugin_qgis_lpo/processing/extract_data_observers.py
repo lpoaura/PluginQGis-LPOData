@@ -66,7 +66,7 @@ class ExtractDataObservers(BaseProcessingAlgorithm):
         self._query = """SELECT
             obs.*,
             (r.champs_addi ->'from_vn')->>'id_universal' as id_observateur
-        FROM src_lpodatas.v_c_observations_new obs
+        FROM src_lpodatas.v_c_observations obs
             JOIN gn_synthese.synthese s on s.id_synthese=obs.id_synthese
             LEFT JOIN taxonomie.taxref t ON obs.cd_nom = t.cd_nom
             LEFT JOIN utilisateurs.t_roles r on s.id_digitiser=r.id_role

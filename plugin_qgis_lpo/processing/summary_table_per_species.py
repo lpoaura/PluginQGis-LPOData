@@ -108,7 +108,7 @@ class SummaryTablePerSpecies(BaseProcessingAlgorithm):
             , observations.id_rang
             , observations.groupe_taxo
             , observations.mortalite
-        FROM src_lpodatas.v_c_observations_new observations
+        FROM src_lpodatas.v_c_observations observations
         WHERE ST_intersects(observations.geom, {query_area})
         and {where_filters}),
     communes AS (
