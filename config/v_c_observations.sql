@@ -1,3 +1,4 @@
+BEGIN;
 DROP VIEW IF EXISTS src_lpodatas.v_c_observations;
 CREATE VIEW src_lpodatas.v_c_observations AS
 WITH synthese_data AS (SELECT s.id_synthese
@@ -144,3 +145,4 @@ FROM synthese_data sd
      taxref_data t ON (sd.cd_nom = t.cd_nom)
          LEFT JOIN
      cor_vn_taxref cor ON (cor.cd_nom = t.cd_ref AND cor.cd_nom IS NOT NULL);
+COMMIT;

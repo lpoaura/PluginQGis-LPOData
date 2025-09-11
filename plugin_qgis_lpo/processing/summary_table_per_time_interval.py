@@ -89,7 +89,7 @@ class SummaryTablePerTimeInterval(BaseProcessingAlgorithm):
         self._query = """SELECT
             row_number() OVER () AS id,
             {taxa_fields},
-            {status_columns_with_alias},
+            {status_columns_with_alias}
             {custom_fields}
             FROM src_lpodatas.v_c_observations obs
             LEFT JOIN taxonomie.bib_taxref_rangs r ON obs.id_rang = r.id_rang
@@ -97,6 +97,6 @@ class SummaryTablePerTimeInterval(BaseProcessingAlgorithm):
             WHERE
                 st_intersects(obs.geom, {query_area})
                 and {where_filters}
-            GROUP BY {group_by_species}groupe_taxo,{status_columns_fields}
+            GROUP BY {group_by_species} {status_columns_fields} groupe_taxo
             ORDER BY groupe_taxo"""
         # TODO: Gérer le formattage SQL avec les virgules quand c'est pas une requête espèces...

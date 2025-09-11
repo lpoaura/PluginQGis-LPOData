@@ -8,7 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## 3.5.0 - 2025-01-28
 
-* ...
+* Intégration des statuts de protection et conservation au tableau de répartition temporelle des observations.
+* 
 
 ### Version note
 

@@ -143,7 +143,7 @@ class SummaryTablePerSpecies(BaseProcessingAlgorithm):
         , COUNT(DISTINCT obs.date)                      AS nb_dates
         , SUM(CASE WHEN mortalite THEN 1 ELSE 0 END)    AS nb_mortalite
         , {status_columns_fields}
-        , max(ac.hierarchy)                             AS max_hierarchy_atlas_code
+          max(ac.hierarchy)                             AS max_hierarchy_atlas_code
         , max(obs.nombre_total)                         AS nb_individus_max
         , min(obs.date_an)                              AS premiere_observation
         , max(obs.date_an)                              AS derniere_observation
@@ -156,9 +156,10 @@ class SummaryTablePerSpecies(BaseProcessingAlgorithm):
         LEFT JOIN taxonomie.mv_c_statut st ON st.cd_ref=obs.cd_nom
        GROUP BY
          groupe_taxo
-        , obs.cd_nom
+        , {status_columns_fields}
+          obs.cd_nom
         , r.nom_rang
-        , {status_columns_fields}),
+        ),
     synthese AS (
         SELECT DISTINCT
          d.cd_nom
@@ -172,7 +173,7 @@ class SummaryTablePerSpecies(BaseProcessingAlgorithm):
         , nb_dates                                          AS "Nb de dates"
         , nb_mortalite                                      AS "Nb de données de mortalité"
         , {status_columns_with_alias}
-        , ac.label_fr                                       AS "Statut nidif"
+          ac.label_fr                                       AS "Statut nidif"
         , nb_individus_max                                  AS "Nb d'individus max"
         , premiere_observation                              AS "Année première obs"
         , derniere_observation                              AS "Année dernière obs"

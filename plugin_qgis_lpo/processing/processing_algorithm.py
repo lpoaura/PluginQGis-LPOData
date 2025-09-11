@@ -454,7 +454,6 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         )
         self.addParameter(output_name)
 
-
         if self._has_source_data_filter:
             source_data_where = QgsProcessingParameterEnum(
                 self.SOURCE_DATA,
@@ -666,7 +665,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
                 and self._time_interval == "Par année"
                 and self._period_type == "Pas de filtre temporel"
             ):
-                # Exception for time interval syntheses without any time filters, 
+                # Exception for time interval syntheses without any time filters,
                 # automatically restricted to the 10 last years
                 self._period_type = "10 dernières années"
             self.log(message=f"taxonomic_rank {self._taxonomic_rank}")
@@ -709,7 +708,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             self, self._period_type, self._ts, parameters, context
         )
         feedback.pushDebugInfo(f"time_filter {time_filter}")
-        
+
         if time_filter:
             self._filters.append(time_filter)
 
@@ -721,12 +720,15 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
                 status_columns_as_dict = ast.literal_eval(
                     json.loads(self._db_variables.value("status_columns"))
                 )
-                feedback.pushDebugInfo(f"status_columns_as_dict {status_columns_as_dict}")
+                feedback.pushDebugInfo(
+                    f"status_columns_as_dict {status_columns_as_dict}"
+                )
                 self._status_columns_db = [
                     key for key, _value in status_columns_as_dict.items()
                 ]
                 self._status_columns_with_alias = [
-                    f'{key} as "{value}"' for key, value in status_columns_as_dict.items()
+                    f'{key} as "{value}"'
+                    for key, value in status_columns_as_dict.items()
                 ]
             except Exception as e:
                 feedback.pushDebugInfo(f"status column ERROR {e}")
@@ -743,13 +745,23 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             group_by_species=self._group_by_species,
             taxa_fields=self._taxa_fields,
             custom_fields=self._custom_fields,
-            status_columns_fields="\n, ".join(self._status_columns_db if self._taxonomic_rank == "Espèces" else []),
-            status_columns_with_alias="\n, ".join(self._status_columns_with_alias if self._taxonomic_rank == "Espèces" else []),
+            status_columns_fields=("\n, ".join(self._status_columns_db)
+            + (
+                ", "
+                if self._status_columns_db
+                else ""
+            )) if  self._taxonomic_rank == "Espèces" else "",
+            status_columns_with_alias=("\n, ".join(self._status_columns_with_alias)
+            + (
+                ", "
+                if self._status_columns_with_alias
+                else ""
+            )) if  self._taxonomic_rank == "Espèces" else ""
         )
         self.log(message=query)
         feedback.pushDebugInfo(f"query: {query}")
         geom_field = "geom" if self._is_map_layer else None
-        
+
         self._uri.setDataSource("", f"({query})", geom_field, "", self._primary_key)  # type: ignore
 
         self._layer = QgsVectorLayer(self._uri.uri(), self._format_name, "postgres")
@@ -767,11 +779,8 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         load_layer(context, self._layer)
         feedback.pushDebugInfo(f"after load_layer")
 
-
         with open(
-            os.path.join(
-                plugin_path, os.pardir, "action_scripts", "csv_formatter.py"
-            ),
+            os.path.join(plugin_path, os.pardir, "action_scripts", "csv_formatter.py"),
             "r",
             encoding="utf-8",
         ) as file:
@@ -804,16 +813,13 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         )
         self._layer.actions().addAction(joke_action)
 
-
         return {self.OUTPUT: self._layer.id()}
-
-    
 
     def postProcessAlgorithm(self, _context, _feedback) -> Dict:  # noqa N802
         # Open the attribute table of the PostGIS layer if there are less than 1000 features
-        # if self._layer_features_count <= 1000:
-        #     iface.showAttributeTable(self._layer)
-        # iface.setActiveLayer(self._layer)
+        if self._layer_features_count <= 1000:
+            iface.showAttributeTable(self._layer)
+        iface.setActiveLayer(self._layer)
 
         return {}
 
