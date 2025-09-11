@@ -6,12 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 <!-- ## Unreleased [{version_tag}](https://github.com/opengisch/qgis-plugin-ci/releases/tag/{version_tag}) - YYYY-MM-DD -->
 
-## 3.5.0 - 2025-01-28
+## 3.5.0 - 2025-09-11
 
-* Intégration des statuts de protection et conservation au tableau de répartition temporelle des observations.
-* 
+### :bug: Fixes
 
-### Version note
+* Intégration des statuts de protection et conservation au tableau de répartition temporelle des observations (fix #163).
+* Ajout des références aux jeux de données dans les extractions de données brutes (nom et UUID) (fix #168)
+* Amélioration de l'information des utilisateurs sur les choix de filtrages de données restituées (données validées inclues/exclues notamment) (fix #136)
+* Ajout du statut de validité SINP des données (fix #169)
+* Réécriture de la vue v_c_observations avec l'utilisation de CTE (WIP #170)
+* Divers fix (#163, #164, #87)
+
+### :ballot_box_with_check: TODO
 
 La liste des colonnes de statuts de protection/conservation des espèces attendues dans les synthèses espèces sont à définir dans une variable de la table gn_commons.t_parameters comme dans l'exemple suivant. Elles correspondent à la liste des statuts de la vue matérialisée `taxonomie.mv_c_statut`:
 
