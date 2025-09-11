@@ -1,6 +1,6 @@
 /******************************************************************
  * 		Création de la vue permettant la récupération des noms    *
- *      d'espèces dans scr_lpo_datas.v_c_observations_new             *
+ *      d'espèces dans scr_lpo_datas.v_c_observations             *
  ******************************************************************/
 CREATE MATERIALIZED VIEW taxonomie.mv_c_cor_vn_taxref
 AS WITH prep_vn AS (
