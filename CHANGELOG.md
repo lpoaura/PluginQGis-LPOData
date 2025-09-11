@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## 3.5.0 - 2025-09-11
 
-### :bug: Fixes
+### :bug: Fixes
 
 * Intégration des statuts de protection et conservation au tableau de répartition temporelle des observations (fix #163).
 * Ajout des références aux jeux de données dans les extractions de données brutes (nom et UUID) (fix #168)
