@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 <!-- ## Unreleased [{version_tag}](https://github.com/opengisch/qgis-plugin-ci/releases/tag/{version_tag}) - YYYY-MM-DD -->
 
+## 3.5.1 - 2025-09-11
+
+### :bug: Fixes
+
+* Réactive le peuplemnent des paramètres de filtrage et supprime le fichier `startup.py` obsolète (fix #173).
+
 ## 3.5.0 - 2025-09-11
 
 ### :bug: Fixes
