@@ -6,7 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 <!-- ## Unreleased [{version_tag}](https://github.com/opengisch/qgis-plugin-ci/releases/tag/{version_tag}) - YYYY-MM-DD -->
 
-## 3.5.1 - 2025-09-11
+## Unreleased
+
+## 3.5.2 - 2025-10-14
+
+### :bug: Fixes
+
+* Corrige le nom de colonne erroné pour le cd_nom dans certains algorithmes (fix #175).
+
+### :ballot_box_with_check: TODO
+
+Rien de particulier.
+
+
+## [3.5.1](https://github.com/lpoaura/PluginQGis-LPOData/releases/tag/3.5.1) - 2025-09-11
 
 ### :bug: Fixes
 

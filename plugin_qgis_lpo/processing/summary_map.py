@@ -97,7 +97,7 @@ WITH prep AS (SELECT la.id_area, ((st_area(la.geom))::DECIMAL / 1000000) area_su
         round(area_surface, 2) AS "Surface (km2)",
         count(*) AS "Nb de données",
         ROUND(COUNT(*) / ROUND(area_surface, 2), 2) AS "Densité (Nb de données/km2)",
-        COUNT(DISTINCT cd_ref) FILTER (WHERE id_rang='ES') AS "Nb d'espèces",
+        COUNT(DISTINCT cd_nom) FILTER (WHERE id_rang='ES') AS "Nb d'espèces",
         COUNT(DISTINCT observateur)  AS "Nb d'observateurs",
         COUNT(DISTINCT DATE) AS "Nb de dates",
         COUNT(DISTINCT obs.id_synthese) FILTER (WHERE mortalite) AS "Nb de données de mortalité",
