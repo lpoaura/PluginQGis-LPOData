@@ -101,7 +101,7 @@ class StateOfKnowledge(BaseProcessingAlgorithm):
             /* groupe_taxo as "Groupe taxo", */
             COUNT(*) AS "Nb de données",
             ROUND(COUNT(*)::decimal/total_count, 4)*100 AS "Nb données / Nb données TOTAL (%)",
-            COUNT(DISTINCT obs.cd_ref) FILTER (WHERE id_rang='ES') AS "Nb d'espèces",
+            COUNT(DISTINCT obs.cd_nom) FILTER (WHERE id_rang='ES') AS "Nb d'espèces",
             COUNT(DISTINCT observateur) AS "Nb d'observateurs",
             COUNT(DISTINCT date) AS "Nb de dates",
             COUNT(DISTINCT obs.id_synthese) FILTER (WHERE mortalite) AS "Nb de données de mortalité",

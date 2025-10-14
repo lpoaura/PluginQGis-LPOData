@@ -1,4 +1,4 @@
-name: "🚀 Releaser"
+name: 📦 Releaser
 
 on:
   push:
@@ -8,6 +8,7 @@ on:
 env:
   PROJECT_FOLDER: "plugin_qgis_lpo"
   PYTHON_VERSION: 3.9
+  QGISPLUGIN_VERSION: ${{ github.ref_name }}
 
 
 jobs:
@@ -44,7 +45,7 @@ jobs:
       run: qgis-plugin-ci changelog ${GITHUB_REF/refs\/tags\//} >> release.md
 
     - name: Create release on GitHub
-      uses: ncipollo/release-action@v1.14.0
+      uses: ncipollo/release-action@v1.20.0
       with:
         bodyFile: release.md
         generateReleaseNotes: true
