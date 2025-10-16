@@ -85,6 +85,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
     ADD_HISTOGRAM = "ADD_HISTOGRAM"
     HISTOGRAM_OPTIONS = "HISTOGRAM_OPTIONS"
     SOURCE_DATA = "SOURCE_DATA"
+    EXPORT_VIEWS = "EXPORT_VIEWS"
     TYPE_GEOM = "TYPE_GEOM"
 
     def __init__(self) -> None:
@@ -110,6 +111,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         self._has_histogram = False
         self._has_taxonomic_rank_form = False
         self._has_source_data_filter = False
+        self._has_export_views_list = False
         self._has_type_geom_filter = False
         self._export_output = False
         self._query = ""
@@ -177,6 +179,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         self._is_data_extraction: bool = False
         self._filters: List[str] = []
         self._period_type: str
+        self._export_view: str
         self._extra_where: Optional[str] = None
         self._source_data_where: Optional[str] = None
         self._type_geom_where: Optional[str] = None
@@ -310,6 +313,24 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
                 }
             )
             self.addParameter(taxonomic_rank)
+
+        export_views = [
+            json.loads(item) for item in self._db_variables.value("export_views")
+        ]
+
+        if self._has_export_views_list:
+            export_views_list = QgsProcessingParameterEnum(
+                self.EXPORT_VIEWS,
+                self.tr(
+                    f"""<strong style="color:#0a84db">FORMAT D'EXPORT</strong> {required_text} :
+                        sélectionnez une <u>vue</u> pour exporter les données"""
+                ),
+                [f"{item['label']} ({item['relation']})" for item in export_views],
+                allowMultiple=False,
+                defaultValue=0,
+                optional=False,
+            )
+            self.addParameter(export_views_list)
 
         period_type = QgsProcessingParameterEnum(
             self.PERIOD,
@@ -559,6 +580,14 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         self._period_type = self._period_variables[
             self.parameterAsEnum(parameters, self.PERIOD, context)
         ]
+
+        export_views = [
+            json.loads(item) for item in self._db_variables.value("export_views")
+        ]
+        self._export_view = export_views[
+            self.parameterAsEnum(parameters, self.EXPORT_VIEWS, context)
+        ]["relation"]
+
         # regne = [
         #     self._db_variables.value("regne")[i]
         #     for i in (self.parameterAsEnums(parameters, self.REGNE, context))
@@ -739,24 +768,29 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         query = self._query.format(
             areas_type=self._areas_type,
             query_area=self._query_area,
+            export_view=self._export_view,
             where_filters=" AND ".join(self._filters),
             taxonomic_rank_label=self._taxonomic_rank_label,
             taxonomic_rank_db=self._taxonomic_rank_db,
             group_by_species=self._group_by_species,
             taxa_fields=self._taxa_fields,
             custom_fields=self._custom_fields,
-            status_columns_fields=("\n, ".join(self._status_columns_db)
-            + (
-                ", "
-                if self._status_columns_db
+            status_columns_fields=(
+                (
+                    "\n, ".join(self._status_columns_db)
+                    + (", " if self._status_columns_db else "")
+                )
+                if self._taxonomic_rank == "Espèces"
                 else ""
-            )) if  self._taxonomic_rank == "Espèces" else "",
-            status_columns_with_alias=("\n, ".join(self._status_columns_with_alias)
-            + (
-                ", "
-                if self._status_columns_with_alias
+            ),
+            status_columns_with_alias=(
+                (
+                    "\n, ".join(self._status_columns_with_alias)
+                    + (", " if self._status_columns_with_alias else "")
+                )
+                if self._taxonomic_rank == "Espèces"
                 else ""
-            )) if  self._taxonomic_rank == "Espèces" else ""
+            ),
         )
         self.log(message=query)
         feedback.pushDebugInfo(f"query: {query}")

@@ -13,7 +13,7 @@ from qgis.PyQt.QtGui import QIcon
 from plugin_qgis_lpo.toolbelt.log_handler import PlgLogger
 from plugin_qgis_lpo.__about__ import __icon_dir_path__, __title__, __version__
 from plugin_qgis_lpo.processing.extract_data import ExtractData
-from plugin_qgis_lpo.processing.extract_sinp_data import ExtractSinpData
+from plugin_qgis_lpo.processing.extract_sinp_data import ExtractExportData
 from plugin_qgis_lpo.processing.extract_data_observers import ExtractDataObservers
 from plugin_qgis_lpo.processing.refresh_data import RefreshData
 from plugin_qgis_lpo.processing.state_of_knowledge import StateOfKnowledge
@@ -50,7 +50,7 @@ class QgisLpoProvider(QgsProcessingProvider):
         self.log(message=f"export_sinp {export_sinp}", log_level=0, push=False)
         if export_sinp:
             algorithms += [
-                ExtractSinpData(),
+                ExtractExportData(),
             ]
         for alg in algorithms:
             self.addAlgorithm(alg)

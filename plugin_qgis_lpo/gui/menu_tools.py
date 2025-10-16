@@ -17,7 +17,7 @@ from qgis.PyQt.QtWidgets import QAction, QMenu
 from plugin_qgis_lpo.__about__ import __title__
 from plugin_qgis_lpo.processing.provider import (
     ExtractData,
-    ExtractSinpData,
+    ExtractExportData,
     ExtractDataObservers,
     RefreshData,
     StateOfKnowledge,
@@ -63,7 +63,7 @@ class MenuTools(QMenu):
         )
         self.act_extract_sinp_data = QAction(
             icon=QIcon(ExtractData().icon()),
-            text=ExtractSinpData().displayName(),
+            text=ExtractExportData().displayName(),
         )
         self.act_state_of_knowledge = QAction(
             icon=QIcon(StateOfKnowledge().icon()),
@@ -99,7 +99,7 @@ class MenuTools(QMenu):
         )
         self.act_extract_sinp_data.triggered.connect(
             lambda: processing.createAlgorithmDialog(
-                f"plugin_qgis_lpo:{ExtractSinpData().name()}"
+                f"plugin_qgis_lpo:{ExtractExportData().name()}"
             ).show()
         )
         self.act_state_of_knowledge.triggered.connect(

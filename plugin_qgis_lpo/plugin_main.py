@@ -1,7 +1,7 @@
 #! python3  # noqa: E265
 
 """
-    Main plugin module.
+Main plugin module.
 """
 
 # standard
@@ -190,7 +190,7 @@ class QgisLpoPlugin:
                 )
                 if exclude_export_sinp:
                     self.main_menu.removeAction(self.tools_menu.act_extract_sinp_data)
-                    
+
                 self.provider.refreshAlgorithms()
                 self.log(
                     message=f"Loading GeoNature terminated",
@@ -198,7 +198,7 @@ class QgisLpoPlugin:
                     push=True,
                     duration=2,
                 )
-                
+
         except QgsProviderConnectionException as exc:
             self.log(
                 message=self.tr("Houston, we've got a problem: {}".format(exc)),
@@ -299,6 +299,7 @@ class QgisLpoPlugin:
             "source_data",
             "status_columns",
             "exclude_export_sinp",
+            "export_views",
         ]
         for variable in variables:
             if not self._dbVariables.value(variable):

@@ -8,7 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## Unreleased
 
-## 3.5.2 - 2025-10-14
+## 3.6.0 - 2025-10-16
+
+### :bug: New features
+
+* Améliore la généricité de l'algorithme d'export SINP pour le rendre plus générique. Il est maintenant possible d'exporter n'importe quelle vue déclarée dans le module d'export a condition qu'elle ait une clé primaire `id_synthese`. Les vues disponibles sont sélectionnables via une liste déroulante de la fenêtre de configuration de l'export.
 
 ### :bug: Fixes
 
