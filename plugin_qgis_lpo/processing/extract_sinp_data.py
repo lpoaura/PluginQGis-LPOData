@@ -18,13 +18,13 @@
 from .processing_algorithm import BaseProcessingAlgorithm
 
 
-class ExtractSinpData(BaseProcessingAlgorithm):
+class ExtractExportData(BaseProcessingAlgorithm):
     # Constants used to refer to parameters and outputs
     def __init__(self) -> None:
         super().__init__()
 
-        self._name = "ExtractSinpData"
-        self._display_name = "Extraction de données d'observation au format SINP"
+        self._name = "ExtractExportData"
+        self._display_name = "Extraction de données aux formats du module d'export (SINP, etc.)"
         self._output_name = self._display_name
         self._group_id = "raw_data"
         self._group = "Données brutes"
@@ -47,8 +47,9 @@ class ExtractSinpData(BaseProcessingAlgorithm):
         </p>
 
         <p>
-            Cet algorithme vous permet d'<strong>extraire des données d'observation</strong> contenues dans la
-            base de données LPO (couche type points) à partir d'une <strong>zone d'étude</strong>
+            Cet algorithme vous permet d'<strong>extraire des données d'observation</strong> 
+            à partir des vues fournies dans le module d'export de GeoNature et 
+            à partir d'une <strong>zone d'étude</strong>
             présente dans votre projet QGIS (couche de type polygones).<br /><br />
             <span style='color:#0a84db'><u>IMPORTANT</u> : Prenez le temps de lire
             <u>attentivement</U> les instructions pour chaque étape, et particulièrement les</span>
@@ -59,16 +60,17 @@ class ExtractSinpData(BaseProcessingAlgorithm):
         self._icon = "extract_data.png"
         self._short_help_string = ""
         self._is_map_layer = True
-        self._layer_crs = '4326'
+        self._layer_crs = "4326"
+        self._has_export_views_list = True
         self._has_source_data_filter = True
         self._has_type_geom_filter = True
         self._primary_key = "id_synthese"
         self._query = """SELECT obs.*
-        FROM gn_exports.v_synthese_sinp obs
-         JOIN (SELECT id_synthese, date_an, date_jour, desc_source, is_present, is_valid, type_geom, groupe_taxo
+        FROM {export_view} obs
+         JOIN (SELECT id_synthese, date_an, date_jour, desc_source, is_present, is_valid, type_geom, groupe_taxo, st_transform(geom, 4326) as geom
                FROM src_lpodatas.v_c_observations) AS t
                 ON t.id_synthese = obs.id_synthese
-        WHERE st_intersects(obs.geom, {query_area}) AND {where_filters}"""
+        WHERE st_intersects(t.geom, {query_area}) AND {where_filters}"""
         self._is_data_extraction = True
 
     # def createInstance(self):  # noqa N802

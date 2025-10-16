@@ -120,6 +120,17 @@ class RefreshData(BaseProcessingAlgorithm):
         from gn_commons.t_parameters
         where parameter_name like 'plugin_qgis_lpo_exclude_export_sinp'"""
 
+        queries[
+            "export_views"
+        ] = """SELECT 1 AS id
+     , ARRAY_AGG(
+        CONCAT('{"label":"', label, '","relation":"', CONCAT(schema_name, '.', view_name), '"}')
+ORDER BY CONCAT(schema_name, '.', view_name)
+    )
+FROM gn_exports.t_exports
+WHERE view_pk_column = 'id_synthese'
+            """
+
         for key, query in queries.items():
             self.populate_settings(key, query, feedback=feedback)
         self.log(
