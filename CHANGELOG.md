@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ### :bug: Fixes
 
 * Corrige le nom de colonne erroné pour le cd_nom dans certains algorithmes (fix #175).
+* Corrige la génération des statuts de reproduction manquants en l'élargissant à tous les groupes taxonomiques d'après les 3 niveaux (possible < probable < certain).
 
 ### :ballot_box_with_check: TODO
 

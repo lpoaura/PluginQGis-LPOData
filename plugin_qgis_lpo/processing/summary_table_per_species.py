@@ -104,7 +104,7 @@ class SummaryTablePerSpecies(BaseProcessingAlgorithm):
             , observations.date_an
             , observations.nombre_total
             , observations.source
-            , observations.oiso_code_nidif
+            , observations.statut_repro
             , observations.id_rang
             , observations.groupe_taxo
             , observations.mortalite
@@ -120,11 +120,8 @@ class SummaryTablePerSpecies(BaseProcessingAlgorithm):
         WHERE la.id_type = ref_geo.get_id_area_type('COM')),
     atlas_code as (
         /* préparation codes atlas */
-        SELECT cd_nomenclature, label_fr, hierarchy
-        FROM ref_nomenclatures.t_nomenclatures
-        WHERE id_type=(
-            select ref_nomenclatures.get_id_nomenclature_type('VN_ATLAS_CODE')
-            )
+        SELECT *
+        FROM (VALUES ('Possible', 1), ('Probable', 2), ('Certain', 3)) AS t(label, hierarchy)
     ),
     total_count AS (
         /* comptage nb total d'observations */
@@ -149,8 +146,8 @@ class SummaryTablePerSpecies(BaseProcessingAlgorithm):
         , max(obs.date_an)                              AS derniere_observation
         , string_agg(DISTINCT com.area_name, ', ')      AS communes
         , string_agg(DISTINCT obs.source, ', ')         AS sources
-        FROM obs
-        LEFT JOIN atlas_code ac ON obs.oiso_code_nidif = ac.cd_nomenclature::int
+       FROM obs
+        LEFT JOIN atlas_code ac ON obs.statut_repro = ac.label
         LEFT JOIN taxonomie.bib_taxref_rangs r ON obs.id_rang = r.id_rang
         LEFT JOIN communes com ON obs.id_synthese = com.id_synthese
         LEFT JOIN taxonomie.mv_c_statut st ON st.cd_ref=obs.cd_nom
@@ -173,7 +170,7 @@ class SummaryTablePerSpecies(BaseProcessingAlgorithm):
         , nb_dates                                          AS "Nb de dates"
         , nb_mortalite                                      AS "Nb de données de mortalité"
         , {status_columns_with_alias}
-          ac.label_fr                                       AS "Statut nidif"
+          ac.label                                          AS "Statut repro"
         , nb_individus_max                                  AS "Nb d'individus max"
         , premiere_observation                              AS "Année première obs"
         , derniere_observation                              AS "Année dernière obs"
