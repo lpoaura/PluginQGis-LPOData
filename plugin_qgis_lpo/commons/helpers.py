@@ -230,20 +230,6 @@ def sql_queries_list_builder(
     return queries
 
 
-def sql_taxons_filter_builder(taxons_dict: Dict) -> Optional[str]:
-    """
-    Construct the sql "where" clause with taxons filters.
-    """
-    rank_filters = []
-    for key, value in taxons_dict.items():
-        if value:
-            value_list = ",".join([f"'{v}'" for v in value])
-            rank_filters.append(f"{key} in ({value_list})")
-    if len(rank_filters) > 0:
-        taxons_where = f"({' or '.join(rank_filters)})"
-        return taxons_where
-    return None
-
 
 def sql_source_filter_builder(sources: List[str]) -> Optional[str]:
     """

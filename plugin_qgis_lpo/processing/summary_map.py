@@ -97,14 +97,13 @@ WITH prep AS (SELECT la.id_area, ((st_area(la.geom))::DECIMAL / 1000000) area_su
         round(area_surface, 2) AS "Surface (km2)",
         count(*) AS "Nb de données",
         ROUND(COUNT(*) / ROUND(area_surface, 2), 2) AS "Densité (Nb de données/km2)",
-        COUNT(DISTINCT cd_nom) FILTER (WHERE id_rang='ES') AS "Nb d'espèces",
+        COUNT(DISTINCT obs.cd_nom) FILTER (WHERE id_rang='ES') AS "Nb d'espèces",
         COUNT(DISTINCT observateur)  AS "Nb d'observateurs",
         COUNT(DISTINCT DATE) AS "Nb de dates",
         COUNT(DISTINCT obs.id_synthese) FILTER (WHERE mortalite) AS "Nb de données de mortalité",
         string_agg(DISTINCT obs.nom_vern,', ') FILTER (WHERE id_rang='ES') AS "Liste des espèces observées"
 FROM prep la
-    LEFT JOIN gn_synthese.cor_area_synthese cor
-ON la.id_area=cor.id_area
+    LEFT JOIN gn_synthese.cor_area_synthese cor ON la.id_area=cor.id_area
     LEFT JOIN src_lpodatas.v_c_observations obs ON cor.id_synthese=obs.id_synthese
 WHERE {where_filters}
 GROUP BY la.id_area, la.area_surface)

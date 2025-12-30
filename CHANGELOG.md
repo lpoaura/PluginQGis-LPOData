@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## Unreleased
 
+### :rocket: New features
+
+* Corrige le problème de performances sur le filtrage des taxons par l'ajout d'un champ dédié supplémentaire et une restructuration des requêtes SQL. Le filtrage est maintenant réalisé via une sous-requête.
+
+### :ballot_box_with_check: TODO
+
+Rien de particulier.
+
 ## 3.6.0 - 2025-10-16
 
 ### :rocket: New features

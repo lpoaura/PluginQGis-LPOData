@@ -42,7 +42,6 @@ from ..commons.helpers import (
     sql_geom_type_filter_builder,
     sql_queries_list_builder,
     sql_source_filter_builder,
-    sql_taxons_filter_builder,
     sql_timeinterval_cols_builder,
 )
 from ..commons.widgets import DateTimeWidget
@@ -63,14 +62,8 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
     STUDY_AREA = "STUDY_AREA"
     TAXONOMIC_RANK = "TAXONOMIC_RANK"
     AREAS_TYPE = "AREAS_TYPE"
-    GROUPE_TAXO = "GROUPE_TAXO"
-    # REGNE = "REGNE"
-    # PHYLUM = "PHYLUM"
-    # CLASSE = "CLASSE"
-    # ORDRE = "ORDRE"
-    # FAMILLE = "FAMILLE"
-    # GROUP1_INPN = "GROUP1_INPN"
-    # GROUP2_INPN = "GROUP2_INPN"
+    GROUPE_TAXO_FILTER = "GROUPE_TAXO_FILTER"
+    TAXREF_FILTER = "TAXREF_FILTER"
     PERIOD = "PERIOD"
     START_DATE = "START_DATE"
     END_DATE = "END_DATE"
@@ -169,6 +162,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         self._taxonomic_rank_db: str = "groupe_taxo"
         self._histogram_option: str = "Pas d'histogramme"
         self._groupe_taxo: List[str] = []
+        self._taxref_filter : Optional[str] = None
         self._output_name = "output"
         self._study_area = None
         self._format_name: str = "output"
@@ -421,17 +415,18 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             self.addParameter(areas_types)
 
         # ## Taxons filters ##
-        taxon_filter = QgsProcessingParameterEnum(
-            self.GROUPE_TAXO,
+        groupe_taxo_filter = QgsProcessingParameterEnum(
+            self.GROUPE_TAXO_FILTER,
             self.tr(
-                f"""<strong style="color:#0a84db">TAXONS</strong> {optional_text} :
+                f"""<strong style="color:#0a84db">GROUPE TAXONOMIQUE</strong> {optional_text} :
                     filtrer les données par groupes taxonomiques"""
             ),
             self._db_variables.value("groupe_taxo"),
             allowMultiple=True,
             optional=True,
         )
-        self.addParameter(taxon_filter)
+        self.addParameter(groupe_taxo_filter)
+
 
         if self._has_histogram:
             histogram_options = QgsProcessingParameterEnum(
@@ -478,7 +473,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         if self._has_source_data_filter:
             source_data_where = QgsProcessingParameterEnum(
                 self.SOURCE_DATA,
-                self.tr("Sources de données"),
+                self.tr("<strong>SOURCES DE DONNEES</strong>"),
                 self._db_variables.value("source_data"),
                 defaultValue=[0, 1, 2],
                 allowMultiple=True,
@@ -494,7 +489,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         if self._has_type_geom_filter:
             geomtype_data_where = QgsProcessingParameterEnum(
                 self.TYPE_GEOM,
-                self.tr("Type de géométries"),
+                self.tr("<strong>TYPE DE GEOMETRIES</strong>"),
                 self._type_geom_variables,
                 defaultValue=[1],
                 allowMultiple=False,
@@ -505,12 +500,28 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
                 | QgsProcessingParameterDefinition.FlagAdvanced
             )
             self.addParameter(geomtype_data_where)
+
+        # Extra "where" conditions
+        taxref_filter = QgsProcessingParameterString(
+            self.TAXREF_FILTER,
+            self.tr(
+                """<strong>FILTRAGE AVANCE DES TAXONS</strong>&nbsp;: Vous pouvez ajouter des <u>conditions <code>where</code> sur TaxRef
+                supplémentaires dans l'encadré suivant</u>, <strong>en langage SQL</strong>"""
+            ),
+            optional=True,
+            multiLine=True,
+        )
+        taxref_filter.setFlags(
+            taxref_filter.flags() | QgsProcessingParameterDefinition.FlagAdvanced
+        )
+        self.addParameter(taxref_filter)
+
         # Extra "where" conditions
         extra_where = QgsProcessingParameterString(
             self.EXTRA_WHERE,
             self.tr(
-                """Vous pouvez ajouter des <u>conditions <code>where</code>
-                supplémentaires dans l'encadré suivant, en langage SQL"""
+                """<strong>AUTRES CONDITIONS SQL&nbsp;: </strong> Vous pouvez ajouter des <u>conditions <code>where</code>
+                supplémentaires dans l'encadré suivant</u>, <strong>en langage SQL</strong>"""
             ),
             multiLine=True,
             optional=True,
@@ -573,10 +584,13 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         self._areas_type = self._areas_types_codes[
             self.parameterAsEnum(parameters, self.AREAS_TYPE, context)
         ]
-        self._groupe_taxo = [
+        self._groupe_taxo_filter = [
             self._db_variables.value("groupe_taxo")[i]
-            for i in (self.parameterAsEnums(parameters, self.GROUPE_TAXO, context))
+            for i in (self.parameterAsEnums(parameters, self.GROUPE_TAXO_FILTER, context))
         ]
+        self._taxref_filter_where = self.parameterAsString(
+            parameters, self.TAXREF_FILTER, context
+        )
         self._period_type = self._period_variables[
             self.parameterAsEnum(parameters, self.PERIOD, context)
         ]
@@ -622,7 +636,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         )
 
         self._taxons_filters = {
-            "groupe_taxo": self._groupe_taxo,
+            "groupe_taxo": self._groupe_taxo_filter,
             # "regne": regne,
             # "phylum": phylum,
             # "classe": classe,
@@ -644,9 +658,10 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             # feedback.pushDebugInfo(f"_query_area {self._query_area}")
         if not self._is_data_extraction:
             self._filters += ["is_present", "is_valid"]
-        taxon_filters = sql_taxons_filter_builder(self._taxons_filters)
-        if taxon_filters:
-            self._filters.append(taxon_filters)
+        # taxon_filters = sql_taxons_filter_builder(self._taxons_filters)
+        # if taxon_filters:
+            # self._filters.append(taxon_filters)
+        self.taxon_filtering()
 
         # Complete the "where" filter with the datetime filter
 
@@ -893,3 +908,42 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         if self._output_histogram[-4:] != ".png":
             self._output_histogram += ".png"
         plt.savefig(self._output_histogram)
+
+
+    def taxon_filtering_condition(self) -> Optional[str]:
+        """Filtering taxa"""
+        taxon_filters = self.sql_taxons_filter_builder()
+        filters = []
+        if taxon_filters:
+            filters.append(taxon_filters)
+        if  self._taxref_filter_where:
+            filters.append(self._taxref_filter_where)
+        if len(filters):
+            return " or ".join(filters)
+        
+    def taxon_filtering(self) -> Optional[str]:
+        taxon_filtering_condition = self.taxon_filtering_condition()
+        if taxon_filtering_condition:
+            raw_query = f"""obs.cd_nom in (SELECT cd_nom
+FROM (SELECT taxref.*, vn_id, groupe_taxo_fr AS groupe_taxo
+      FROM taxonomie.taxref
+               LEFT JOIN taxonomie.mv_c_cor_vn_taxref ON mv_c_cor_vn_taxref.cd_nom = taxref.cd_nom ) as t
+WHERE {taxon_filtering_condition})
+         """
+            return self._filters.append(raw_query)    
+        
+
+    
+    def sql_taxons_filter_builder(self) -> Optional[str]:
+        """
+        Construct the sql "where" clause with taxons filters.
+        """
+        rank_filters = []
+        for key, value in self._taxons_filters.items():
+            if value:
+                value_list = ",".join([f"'{v}'" for v in value])
+                rank_filters.append(f"{key} in ({value_list})")
+        if len(rank_filters) > 0:
+            taxons_where = f"({' or '.join(rank_filters)})"
+            return taxons_where
+        return None
