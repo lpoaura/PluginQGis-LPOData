@@ -93,28 +93,28 @@ class SummaryTablePerSpecies(BaseProcessingAlgorithm):
         # self._short_description = ""
         self._is_map_layer = False
         self._query = """
-    WITH obs AS (
+    WITH observations AS (
         /* selection des cd_nom */
-        SELECT observations.id_synthese
-            , observations.cd_nom
-            , observations.nom_vern
-            , observations.nom_sci
-            , observations.observateur
-            , observations.date
-            , observations.date_an
-            , observations.nombre_total
-            , observations.source
-            , observations.statut_repro
-            , observations.id_rang
-            , observations.groupe_taxo
-            , observations.mortalite
-        FROM src_lpodatas.v_c_observations observations
-        WHERE ST_intersects(observations.geom, {query_area})
+        SELECT obs.id_synthese
+            , obs.cd_nom
+            , obs.nom_vern
+            , obs.nom_sci
+            , obs.observateur
+            , obs.date
+            , obs.date_an
+            , obs.nombre_total
+            , obs.source
+            , obs.statut_repro
+            , obs.id_rang
+            , obs.groupe_taxo
+            , obs.mortalite
+        FROM src_lpodatas.v_c_observations obs
+        WHERE ST_intersects(obs.geom, {query_area})
         and {where_filters}),
     communes AS (
         /* selection des communes */
         SELECT DISTINCT obs.id_synthese, la.area_name
-        FROM obs
+        FROM observations as obs
         LEFT JOIN gn_synthese.cor_area_synthese cor ON obs.id_synthese = cor.id_synthese
         JOIN ref_geo.l_areas la ON cor.id_area = la.id_area
         WHERE la.id_type = ref_geo.get_id_area_type('COM')),
@@ -146,7 +146,7 @@ class SummaryTablePerSpecies(BaseProcessingAlgorithm):
         , max(obs.date_an)                              AS derniere_observation
         , string_agg(DISTINCT com.area_name, ', ')      AS communes
         , string_agg(DISTINCT obs.source, ', ')         AS sources
-       FROM obs
+       FROM observations as obs
         LEFT JOIN atlas_code ac ON obs.statut_repro = ac.label
         LEFT JOIN taxonomie.bib_taxref_rangs r ON obs.id_rang = r.id_rang
         LEFT JOIN communes com ON obs.id_synthese = com.id_synthese
