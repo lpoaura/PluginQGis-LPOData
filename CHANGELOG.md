@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 <!-- ## Unreleased [{version_tag}](https://github.com/opengisch/qgis-plugin-ci/releases/tag/{version_tag}) - YYYY-MM-DD -->
 
-## 3.7.0
+## [3.7.0](https://github.com/lpoaura/PluginQGis-LPOData/releases/tag/3.6.0) - 2026-01-05
 
 ### :rocket: New features
 
@@ -16,7 +16,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 Rien de particulier.
 
-## 3.6.0 - 2025-10-16
+
+## [3.6.0](https://github.com/lpoaura/PluginQGis-LPOData/releases/tag/3.6.0) - 2025-10-16
 
 ### :rocket: New features
 
