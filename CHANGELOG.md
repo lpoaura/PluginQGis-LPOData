@@ -6,9 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 <!-- ## Unreleased [{version_tag}](https://github.com/opengisch/qgis-plugin-ci/releases/tag/{version_tag}) - YYYY-MM-DD -->
 
+## [3.7.1](https://github.com/lpoaura/PluginQGis-LPOData/releases/tag/3.6.0) - 2026-01-06
+
+### :bug: Fixes
+
+* Corrige un problème d'écriture de la requête de tableau de synthèse par espèces.
+
+### :ballot_box_with_check: TODO
+
+Rien de particulier.
+
 ## [3.7.0](https://github.com/lpoaura/PluginQGis-LPOData/releases/tag/3.6.0) - 2026-01-05
 
-### :rocket: New features
+### :rocket: New features
 
 * Corrige le problème de performances sur le filtrage des taxons par l'ajout d'un champ dédié supplémentaire et une restructuration des requêtes SQL. Le filtrage est maintenant réalisé via une sous-requête.
 

@@ -126,7 +126,7 @@ class SummaryTablePerSpecies(BaseProcessingAlgorithm):
     total_count AS (
         /* comptage nb total d'observations */
         SELECT COUNT(*) AS total_count
-        FROM obs),
+        FROM observations),
      data AS (
         /* selection des données + statut */
         SELECT
