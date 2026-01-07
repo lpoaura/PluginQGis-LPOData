@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [3.7.1](https://github.com/lpoaura/PluginQGis-LPOData/releases/tag/3.6.0) - 2026-01-06
 
-### :bug: Fixes
+### :bug: Fixes
 
 * Corrige un problème d'écriture de la requête de tableau de synthèse par espèces.
 
