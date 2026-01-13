@@ -29,11 +29,11 @@ Rien de particulier.
 
 ## [3.6.0](https://github.com/lpoaura/PluginQGis-LPOData/releases/tag/3.6.0) - 2025-10-16
 
-### :rocket: New features
+### :rocket: New features
 
 * Améliore la généricité de l'algorithme d'export SINP pour le rendre plus générique. Il est maintenant possible d'exporter n'importe quelle vue déclarée dans le module d'export a condition qu'elle ait une clé primaire `id_synthese`. Les vues disponibles sont sélectionnables via une liste déroulante de la fenêtre de configuration de l'export.
 
-### :bug: Fixes
+### :bug: Fixes
 
 * Corrige le nom de colonne erroné pour le cd_nom dans certains algorithmes (fix #175).
 * Corrige la génération des statuts de reproduction manquants en l'élargissant à tous les groupes taxonomiques d'après les 3 niveaux (possible < probable < certain).
