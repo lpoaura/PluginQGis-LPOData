@@ -812,11 +812,12 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         geom_field = "geom" if self._is_map_layer else None
 
         self._uri.setDataSource("", f"({query})", geom_field, "", self._primary_key)  # type: ignore
-
+        
         self._layer = QgsVectorLayer(self._uri.uri(), self._format_name, "postgres")
-        self.log(message=f"features count {self._layer.featureCount()}")
-        feedback.pushDebugInfo(f"features count {self._layer.featureCount()}")
         self._layer_features_count = self._layer.featureCount()
+        self.log(message=f"features count {self._layer_features_count}")
+        feedback.pushDebugInfo(f"features count {self._layer_features_count}")
+        
         if self._layer_features_count == 0:
             raise QgsProcessingException(f"Couche de résultat vide")
         check_layer_is_valid(feedback, self._layer)

@@ -85,43 +85,38 @@ class SummaryMap(BaseProcessingAlgorithm):
         self._short_help_string = ""
         self._is_map_layer = True
         self._return_geo_agg = True
-        self._query = """/*set random_page_cost to 4;*/
-WITH prep AS (SELECT la.id_area, ((st_area(la.geom))::DECIMAL / 1000000) area_surface
-              FROM ref_geo.l_areas la
-              WHERE la.id_type = ref_geo.get_id_area_type('{areas_type}')
-                AND ST_intersects(la.geom, {query_area})
-                  ),
-     data AS (SELECT
-        row_number() OVER ()   AS id,
-        la.id_area,
-        round(area_surface, 2) AS "Surface (km2)",
-        count(*) AS "Nb de données",
-        ROUND(COUNT(*) / ROUND(area_surface, 2), 2) AS "Densité (Nb de données/km2)",
-        COUNT(DISTINCT obs.cd_nom) FILTER (WHERE id_rang='ES') AS "Nb d'espèces",
-        COUNT(DISTINCT observateur)  AS "Nb d'observateurs",
-        COUNT(DISTINCT DATE) AS "Nb de dates",
-        COUNT(DISTINCT obs.id_synthese) FILTER (WHERE mortalite) AS "Nb de données de mortalité",
-        string_agg(DISTINCT obs.nom_vern,', ') FILTER (WHERE id_rang='ES') AS "Liste des espèces observées"
-FROM prep la
-    LEFT JOIN gn_synthese.cor_area_synthese cor ON la.id_area=cor.id_area
-    LEFT JOIN src_lpodatas.v_c_observations obs ON cor.id_synthese=obs.id_synthese
-WHERE {where_filters}
-GROUP BY la.id_area, la.area_surface)
-SELECT data.id
-     , la.area_name
-     , la.area_code
-     , "Surface (km2)"
-     , "Nb de données"
-     , "Densité (Nb de données/km2)"
-     , "Nb d'espèces"
-     , "Nb d'observateurs"
-     , "Nb de dates"
-     , "Nb de données de mortalité"
-     , "Liste des espèces observées"
-     , la.geom
-FROM data
-         JOIN ref_geo.l_areas la ON data.id_area = la.id_area
-ORDER BY area_code"""
+        self._query = """
+WITH areas AS (SELECT la.id_area
+                    , la.area_name
+                    , la.area_code
+                    , cor_area_synthese.id_synthese
+                    , ((st_area(la.geom))::DECIMAL / 1000000) AS area_surface
+                    , la.geom
+               FROM ref_geo.l_areas la
+                        JOIN gn_synthese.cor_area_synthese ON la.id_area = cor_area_synthese.id_area
+               WHERE la.id_type = ref_geo.get_id_area_type('{areas_type}')
+                 AND st_intersects(la.geom, {query_area}))
+   , data AS (SELECT areas.id_area, obs.*
+              FROM areas
+                       LEFT JOIN src_lpodatas.v_c_observations obs ON areas.id_synthese = obs.id_synthese
+                  AND {where_filters})
+SELECT ROW_NUMBER() OVER ()                                                   AS id
+     , areas.id_area
+     , areas.area_name
+     , areas.area_code
+     , ROUND(area_surface, 2)                                                 AS "Surface (km2)"
+     , COUNT(DISTINCT data.id_synthese)                                       AS "Nb de données"
+     , ROUND(COUNT(DISTINCT data.id_synthese) / ROUND(area_surface, 2), 2)    AS "Densité (Nb de données/km2)"
+     , COUNT(DISTINCT data.cd_nom) FILTER (WHERE id_rang = 'ES')              AS "Nb d'espèces"
+     , COUNT(DISTINCT data.observateur)                                       AS "Nb d'observateurs"
+     , COUNT(DISTINCT data.date)                                              AS "Nb de dates"
+     , COUNT(DISTINCT data.id_synthese) FILTER (WHERE mortalite)              AS "Nb de données de mortalité"
+     , STRING_AGG(DISTINCT data.nom_vern, ', ') FILTER (WHERE id_rang = 'ES') AS "Liste des espèces observées"
+     , areas.geom
+FROM areas
+         JOIN data ON areas.id_area = data.id_area
+GROUP BY areas.id_area, ROUND(area_surface, 2), areas.geom, areas.area_name, areas.area_code
+"""
 
     # def createInstance(self):  # noqa N802
     #     return SummaryMap()
