@@ -53,7 +53,8 @@ class SummaryMap(BaseProcessingAlgorithm):
                 (couche de type polygones) par maille ou par commune (au choix)
                 basée sur une <strong>zone d'étude</strong> présente dans votre projet QGIS (couche
                 de type polygones). <strong style='color:#952132'>Les données d'absence et non valides sont
-                exclues de ce traitement.</strong>
+                exclues de ce traitement.</strong> Pour une maille à cheval sur la zone d'étude, l'ensemble des données 
+                de la maille est pris en compte, même celles à l'extérieur de la zone.
             </p>
             
             <p>
