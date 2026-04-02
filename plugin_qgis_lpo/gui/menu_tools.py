@@ -61,7 +61,7 @@ class MenuTools(QMenu):
             icon=QIcon(ExtractDataObservers().icon()),
             text=ExtractDataObservers().displayName(),
         )
-        self.act_extract_sinp_data = QAction(
+        self.act_extract_export_data = QAction(
             icon=QIcon(ExtractData().icon()),
             text=ExtractExportData().displayName(),
         )
@@ -97,7 +97,7 @@ class MenuTools(QMenu):
                 f"plugin_qgis_lpo:{ExtractDataObservers().name()}"
             ).show()
         )
-        self.act_extract_sinp_data.triggered.connect(
+        self.act_extract_export_data.triggered.connect(
             lambda: processing.createAlgorithmDialog(
                 f"plugin_qgis_lpo:{ExtractExportData().name()}"
             ).show()
@@ -136,7 +136,7 @@ class MenuTools(QMenu):
         self.addSeparator()
         self.addAction(self.act_extract_data)
         self.addAction(self.act_extract_data_observers)
-        self.addAction(self.act_extract_sinp_data)
+        self.addAction(self.act_extract_export_data)
         self.addSeparator()
         self.addAction(self.act_summary_per_species)
         self.addAction(self.act_summary_per_time_interval)

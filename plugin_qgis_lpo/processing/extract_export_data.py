@@ -60,18 +60,23 @@ class ExtractExportData(BaseProcessingAlgorithm):
         self._icon = "extract_data.png"
         self._short_help_string = ""
         self._is_map_layer = True
-        self._layer_crs = "4326"
+        self._layer_crs = "2154"
         self._has_export_views_list = True
         self._has_source_data_filter = True
         self._has_type_geom_filter = True
         self._primary_key = "id_synthese"
-        self._query = """SELECT obs.*
-        FROM {export_view} obs
-         JOIN (SELECT id_synthese, date_an, date_jour, desc_source, is_present, is_valid, type_geom, groupe_taxo, st_transform(geom, 4326) as geom
-               FROM src_lpodatas.v_c_observations) AS t
-                ON t.id_synthese = obs.id_synthese
-        WHERE st_intersects(t.geom, {query_area}) AND {where_filters}"""
+        self._query = """WITH data AS (SELECT id_synthese
+                   , date_an
+                   , date_jour
+                   , desc_source
+                   , is_present
+                   , is_valid
+                   , type_geom
+                   , groupe_taxo
+                   , geom AS geom
+              FROM src_lpodatas.v_c_observations AS obs
+              WHERE st_intersects(obs.geom, {query_area}) AND {where_filters})
+        SELECT export.*
+        FROM {export_view} export
+         JOIN data on data.id_synthese=export.id_synthese"""
         self._is_data_extraction = True
-
-    # def createInstance(self):  # noqa N802
-    #     return SummaryMap()

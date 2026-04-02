@@ -152,7 +152,7 @@ class QgisLpoPlugin:
             self.tools_menu = MenuTools(self.iface.mainWindow())
             self.main_menu.addAction(self.tools_menu.act_extract_data)
             self.main_menu.addAction(self.tools_menu.act_extract_data_observers)
-            self.main_menu.addAction(self.tools_menu.act_extract_sinp_data)
+            self.main_menu.addAction(self.tools_menu.act_extract_export_data)
             self.main_menu.addAction(self.tools_menu.addSeparator())
             self.main_menu.addAction(self.tools_menu.act_summary_map)
             self.main_menu.addAction(self.especes_action)
@@ -189,7 +189,7 @@ class QgisLpoPlugin:
                     (self._dbVariables.value("exclude_export_sinp")).capitalize()
                 )
                 if exclude_export_sinp:
-                    self.main_menu.removeAction(self.tools_menu.act_extract_sinp_data)
+                    self.main_menu.removeAction(self.tools_menu.act_extract_export_data)
 
                 self.provider.refreshAlgorithms()
                 self.log(
