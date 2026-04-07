@@ -85,6 +85,7 @@ class SummaryMap(BaseProcessingAlgorithm):
         self._icon = "map.png"
         self._short_help_string = ""
         self._is_map_layer = True
+        self._has_source_data_filter = True
         self._return_geo_agg = True
         self._query = """
 WITH areas AS (SELECT la.id_area
