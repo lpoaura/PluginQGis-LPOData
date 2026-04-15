@@ -62,7 +62,6 @@ class ExtractExportData(BaseProcessingAlgorithm):
         self._is_map_layer = True
         self._layer_crs = "2154"
         self._has_export_views_list = True
-        self._has_source_data_filter = True
         self._has_type_geom_filter = True
         self._primary_key = "id_synthese"
         self._query = """WITH data AS (SELECT id_synthese

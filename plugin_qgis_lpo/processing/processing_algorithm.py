@@ -103,7 +103,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         self._has_time_interval_form = False
         self._has_histogram = False
         self._has_taxonomic_rank_form = False
-        self._has_source_data_filter = False
+        self._has_source_data_filter = True
         self._has_export_views_list = False
         self._has_type_geom_filter = False
         self._export_output = False

@@ -71,7 +71,6 @@ class StateOfKnowledge(BaseProcessingAlgorithm):
             </p>
             """
         self._is_map_layer = False
-        self._has_source_data_filter = True
         self._has_histogram = True
         # self._has_taxonomic_rank_form = True
         # self._has_time_interval_form = False

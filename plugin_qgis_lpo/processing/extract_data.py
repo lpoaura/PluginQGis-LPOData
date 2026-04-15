@@ -58,7 +58,6 @@ class ExtractData(BaseProcessingAlgorithm):
         self._icon = "extract_data.png"
         self._short_help_string = ""
         self._is_map_layer = True
-        self._has_source_data_filter = True
         self._has_type_geom_filter = True
         self._primary_key = "id_synthese"
         self._query = """SELECT obs.*

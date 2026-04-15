@@ -92,7 +92,6 @@ class SummaryTablePerSpecies(BaseProcessingAlgorithm):
         self._icon = "table.png"
         # self._short_description = ""
         self._is_map_layer = False
-        self._has_source_data_filter = True
         self._query = """
     WITH observations AS (
         /* selection des cd_nom */
