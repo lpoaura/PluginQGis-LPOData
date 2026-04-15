@@ -23,7 +23,7 @@ from plugin_qgis_lpo.processing.summary_table_per_time_interval import (
     SummaryTablePerTimeInterval,
 )
 
-# ############################################################################
+# ##################################
 # ########## Classes ###############
 # ##################################
 
