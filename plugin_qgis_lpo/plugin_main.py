@@ -38,6 +38,7 @@ from plugin_qgis_lpo.processing.provider import QgisLpoProvider
 from plugin_qgis_lpo.processing.qgis_processing_postgis import get_connection_name
 from plugin_qgis_lpo.processing.species_map import CarteParEspece
 from plugin_qgis_lpo.toolbelt import PlgLogger
+import plugin_qgis_lpo.toolbelt.preferences as plg_prefs_hdlr
 
 # ############################################################################
 # ########## Classes ###############
@@ -63,6 +64,7 @@ class QgisLpoPlugin:
         self.iface: QgisInterface = iface
         self.tools_menu: Optional[QMenu] = None
         self.main_menu: Optional[QMenu] = None
+        self.debug_mode = plg_prefs_hdlr.PlgOptionsManager.get_plg_settings().debug_mode
         # translation
         # initialize the locale
         self.locale: str = QgsSettings().value("locale/userLocale", QLocale().name())[
@@ -168,7 +170,8 @@ class QgisLpoPlugin:
                 "Attention",
                 "La carte par espèces est accessible via la barre d'outils d'Extensions",
             )
-        self.populateSettings()
+        if not self.debug_mode:
+            self.populateSettings()
 
     def populateSettings(self):
         try:
