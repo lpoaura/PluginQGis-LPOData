@@ -16,6 +16,7 @@ caption: Usage
 maxdepth: 1
 ---
 Installation <usage/installation>
+Précisions sur les extractions <usage/precisions>
 Filtrage avancé (SQL) <usage/advanced_filter>
 ```
 
