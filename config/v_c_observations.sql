@@ -58,6 +58,7 @@ SELECT sd.id_synthese
        ref_nomenclatures.get_id_nomenclature('STATUT_OBS'::CHARACTER VARYING, 'Pr'::CHARACTER VARYING) AS is_present
      , sd.reference_biblio
      , public.st_asewkt(sd.the_geom_local)                                                                    AS geom_ekt
+	, se.anonymous_in_export
 FROM gn_synthese.synthese sd
          JOIN taxonomie.mv_c_cor_vn_taxref t ON t.cd_nom = sd.cd_nom
          JOIN gn_synthese.t_sources s ON sd.id_source = s.id_source
