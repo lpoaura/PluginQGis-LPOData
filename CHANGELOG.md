@@ -7,7 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 <!-- ## Unreleased [{version_tag}](https://github.com/opengisch/qgis-plugin-ci/releases/tag/{version_tag}) - YYYY-MM-DD -->
 
 
-## [3.10.0](https://github.com/lpoaura/PluginQGis-LPOData/releases/tag/3.10.0) - 2026-06-xx
+## [3.10.0](https://github.com/lpoaura/PluginQGis-LPOData/releases/tag/3.10.0) - 2026-06-01
 
 ### :rocket: New features
 
