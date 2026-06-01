@@ -7,6 +7,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 <!-- ## Unreleased [{version_tag}](https://github.com/opengisch/qgis-plugin-ci/releases/tag/{version_tag}) - YYYY-MM-DD -->
 
 
+## [3.10.1](https://github.com/lpoaura/PluginQGis-LPOData/releases/tag/3.10.0) - 2026-06-01
+
+### :bug: Fixes
+
+* Corrige le filtrage manquant sur la carte de synthèse
+
+### :ballot_box_with_check: TODO
+
+Rien de particulier.
+
+
 ## [3.10.0](https://github.com/lpoaura/PluginQGis-LPOData/releases/tag/3.10.0) - 2026-06-01
 
 ### :rocket: New features

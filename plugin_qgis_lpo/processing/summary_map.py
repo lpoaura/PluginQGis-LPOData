@@ -119,6 +119,7 @@ class SummaryMap(BaseProcessingAlgorithm):
                 FROM cor_area_synthese cas
                 JOIN src_lpodatas.v_c_observations obs
                     ON obs.id_synthese = cas.id_synthese
+                WHERE {where_filters}
                 GROUP BY cas.id_area
             )
             SELECT
