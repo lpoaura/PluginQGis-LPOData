@@ -1,7 +1,7 @@
 #! python3  # noqa: E265
 
 """
-    Processing provider module.
+Processing provider module.
 """
 
 # PyQGIS
@@ -9,12 +9,10 @@ from qgis.core import QgsProcessingProvider, QgsSettings
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.PyQt.QtGui import QIcon
 
-# project
-from plugin_qgis_lpo.toolbelt.log_handler import PlgLogger
 from plugin_qgis_lpo.__about__ import __icon_dir_path__, __title__, __version__
 from plugin_qgis_lpo.processing.extract_data import ExtractData
-from plugin_qgis_lpo.processing.extract_export_data import ExtractExportData
 from plugin_qgis_lpo.processing.extract_data_observers import ExtractDataObservers
+from plugin_qgis_lpo.processing.extract_export_data import ExtractExportData
 from plugin_qgis_lpo.processing.refresh_data import RefreshData
 from plugin_qgis_lpo.processing.state_of_knowledge import StateOfKnowledge
 from plugin_qgis_lpo.processing.summary_map import SummaryMap
@@ -22,6 +20,9 @@ from plugin_qgis_lpo.processing.summary_table_per_species import SummaryTablePer
 from plugin_qgis_lpo.processing.summary_table_per_time_interval import (
     SummaryTablePerTimeInterval,
 )
+
+# project
+from plugin_qgis_lpo.toolbelt.log_handler import PlgLogger
 
 # ##################################
 # ########## Classes ###############
@@ -46,7 +47,9 @@ class QgisLpoProvider(QgsProcessingProvider):
             StateOfKnowledge(),
             SummaryMap(),
         ]
-        export_sinp = not eval((self._db_variables.value("exclude_export_sinp")).capitalize())
+        export_sinp = not eval(
+            (self._db_variables.value("exclude_export_sinp")).capitalize()
+        )
         self.log(message=f"export_sinp {export_sinp}", log_level=0, push=False)
         if export_sinp:
             algorithms += [

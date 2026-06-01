@@ -32,17 +32,17 @@ class SummaryMap(BaseProcessingAlgorithm):
         self._group = "Cartes"
         self._short_description = """
             <p style='background-color:#61d8c6;color:white;font-style:bold;'>
-                    <span style="color:green">✔</span> 
-                    Cette extraction exclut les données <strong>non valides</strong> et 
+                    <span style="color:green">✔</span>
+                    Cette extraction exclut les données <strong>non valides</strong> et
                     <strong>d'absence</strong>.
             </p>
-        
+
             <p style="font-size:18px">
                 <strong>Besoin d'aide ?</strong>
-                
+
                 <br/>
-                
-                Vous pouvez vous référer aux options de         
+
+                Vous pouvez vous référer aux options de
                 <a href="https://lpoaura.github.io/PluginQGis-LPOData/usage/advanced_filter.html" target="_blank">
                 filtrage avancé</a>.
             </p>
@@ -53,10 +53,10 @@ class SummaryMap(BaseProcessingAlgorithm):
                 (couche de type polygones) par maille ou par commune (au choix)
                 basée sur une <strong>zone d'étude</strong> présente dans votre projet QGIS (couche
                 de type polygones). <strong style='color:#952132'>Les données d'absence et non valides sont
-                exclues de ce traitement.</strong> Pour une maille à cheval sur la zone d'étude, l'ensemble des données 
+                exclues de ce traitement.</strong> Pour une maille à cheval sur la zone d'étude, l'ensemble des données
                 de la maille est pris en compte, même celles à l'extérieur de la zone.
             </p>
-            
+
             <p>
                 <strong>Pour chaque entité géographique</strong>, la table attributaire de la
                 nouvelle couche fournit les informations suivantes :
@@ -70,7 +70,7 @@ class SummaryMap(BaseProcessingAlgorithm):
                     <li>Nombre de dates</li>
                     <li>Nombre de données de mortalité</li>
                     <li>Liste des espèces observées</li>
-                </ul>                    
+                </ul>
                 Vous pouvez ensuite modifier la <strong>symbologie</strong> de la couche comme bon
                 vous semble, en fonction du critère de votre choix.
             </p>

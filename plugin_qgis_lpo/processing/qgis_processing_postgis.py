@@ -22,11 +22,7 @@ __copyright__ = "(C) 2012, Martin Dobias"
 
 import psycopg2
 import psycopg2.extensions  # For isolation levels
-from qgis.core import (
-    QgsDataSourceUri,
-    QgsProcessingException,
-    QgsSettings,
-)
+from qgis.core import QgsDataSourceUri, QgsProcessingException, QgsSettings
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.PyQt.QtWidgets import QInputDialog
 
@@ -79,7 +75,6 @@ def uri_from_name(conn_name):
     uri.setUseEstimatedMetadata(useEstimatedMetadata)
 
     return uri
-
 
 
 def get_connection_name():

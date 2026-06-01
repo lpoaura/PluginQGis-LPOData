@@ -24,6 +24,8 @@ from qgis.PyQt.QtCore import QCoreApplication, QLocale, QTranslator, QUrl
 from qgis.PyQt.QtGui import QDesktopServices, QIcon
 from qgis.PyQt.QtWidgets import QAction, QMenu
 
+import plugin_qgis_lpo.toolbelt.preferences as plg_prefs_hdlr
+
 # project
 from plugin_qgis_lpo.__about__ import (
     DIR_PLUGIN_ROOT,
@@ -38,7 +40,6 @@ from plugin_qgis_lpo.processing.provider import QgisLpoProvider
 from plugin_qgis_lpo.processing.qgis_processing_postgis import get_connection_name
 from plugin_qgis_lpo.processing.species_map import CarteParEspece
 from plugin_qgis_lpo.toolbelt import PlgLogger
-import plugin_qgis_lpo.toolbelt.preferences as plg_prefs_hdlr
 
 # ############################################################################
 # ########## Classes ###############

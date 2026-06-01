@@ -1,7 +1,7 @@
 #! python3  # noqa: E265
 
 """
-    Plugin settings form integrated into QGIS 'Options' menu.
+Plugin settings form integrated into QGIS 'Options' menu.
 """
 
 # standard
@@ -13,10 +13,7 @@ from urllib.parse import quote
 import processing
 
 # PyQGIS
-from qgis.core import (
-    Qgis,
-    QgsApplication,
-)
+from qgis.core import Qgis, QgsApplication
 from qgis.gui import QgsOptionsPageWidget, QgsOptionsWidgetFactory
 from qgis.PyQt import uic
 from qgis.PyQt.Qt import QUrl

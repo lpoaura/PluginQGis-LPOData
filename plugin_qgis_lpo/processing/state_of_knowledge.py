@@ -29,18 +29,18 @@ class StateOfKnowledge(BaseProcessingAlgorithm):
         self._group = "Tableaux de synthèse"
         self._short_help_string = ""
         self._icon = "table.png"
-        self._short_description = """     
+        self._short_description = """
             <p style='background-color:#61d8c6;color:white;font-style:bold;'>
-                    <span style="color:green">✔</span> 
-                    Cette extraction exclut les données <strong>non valides</strong> et 
+                    <span style="color:green">✔</span>
+                    Cette extraction exclut les données <strong>non valides</strong> et
                     <strong>d'absence</strong>.
             </p>
-            
+
             <p style="font-size:18px">
                 <strong>Besoin d'aide ?</strong>
-                
-                <br/> 
-                
+
+                <br/>
+
                 Vous pouvez vous référer au <strong>Wiki</strong> accessible sur ce lien : <a href="https://lpoaura.github.io/PluginQGis-LPOData/index.html" target="_blank">https://lpoaura.github.io/PluginQGis-LPOData/index.html</a>.
             </p>
 

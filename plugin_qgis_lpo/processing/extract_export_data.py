@@ -24,31 +24,33 @@ class ExtractExportData(BaseProcessingAlgorithm):
         super().__init__()
 
         self._name = "ExtractExportData"
-        self._display_name = "Extraction de données aux formats du module d'export (SINP, etc.)"
+        self._display_name = (
+            "Extraction de données aux formats du module d'export (SINP, etc.)"
+        )
         self._output_name = self._display_name
         self._group_id = "raw_data"
         self._group = "Données brutes"
         self._short_description = """
         <p style='background-color:#952132;color:white;font-style:bold;'>
-            <span style="color:yellow">⚠️</span> 
-            Cette extraction inlut les données <strong>non valides</strong> et 
+            <span style="color:yellow">⚠️</span>
+            Cette extraction inlut les données <strong>non valides</strong> et
             <strong>d'absence</strong>.
         </p>
-        
-        
+
+
         <p style="font-size:18px">
             <strong>Besoin d'aide ?</strong>
-            
+
             <br/>
-            
-            Vous pouvez vous référer aux options de 
+
+            Vous pouvez vous référer aux options de
             <a href="https://lpoaura.github.io/PluginQGis-LPOData/usage/advanced_filter.html" target="_blank">
             filtrage avancé</a>.
         </p>
 
         <p>
-            Cet algorithme vous permet d'<strong>extraire des données d'observation</strong> 
-            à partir des vues fournies dans le module d'export de GeoNature et 
+            Cet algorithme vous permet d'<strong>extraire des données d'observation</strong>
+            à partir des vues fournies dans le module d'export de GeoNature et
             à partir d'une <strong>zone d'étude</strong>
             présente dans votre projet QGIS (couche de type polygones).<br /><br />
             <span style='color:#0a84db'><u>IMPORTANT</u> : Prenez le temps de lire

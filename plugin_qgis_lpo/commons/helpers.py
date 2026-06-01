@@ -20,16 +20,16 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from qgis import processing
 from qgis.core import (
+    QgsDistanceArea,
     QgsField,
     QgsFields,
+    QgsGeometry,
     QgsProcessingAlgorithm,
     QgsProcessingContext,
     QgsProcessingException,
-    QgsWkbTypes,
     QgsProcessingFeedback,
     QgsVectorLayer,
-    QgsDistanceArea,
-    QgsGeometry,
+    QgsWkbTypes,
 )
 from qgis.PyQt.QtCore import QVariant
 
@@ -54,12 +54,10 @@ def check_layer_is_valid(feedback: QgsProcessingFeedback, layer: QgsVectorLayer)
     Check if the input vector layer is valid.
     """
     if not layer.isValid():
-        raise QgsProcessingException(
-            """La couche PostGIS chargée n'est pas valide !
+        raise QgsProcessingException("""La couche PostGIS chargée n'est pas valide !
             Checkez les logs de PostGIS pour visualiser les messages d'erreur.
             Pour cela, rendez-vous dans l'onglet "Vue > Panneaux > Journal des messages"
-            de QGis, puis l'onglet "PostGIS"."""
-        )
+            de QGis, puis l'onglet "PostGIS".""")
     else:
 
         # iface.messageBar().pushMessage("Info", "La couche PostGIS demandée est valide, la requête SQL a été exécutée avec succès !", level=Qgis.Info, duration=10)
@@ -115,8 +113,8 @@ def simplify_area(area, crs, feedback):
     geom_info = get_geom_info(area, feedback)
     feedback.pushInfo(f"Geom specs: {geom_info}")
     # If area hover 10km² and mean distance between node on perimeter is less than 500m
-    if geom_info['area'] > 10e6 and geom_info['node_mean_dist'] < 500:
-    # if True:
+    if geom_info["area"] > 10e6 and geom_info["node_mean_dist"] < 500:
+        # if True:
         feedback.pushInfo(f"!!! Géométrie complexe, une dégradation sera appliquée")
         # I need to simplify geometry with a tolerance of 500 meters
         if crs == "4326":  # Lambert 93
@@ -153,7 +151,7 @@ NB : 'EPSG:2154' pour Lambert 93 !"""
         # Retrieve the geometry
         area = feature.geometry()  # QgsGeometry object
 
-        # TODO: Fix geometry simplification that make QGIS crash
+        # TODO: Fix geometry simplification that make QGIS crash
         # geom = simplify_area(area, crs, feedback)
         geom = area
         # Retrieve the geometry type (single or multiple)
@@ -201,8 +199,8 @@ NB : 'EPSG:2154' pour Lambert 93 !"""
     ugeom = QgsGeometry.unaryUnion(geoms)
     geom_info = get_geom_info(ugeom)
     # If area hover 10km² and mean distance between node on perimeter is less than 500m
-    if geom_info['area'] > 10e6 and geom_info['node_mean_dist'] < 500:
-    # if True:
+    if geom_info["area"] > 10e6 and geom_info["node_mean_dist"] < 500:
+        # if True:
         feedback.pushInfo(f"!!! Complexe geometry: {geom_info}")
         # I need to simplify geometry with a tolerance of 500 meters
         ugeom = simplify_area(ugeom, crs, feedback)
@@ -228,7 +226,6 @@ def sql_queries_list_builder(
         f'ALTER TABLE {table_name} add primary key ("{pk_field}")',
     ]
     return queries
-
 
 
 def sql_source_filter_builder(sources: List[str]) -> Optional[str]:

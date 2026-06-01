@@ -30,16 +30,16 @@ class ExtractData(BaseProcessingAlgorithm):
         self._group = "Données brutes"
         self._short_description = """
         <p style='background-color:#952132;color:white;font-style:bold;'>
-            <span style="color:yellow">⚠️</span> 
-            Cette extraction inlut les données <strong>non valides</strong> et 
+            <span style="color:yellow">⚠️</span>
+            Cette extraction inlut les données <strong>non valides</strong> et
             <strong>d'absence</strong>.
         </p>
-        
+
         <p style="font-size:18px"><strong>Besoin d'aide ?</strong>
-            
+
             <br/>
-            
-            Vous pouvez vous référer aux options de 
+
+            Vous pouvez vous référer aux options de
             <a href="https://lpoaura.github.io/PluginQGis-LPOData/usage/advanced_filter.html" target="_blank">
             filtrage avancé</a>.
         </p>

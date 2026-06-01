@@ -37,23 +37,23 @@ class SummaryTablePerTimeInterval(BaseProcessingAlgorithm):
         self._group = "Tableaux de synthèse"
         self._short_description = """
             <p style='background-color:#61d8c6;color:white;font-style:bold;'>
-                    <span style="color:green">✔</span> 
-                    Cette extraction exclut les données <strong>non valides</strong> et 
+                    <span style="color:green">✔</span>
+                    Cette extraction exclut les données <strong>non valides</strong> et
                     <strong>d'absence</strong>.
             </p>
 
             <p style='background-color:#edb48e;color:black;font-style:bold;'>
                     <span style="color:yellow">⚠️</span>
-                    Si vous choisissez la <strong>PERIODE</strong> <kbd>[Pas de filtre temporel]</kbd>, alors la période 
+                    Si vous choisissez la <strong>PERIODE</strong> <kbd>[Pas de filtre temporel]</kbd>, alors la période
                     <kbd>[10 dernières années]</kbd> s'appliquera par défaut.
             </p>
-        
+
             <p style="font-size:18px">
                 <strong>Besoin d'aide ?</strong>
-                
+
                 <br/>
-                
-                Vous pouvez vous référer aux options de         
+
+                Vous pouvez vous référer aux options de
                 <a href="https://lpoaura.github.io/PluginQGis-LPOData/usage/advanced_filter.html" target="_blank">
                 filtrage avancé</a>.
             </p>
@@ -63,7 +63,7 @@ class SummaryTablePerTimeInterval(BaseProcessingAlgorithm):
                 <ul>
                     <li>par année <u>ou</u> par mois (au choix)</li>
                     <li>et par espèce <u>ou</u> par groupe taxonomique (au choix)</li>
-                
+
                 </ul>
                 ... basé sur une <strong>zone d'étude</strong> présente dans votre projet QGIS (couche de type polygones) et selon une période de votre choix.
             </p>

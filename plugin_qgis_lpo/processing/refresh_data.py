@@ -103,14 +103,10 @@ class RefreshData(BaseProcessingAlgorithm):
         ]
 
         queries = {rank: taxonomy_query.format(rank=rank) for rank in ranks}
-        queries[
-            "source_data"
-        ] = """
+        queries["source_data"] = """
         SELECT 1 as id, list_source as source_data FROM dbadmin.mv_source
         """
-        queries[
-            "status_columns"
-        ] = """SELECT 1 as id, parameter_value as status_columns
+        queries["status_columns"] = """SELECT 1 as id, parameter_value as status_columns
         from gn_commons.t_parameters
         where parameter_name like 'plugin_qgis_lpo_status_columns'"""
 
@@ -120,9 +116,7 @@ class RefreshData(BaseProcessingAlgorithm):
         from gn_commons.t_parameters
         where parameter_name like 'plugin_qgis_lpo_exclude_export_sinp'"""
 
-        queries[
-            "export_views"
-        ] = """SELECT 1 AS id
+        queries["export_views"] = """SELECT 1 AS id
      , ARRAY_AGG(
         CONCAT('{"label":"', label, '","relation":"', CONCAT(schema_name, '.', view_name), '"}')
 ORDER BY CONCAT(schema_name, '.', view_name)

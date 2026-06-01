@@ -37,17 +37,17 @@ class SummaryTablePerSpecies(BaseProcessingAlgorithm):
         self._group = "Tableaux de synthèse"
         self._short_description = """
             <p style='background-color:#61d8c6;color:white;font-style:bold;'>
-                    <span style="color:green">✔</span> 
-                    Cette extraction exclut les données <strong>non valides</strong> et 
+                    <span style="color:green">✔</span>
+                    Cette extraction exclut les données <strong>non valides</strong> et
                     <strong>d'absence</strong>.
             </p>
-        
+
             <p style="font-size:18px">
                 <strong>Besoin d'aide ?</strong>
-                
+
                 <br/>
-                
-                Vous pouvez vous référer aux options de         
+
+                Vous pouvez vous référer aux options de
                 <a href="https://lpoaura.github.io/PluginQGis-LPOData/usage/advanced_filter.html" target="_blank">
                 filtrage avancé</a>.
             </p>
@@ -56,7 +56,7 @@ class SummaryTablePerSpecies(BaseProcessingAlgorithm):
                 Cet algorithme vous permet, à partir des données d'observation enregistrées dans la base de données LPO, d'obtenir un
                 <strong>tableau de synthèse</strong> par espèce (couche PostgreSQL) basé sur une <strong>zone d'étude</strong> présente dans votre projet
                 QGIS (couche de type polygones).
-            
+
                 <strong>Pour chaque espèce</strong> observée dans la zone d'étude considérée, le tableau fournit les informations suivantes :
                 <ul>
                     <li>Identifiant VisioNature de l'espèce</li>

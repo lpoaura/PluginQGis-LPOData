@@ -1,9 +1,9 @@
 #! python3  # noqa: E265
 
 """
-    Custom menu.
+Custom menu.
 
-    Ressources: https://realpython.com/python-menus-toolbars/#adding-help-tips-to-actions
+Ressources: https://realpython.com/python-menus-toolbars/#adding-help-tips-to-actions
 """
 
 # PyQGIS
@@ -17,8 +17,8 @@ from qgis.PyQt.QtWidgets import QAction, QMenu
 from plugin_qgis_lpo.__about__ import __title__
 from plugin_qgis_lpo.processing.provider import (
     ExtractData,
-    ExtractExportData,
     ExtractDataObservers,
+    ExtractExportData,
     RefreshData,
     StateOfKnowledge,
     SummaryMap,

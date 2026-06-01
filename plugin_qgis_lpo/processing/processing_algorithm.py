@@ -37,10 +37,10 @@ from ..commons.helpers import (
     format_layer_export,
     load_layer,
     simplify_name,
-    sql_query_area_builder,
     sql_datetime_filter_builder,
     sql_geom_type_filter_builder,
     sql_queries_list_builder,
+    sql_query_area_builder,
     sql_source_filter_builder,
     sql_timeinterval_cols_builder,
 )
@@ -162,7 +162,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         self._taxonomic_rank_db: str = "groupe_taxo"
         self._histogram_option: str = "Pas d'histogramme"
         self._groupe_taxo: List[str] = []
-        self._taxref_filter : Optional[str] = None
+        self._taxref_filter: Optional[str] = None
         self._output_name = "output"
         self._study_area = None
         self._format_name: str = "output"
@@ -328,11 +328,9 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
 
         period_type = QgsProcessingParameterEnum(
             self.PERIOD,
-            self.tr(
-                f"""<strong style="color:#0a84db">PÉRIODE</strong> {required_text} :
+            self.tr(f"""<strong style="color:#0a84db">PÉRIODE</strong> {required_text} :
                     sélectionnez une <u>période</u> pour filtrer vos données
-                    d'observations"""
-            ),
+                    d'observations"""),
             self._period_variables,
             allowMultiple=False,
             optional=True,
@@ -427,7 +425,6 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         )
         self.addParameter(groupe_taxo_filter)
 
-
         if self._has_histogram:
             histogram_options = QgsProcessingParameterEnum(
                 self.HISTOGRAM_OPTIONS,
@@ -446,10 +443,8 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
 
             output_histogram = QgsProcessingParameterFileDestination(
                 self.OUTPUT_HISTOGRAM,
-                self.tr(
-                    """Emplacement de l'enregistrement du ficher
-                    (format image PNG) de l'histogramme"""
-                ),
+                self.tr("""Emplacement de l'enregistrement du ficher
+                    (format image PNG) de l'histogramme"""),
                 self.tr("image PNG (*.png)"),
                 # optional=True,
                 # createByDefault=False,
@@ -586,7 +581,9 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         ]
         self._groupe_taxo_filter = [
             self._db_variables.value("groupe_taxo")[i]
-            for i in (self.parameterAsEnums(parameters, self.GROUPE_TAXO_FILTER, context))
+            for i in (
+                self.parameterAsEnums(parameters, self.GROUPE_TAXO_FILTER, context)
+            )
         ]
         self._taxref_filter_where = self.parameterAsString(
             parameters, self.TAXREF_FILTER, context
@@ -660,7 +657,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             self._filters += ["is_present", "is_valid"]
         # taxon_filters = sql_taxons_filter_builder(self._taxons_filters)
         # if taxon_filters:
-            # self._filters.append(taxon_filters)
+        # self._filters.append(taxon_filters)
         self.taxon_filtering()
 
         # Complete the "where" filter with the datetime filter
@@ -812,12 +809,12 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         geom_field = "geom" if self._is_map_layer else None
 
         self._uri.setDataSource("", f"({query})", geom_field, "", self._primary_key)  # type: ignore
-        
+
         self._layer = QgsVectorLayer(self._uri.uri(), self._format_name, "postgres")
         self._layer_features_count = self._layer.featureCount()
         self.log(message=f"features count {self._layer_features_count}")
         feedback.pushDebugInfo(f"features count {self._layer_features_count}")
-        
+
         if self._layer_features_count == 0:
             raise QgsProcessingException(f"Couche de résultat vide")
         check_layer_is_valid(feedback, self._layer)
@@ -910,18 +907,17 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             self._output_histogram += ".png"
         plt.savefig(self._output_histogram)
 
-
     def taxon_filtering_condition(self) -> Optional[str]:
         """Filtering taxa"""
         taxon_filters = self.sql_taxons_filter_builder()
         filters = []
         if taxon_filters:
             filters.append(taxon_filters)
-        if  self._taxref_filter_where:
+        if self._taxref_filter_where:
             filters.append(self._taxref_filter_where)
         if len(filters):
             return " or ".join(filters)
-        
+
     def taxon_filtering(self) -> Optional[str]:
         taxon_filtering_condition = self.taxon_filtering_condition()
         if taxon_filtering_condition:
@@ -931,10 +927,8 @@ FROM (SELECT taxref.*, vn_id, groupe_taxo_fr AS groupe_taxo
                LEFT JOIN taxonomie.mv_c_cor_vn_taxref ON mv_c_cor_vn_taxref.cd_nom = taxref.cd_nom ) as t
 WHERE {taxon_filtering_condition})
          """
-            return self._filters.append(raw_query)    
-        
+            return self._filters.append(raw_query)
 
-    
     def sql_taxons_filter_builder(self) -> Optional[str]:
         """
         Construct the sql "where" clause with taxons filters.

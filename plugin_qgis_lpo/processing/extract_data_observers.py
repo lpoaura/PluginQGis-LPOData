@@ -32,28 +32,28 @@ class ExtractDataObservers(BaseProcessingAlgorithm):
         self._group = "Données brutes"
         self._short_description = """
         <p style='background-color:#952132;color:white;font-style:bold;'>
-            <span style="color:yellow">⚠️</span> 
-            Cette extraction inlut les données <strong>non valides</strong> et 
+            <span style="color:yellow">⚠️</span>
+            Cette extraction inlut les données <strong>non valides</strong> et
             <strong>d'absence</strong>.
         </p>
-        
+
         <p style="font-size:18px">
             <strong>Besoin d'aide ?</strong>
-            
+
             <br/>
-            
-            Vous pouvez vous référer au <strong>Wiki</strong> accessible sur ce lien : 
+
+            Vous pouvez vous référer au <strong>Wiki</strong> accessible sur ce lien :
             <a href="https://lpoaura.github.io/PluginQGis-LPOData/index.html" target="_blank">
             https://lpoaura.github.io/PluginQGis-LPOData/index.html</a>.
         </p>
-            
+
         <p>
-            Cet algorithme vous permet d'<strong>extraire des données d'observation</strong> 
-            contenues dans la base de données LPO (couche PostGIS de type points) à partir d'une 
+            Cet algorithme vous permet d'<strong>extraire des données d'observation</strong>
+            contenues dans la base de données LPO (couche PostGIS de type points) à partir d'une
             <strong>zone d'étude</strong> présente dans votre projet QGis (couche de type polygones).</p>
-            <p><span style='color:#0a84db'><u>IMPORTANT</u> : Les <strong>étapes indispensables</strong> sont 
-            marquées d'une <strong>étoile *</strong> avant leur numéro. Prenez le temps de lire <u>attentivement</u> 
-            les instructions pour chaque étape, et particulièrement les</span> 
+            <p><span style='color:#0a84db'><u>IMPORTANT</u> : Les <strong>étapes indispensables</strong> sont
+            marquées d'une <strong>étoile *</strong> avant leur numéro. Prenez le temps de lire <u>attentivement</u>
+            les instructions pour chaque étape, et particulièrement les</span>
             <span style='color:#952132'>informations en rouge</span> <span style='color:#0a84db'>!</span>
         </p>
             """
