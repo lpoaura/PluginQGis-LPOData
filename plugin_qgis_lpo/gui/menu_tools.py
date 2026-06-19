@@ -8,7 +8,6 @@ Ressources: https://realpython.com/python-menus-toolbars/#adding-help-tips-to-ac
 
 # PyQGIS
 from qgis import processing
-from qgis.core import QgsApplication
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QMenu
@@ -89,43 +88,43 @@ class MenuTools(QMenu):
         # -- Connections
         self.act_extract_data.triggered.connect(
             lambda: processing.createAlgorithmDialog(
-                f"plugin_qgis_lpo:{ExtractData().name()}"
+                f"pluginqgislpo:{ExtractData().name()}"
             ).show()
         )
         self.act_extract_data_observers.triggered.connect(
             lambda: processing.createAlgorithmDialog(
-                f"plugin_qgis_lpo:{ExtractDataObservers().name()}"
+                f"pluginqgislpo:{ExtractDataObservers().name()}"
             ).show()
         )
         self.act_extract_export_data.triggered.connect(
             lambda: processing.createAlgorithmDialog(
-                f"plugin_qgis_lpo:{ExtractExportData().name()}"
+                f"pluginqgislpo:{ExtractExportData().name()}"
             ).show()
         )
         self.act_state_of_knowledge.triggered.connect(
             lambda: processing.createAlgorithmDialog(
-                f"plugin_qgis_lpo:{StateOfKnowledge().name()}"
+                f"pluginqgislpo:{StateOfKnowledge().name()}"
             ).show()
         )
 
         self.act_summary_map.triggered.connect(
             lambda: processing.createAlgorithmDialog(
-                f"plugin_qgis_lpo:{SummaryMap().name()}"
+                f"pluginqgislpo:{SummaryMap().name()}"
             ).show()
         )
         self.act_summary_per_species.triggered.connect(
             lambda: processing.createAlgorithmDialog(
-                f"plugin_qgis_lpo:{SummaryTablePerSpecies().name()}"
+                f"pluginqgislpo:{SummaryTablePerSpecies().name()}"
             ).show()
         )
         self.act_summary_per_time_interval.triggered.connect(
             lambda: processing.createAlgorithmDialog(
-                f"plugin_qgis_lpo:{SummaryTablePerTimeInterval().name()}"
+                f"pluginqgislpo:{SummaryTablePerTimeInterval().name()}"
             ).show()
         )
         self.act_refresh_data.triggered.connect(
             lambda: processing.createAlgorithmDialog(
-                f"plugin_qgis_lpo:{RefreshData().name()}"
+                f"pluginqgislpo:{RefreshData().name()}"
             ).show()
         )
 

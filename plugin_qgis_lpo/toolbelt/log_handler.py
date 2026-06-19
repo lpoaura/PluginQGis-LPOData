@@ -6,7 +6,7 @@ from functools import partial
 from typing import Callable
 
 # PyQGIS
-from qgis.core import QgsMessageLog, QgsMessageOutput
+from qgis.core import Qgis, QgsMessageLog, QgsMessageOutput
 from qgis.gui import QgsMessageBar
 from qgis.PyQt.QtWidgets import QPushButton, QWidget
 from qgis.utils import iface
@@ -104,10 +104,10 @@ class PlgLogger(logging.Handler):
                 logging.error(err_msg)
                 message = err_msg
 
+        qgis_log_level = Qgis.MessageLevel(log_level)
+
         # send it to QGIS messages panel
-        QgsMessageLog.logMessage(
-            message=message, tag=application, notifyUser=push, level=log_level
-        )
+        QgsMessageLog.logMessage(message, application, qgis_log_level, push)
 
         # optionally, display message on QGIS Message bar (above the map canvas)
         if push and iface is not None:
@@ -136,12 +136,12 @@ class PlgLogger(logging.Handler):
                 else:
                     mini_dlg = QgsMessageOutput.createMessageOutput()
                     mini_dlg.setTitle(application)
-                    mini_dlg.setMessage(message, QgsMessageOutput.MessageText)
+                    mini_dlg.setMessage(message, QgsMessageOutput.MessageType.MessageText)
                     widget_button.clicked.connect(partial(mini_dlg.showMessage, False))
 
                 notification.layout().addWidget(widget_button)
                 msg_bar.pushWidget(
-                    widget=notification, level=log_level, duration=duration
+                    widget=notification, level=qgis_log_level, duration=duration
                 )
 
             else:
@@ -149,6 +149,6 @@ class PlgLogger(logging.Handler):
                 msg_bar.pushMessage(
                     title=application,
                     text=message,
-                    level=log_level,
+                    level=qgis_log_level,
                     duration=duration,
                 )

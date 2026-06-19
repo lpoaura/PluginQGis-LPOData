@@ -16,7 +16,6 @@ import processing
 from qgis.core import Qgis, QgsApplication
 from qgis.gui import QgsOptionsPageWidget, QgsOptionsWidgetFactory
 from qgis.PyQt import uic
-from qgis.PyQt.Qt import QUrl
 from qgis.PyQt.QtGui import QDesktopServices, QIcon
 
 # project
@@ -96,7 +95,7 @@ class ConfigOptionsPage(FORM_CLASS, QgsOptionsPageWidget):
     def openRefreshProcessing(self, parent):
         """Open refresh data processing algorithm and close settings window"""
         processing.createAlgorithmDialog(
-            f"plugin_qgis_lpo:{RefreshData().name()}"
+            f"pluginqgislpo:{RefreshData().name()}"
         ).show()
         parent.close()
 

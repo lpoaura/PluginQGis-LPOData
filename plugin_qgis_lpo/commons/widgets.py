@@ -17,4 +17,4 @@ class DateTimeWidget(WidgetWrapper):
 
     def value(self):
         date_chosen = self._combo.dateTime()
-        return date_chosen.toString(Qt.ISODate)
+        return date_chosen.toString(Qt.DateFormat.ISODate)
