@@ -66,7 +66,7 @@ class QgisLpoProvider(QgsProcessingProvider):
         :return: provider ID
         :rtype: str
         """
-        return "plugin_qgis_lpo"
+        return "pluginqgislpo"
 
     def name(self) -> str:
         """Returns the provider name, which is used to describe the provider

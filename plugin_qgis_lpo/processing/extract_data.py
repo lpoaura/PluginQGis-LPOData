@@ -23,7 +23,7 @@ class ExtractData(BaseProcessingAlgorithm):
     def __init__(self) -> None:
         super().__init__()
 
-        self._name = "ExtractData"
+        self._name = "extractdata"
         self._display_name = "Extraction de données d'observation"
         self._output_name = self._display_name
         self._group_id = "raw_data"

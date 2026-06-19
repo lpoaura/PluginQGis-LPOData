@@ -22,7 +22,7 @@ class StateOfKnowledge(BaseProcessingAlgorithm):
     def __init__(self) -> None:
         super().__init__()
 
-        self._name = "StateOfKnowledge"
+        self._name = "stateofknowledge"
         self._display_name = "État des connaissances"
         self._output_name = "Etat des connaissances"
         self._group_id = "summary_tables"

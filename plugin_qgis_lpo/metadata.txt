@@ -18,8 +18,8 @@ tracker=https://github.com/lpoaura/PluginQGis-LPOData/issues
 deprecated=False
 experimental=False
 qgisMinimumVersion=3.16
-qgisMaximumVersion=3.99
+qgisMaximumVersion=4.99
 
 # versioning
-version=3.10.1
+version=3.11.0
 changelog=https://github.com/lpoaura/PluginQGis-LPOData/blob/master/CHANGELOG.md

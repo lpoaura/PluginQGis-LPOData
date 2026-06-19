@@ -23,7 +23,7 @@ class ExtractDataObservers(BaseProcessingAlgorithm):
     def __init__(self) -> None:
         super().__init__()
 
-        self._name = "ExtractDataObservers"
+        self._name = "extractdataobservers"
         self._display_name = (
             "Extraction de données d'observation (avec id observateurs - long)"
         )

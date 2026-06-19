@@ -25,10 +25,10 @@ class SummaryMap(BaseProcessingAlgorithm):
     def __init__(self) -> None:
         super().__init__()
 
-        self._name = "SummaryMap"
+        self._name = "summarymap"
         self._display_name = "Carte de synthèse"
         self._output_name = self._display_name
-        self._group_id = "Map"
+        self._group_id = "map"
         self._group = "Cartes"
         self._short_description = """
             <p style='background-color:#61d8c6;color:white;font-style:bold;'>

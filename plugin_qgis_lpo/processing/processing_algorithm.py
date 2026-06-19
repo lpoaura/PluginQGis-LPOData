@@ -275,7 +275,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
                     sélectionnez votre <u>zone d'étude</u>,
                     à partir de laquelle seront extraits les résultats"""
             ),
-            [QgsProcessing.TypeVectorPolygon],
+            [QgsProcessing.SourceType.TypeVectorPolygon],
         )
         self.addParameter(study_area)
 
@@ -437,7 +437,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             )
             histogram_options.setFlags(
                 histogram_options.flags()
-                | QgsProcessingParameterDefinition.FlagAdvanced
+                | QgsProcessingParameterDefinition.Flag.FlagAdvanced
             )
             self.addParameter(histogram_options)
 
@@ -450,7 +450,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
                 # createByDefault=False,
             )
             output_histogram.setFlags(
-                output_histogram.flags() | QgsProcessingParameterDefinition.FlagAdvanced
+                output_histogram.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
             )
             self.addParameter(output_histogram)
 
@@ -476,7 +476,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             )
             source_data_where.setFlags(
                 source_data_where.flags()
-                | QgsProcessingParameterDefinition.FlagAdvanced
+                | QgsProcessingParameterDefinition.Flag.FlagAdvanced
             )
             self.addParameter(source_data_where)
 
@@ -492,7 +492,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             )
             geomtype_data_where.setFlags(
                 geomtype_data_where.flags()
-                | QgsProcessingParameterDefinition.FlagAdvanced
+                | QgsProcessingParameterDefinition.Flag.FlagAdvanced
             )
             self.addParameter(geomtype_data_where)
 
@@ -507,7 +507,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             multiLine=True,
         )
         taxref_filter.setFlags(
-            taxref_filter.flags() | QgsProcessingParameterDefinition.FlagAdvanced
+            taxref_filter.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
         )
         self.addParameter(taxref_filter)
 
@@ -522,7 +522,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             optional=True,
         )
         extra_where.setFlags(
-            extra_where.flags() | QgsProcessingParameterDefinition.FlagAdvanced
+            extra_where.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
         )
         self.addParameter(extra_where)
         self.log(
@@ -702,7 +702,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
                 self.parameterAsEnum(parameters, self.TAXONOMIC_RANK, context)
             ]
             if (
-                self._name == "SummaryTablePerTimeInterval"
+                self._name == "summarytablepertimeinterval"
                 and self._time_interval == "Par année"
                 and self._period_type == "Pas de filtre temporel"
             ):
@@ -833,7 +833,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         ) as file:
             action_code = file.read()
         action = QgsAction(
-            QgsAction.GenericPython,
+            QgsAction.ActionType.GenericPython,
             "Exporter la couche sous format Excel dans mon dossier utilisateur avec la mise en forme adaptée",
             action_code,
             os.path.join(plugin_path, os.pardir, "icons", "excel.png"),
@@ -850,7 +850,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         ) as file:
             joke_action_code = file.read()
         joke_action = QgsAction(
-            QgsAction.GenericPython,
+            QgsAction.ActionType.GenericPython,
             "Rédiger mon rapport",
             joke_action_code,
             os.path.join(plugin_path, os.pardir, "icons", "word.png"),

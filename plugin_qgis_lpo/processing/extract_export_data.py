@@ -23,7 +23,7 @@ class ExtractExportData(BaseProcessingAlgorithm):
     def __init__(self) -> None:
         super().__init__()
 
-        self._name = "ExtractExportData"
+        self._name = "extractexportdata"
         self._display_name = (
             "Extraction de données aux formats du module d'export (SINP, etc.)"
         )

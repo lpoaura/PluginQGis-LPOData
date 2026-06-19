@@ -30,7 +30,7 @@ class SummaryTablePerSpecies(BaseProcessingAlgorithm):
     def __init__(self) -> None:
         super().__init__()
 
-        self._name = "SummaryTablePerSpecies"
+        self._name = "summarytableperspecies"
         self._display_name = "Tableau de synthèse par espèce"
         self._output_name = "Tableau de synthese par espece"
         self._group_id = "summary_tables"

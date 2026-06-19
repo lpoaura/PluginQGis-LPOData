@@ -44,43 +44,43 @@ class MyCheckableComboBox(QComboBox):
         # Show the list on a clic on the lineEdit
         if obj == self.lineEdit():
             if (
-                event.type() == QEvent.MouseButtonPress
-                and event.button() == Qt.LeftButton
+                event.type() == QEvent.Type.MouseButtonPress
+                and event.button() == Qt.MouseButton.LeftButton
             ):
                 self.skip_hide = True
                 self.showPopup()
 
         # Inside the list, a clic checks or unchecks the box
         elif (
-            event.type() == QEvent.MouseButtonPress
-            or event.type() == QEvent.MouseButtonRelease
+            event.type() == QEvent.Type.MouseButtonPress
+            or event.type() == QEvent.Type.MouseButtonRelease
         ) and obj == self.view().viewport():
             self.skip_hide = True
             if (
-                event.type() == QEvent.MouseButtonRelease
-                and event.button() == Qt.RightButton
+                event.type() == QEvent.Type.MouseButtonRelease
+                and event.button() == Qt.MouseButton.RightButton
             ):
                 return True
-            if event.type() == QEvent.MouseButtonRelease:
+            if event.type() == QEvent.Type.MouseButtonRelease:
                 index = self.view().indexAt(event.pos())
                 if index.isValid():
-                    if self.model().data(index, Qt.CheckStateRole) == Qt.Checked:
-                        self.model().setData(index, Qt.Unchecked, Qt.CheckStateRole)
+                    if self.model().data(index, Qt.ItemDataRole.CheckStateRole) == Qt.CheckState.Checked:
+                        self.model().setData(index, Qt.CheckState.Unchecked, Qt.ItemDataRole.CheckStateRole)
                     else:
-                        self.model().setData(index, Qt.Checked, Qt.CheckStateRole)
+                        self.model().setData(index, Qt.CheckState.Checked, Qt.ItemDataRole.CheckStateRole)
                     self.updateText()
                     return True
         return super().eventFilter(obj, event)
 
-    def checkedItemsData(self, role=Qt.UserRole):  # noqa N802
+    def checkedItemsData(self, role=Qt.ItemDataRole.UserRole):  # noqa N802
         """
         Returns the list of data for the checked items
         """
         data_list = []
         for row in range(self.model().sourceModel().rowCount()):
             if (
-                self.model().sourceModel().item(row, 0).data(Qt.CheckStateRole)
-                == Qt.Checked
+                self.model().sourceModel().item(row, 0).data(Qt.ItemDataRole.CheckStateRole)
+                == Qt.CheckState.Checked
             ):
                 data_list.append(self.model().sourceModel().item(row, 0).data(role))
         return data_list
@@ -89,7 +89,7 @@ class MyCheckableComboBox(QComboBox):
         """
         The text on the combobox should be the list of the selected items
         """
-        name_list = self.checkedItemsData(Qt.DisplayRole)
+        name_list = self.checkedItemsData(Qt.ItemDataRole.DisplayRole)
         if len(name_list) == 0:
             self.lineEdit().setText("")
             return
@@ -120,7 +120,7 @@ class CarteParEspece(QDialog):  # noqa N802
         grp_box.layout().addWidget(rbtn_vern)
         grp_box.layout().addWidget(rbtn_sci)
 
-        dialog_buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        dialog_buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         dialog_buttons.accepted.connect(self.accept)
         dialog_buttons.rejected.connect(self.reject)
 
@@ -137,7 +137,7 @@ class CarteParEspece(QDialog):  # noqa N802
             .createConnection(self.connection_name)
         )
 
-        with OverrideCursor(Qt.WaitCursor):
+        with OverrideCursor(Qt.CursorShape.WaitCursor):
             query = """SELECT unnest(liste_object)
                 FROM dbadmin.mv_taxonomy
                 WHERE rang='species'"""
@@ -154,7 +154,7 @@ class CarteParEspece(QDialog):  # noqa N802
                     sci_item = QStandardItem()
                     sci_item.setCheckable(True)
                     sci_item.setText(nom_sci)
-                    sci_item.setData(cd_ref, Qt.UserRole)
+                    sci_item.setData(cd_ref, Qt.ItemDataRole.UserRole)
                     self.cbx_nom_sci.model().sourceModel().appendRow(
                         [sci_item, QStandardItem(sanitize_name(nom_sci))]
                     )
@@ -162,7 +162,7 @@ class CarteParEspece(QDialog):  # noqa N802
                     vern_item = QStandardItem()
                     vern_item.setCheckable(True)
                     vern_item.setText(nom_vern)
-                    vern_item.setData(cd_ref, Qt.UserRole)
+                    vern_item.setData(cd_ref, Qt.ItemDataRole.UserRole)
                     self.cbx_nom_vern.model().sourceModel().appendRow(
                         [vern_item, QStandardItem(sanitize_name(nom_vern))]
                     )
@@ -171,8 +171,8 @@ class CarteParEspece(QDialog):  # noqa N802
 
             self.cbx_nom_vern.model().setFilterKeyColumn(1)
             self.cbx_nom_sci.model().setFilterKeyColumn(1)
-            self.cbx_nom_vern.model().setFilterCaseSensitivity(Qt.CaseInsensitive)
-            self.cbx_nom_sci.model().setFilterCaseSensitivity(Qt.CaseInsensitive)
+            self.cbx_nom_vern.model().setFilterCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+            self.cbx_nom_sci.model().setFilterCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
             self.cbx_nom_vern.model().sort(0)
             self.cbx_nom_sci.model().sort(0)
 
@@ -240,7 +240,7 @@ class CarteParEspece(QDialog):  # noqa N802
         layer_name_query_result = self.connection.executeSql(layer_name_query)
         layer_name = layer_name_query_result[0][0]
 
-        with OverrideCursor(Qt.WaitCursor):
+        with OverrideCursor(Qt.CursorShape.WaitCursor):
             layer = QgsVectorLayer(uri.uri(), layer_name, "postgres")
             layer.loadNamedStyle(
                 str(

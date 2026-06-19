@@ -36,6 +36,7 @@ from plugin_qgis_lpo.__about__ import (
 )
 from plugin_qgis_lpo.gui.dlg_settings import PlgOptionsFactory
 from plugin_qgis_lpo.gui.menu_tools import MenuTools
+from plugin_qgis_lpo.processing.refresh_data import RefreshData
 from plugin_qgis_lpo.processing.provider import QgisLpoProvider
 from plugin_qgis_lpo.processing.qgis_processing_postgis import get_connection_name
 from plugin_qgis_lpo.processing.species_map import CarteParEspece
@@ -186,9 +187,9 @@ class QgisLpoPlugin:
                     push=True,
                     duration=60,
                 )
-                processing.run(
-                    "plugin_qgis_lpo:RefreshData", {"DATABASE": "geonature_lpo"}
-                )
+                refresh_data = RefreshData()
+                refresh_data.initAlgorithm(None)
+                processing.run(refresh_data, {"DATABASE": "geonature_lpo"})
                 exclude_export_sinp = eval(
                     (self._dbVariables.value("exclude_export_sinp")).capitalize()
                 )
@@ -211,7 +212,7 @@ class QgisLpoPlugin:
             )
             raise QgsProcessingException(
                 f"Could not retrieve connection details : {str(exc)}"
-            ) from exc  # processing.run("plugin_qgis_lpo:RefreshData", {"DATABASE": "geonature_lpo"})
+            ) from exc
 
     def runEspeces(self):  # noqa N802
         connection_name = get_connection_name()

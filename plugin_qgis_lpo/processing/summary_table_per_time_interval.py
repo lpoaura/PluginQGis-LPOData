@@ -30,7 +30,7 @@ class SummaryTablePerTimeInterval(BaseProcessingAlgorithm):
     def __init__(self) -> None:
         super().__init__()
 
-        self._name = "SummaryTablePerTimeInterval"
+        self._name = "summarytablepertimeinterval"
         self._display_name = "Tableau de synthèse par intervalle de temps"
         self._output_name = "Tableau de synthèse par intervalle de temps"
         self._group_id = "summary_tables"

@@ -17,7 +17,6 @@
 from typing import Any, Dict, Optional
 
 from qgis.core import (
-    QgsDataSourceUri,
     QgsProcessingContext,
     QgsProcessingFeedback,
     QgsProcessingParameterProviderConnection,
@@ -35,7 +34,7 @@ class RefreshData(BaseProcessingAlgorithm):
     def __init__(self) -> None:
         super().__init__()
 
-        self._name = "RefreshData"
+        self._name = "refreshdata"
         self._display_name = "Rafraichissement manuel des données du plugin"
         self._output_name = "Refreshed data"
         self._group_id = "plugin_settings"

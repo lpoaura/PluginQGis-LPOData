@@ -58,9 +58,9 @@ def uri_from_name(conn_name):
 
     useEstimatedMetadata = settings.value("estimatedMetadata", False, type=bool)
     try:
-        sslmode = settings.value("sslmode", QgsDataSourceUri.SslPrefer, type=int)
+        sslmode = settings.value("sslmode", QgsDataSourceUri.SslMode.SslPrefer, type=int)
     except TypeError:
-        sslmode = QgsDataSourceUri.SslPrefer
+        sslmode = QgsDataSourceUri.SslMode.SslPrefer
 
     settings.endGroup()
 
