@@ -822,10 +822,6 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         if self._histogram_option != "Pas d'histogramme" and self._output_histogram:
             self.histogram_builder(self._taxonomic_rank_label)
 
-        feedback.pushDebugInfo(f"before load_layer")
-        load_layer(context, self._layer)
-        feedback.pushDebugInfo(f"after load_layer")
-
         with open(
             os.path.join(plugin_path, os.pardir, "action_scripts", "csv_formatter.py"),
             "r",
@@ -862,7 +858,11 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
 
         return {self.OUTPUT: self._layer.id()}
 
-    def postProcessAlgorithm(self, _context, _feedback) -> Dict:  # noqa N802
+    def postProcessAlgorithm(self, context, feedback) -> Dict:  # noqa N802
+        feedback.pushDebugInfo(f"before load_layer")
+        load_layer(context, self._layer)
+        feedback.pushDebugInfo(f"after load_layer")
+
         # Open the attribute table of the PostGIS layer if there are less than 1000 features
         if self._layer_features_count <= 1000:
             iface.showAttributeTable(self._layer)
