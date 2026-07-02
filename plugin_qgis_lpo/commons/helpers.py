@@ -362,17 +362,19 @@ def sql_timeinterval_cols_builder(  # noqa C901
     return final_select_data, x_var
 
 
-def load_layer(context: QgsProcessingContext, layer: QgsVectorLayer):
+def load_layer(
+    context: QgsProcessingContext, layer: QgsVectorLayer, output_name: str = ""
+):
     """
     Load a layer in the current project.
     """
     if context.project() is not None:
-        root = context.project().layerTreeRoot()
-        plugin_lpo_group = root.findGroup("Résultats plugin LPO")
-        if not plugin_lpo_group:
-            plugin_lpo_group = root.insertGroup(0, "Résultats plugin LPO")
-        context.project().addMapLayer(layer, False)
-        plugin_lpo_group.insertLayer(0, layer)
+        context.temporaryLayerStore().addMapLayer(layer)
+        layer_details = QgsProcessingContext.LayerDetails(
+            layer.name(), context.project(), output_name
+        )
+        layer_details.groupName = "Résultats plugin LPO"
+        context.addLayerToLoadOnCompletion(layer.id(), layer_details)
 
 
 def execute_sql_queries(

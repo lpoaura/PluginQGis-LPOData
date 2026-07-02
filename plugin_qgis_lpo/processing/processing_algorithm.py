@@ -15,12 +15,10 @@ from qgis.core import (
     QgsProcessingContext,
     QgsProcessingException,
     QgsProcessingFeedback,
-    QgsProcessingParameterBoolean,
     QgsProcessingParameterDefinition,
     QgsProcessingParameterEnum,
     QgsProcessingParameterFeatureSource,
     QgsProcessingParameterFileDestination,
-    QgsProcessingParameterNumber,
     QgsProcessingParameterProviderConnection,
     QgsProcessingParameterString,
     QgsSettings,
@@ -28,7 +26,6 @@ from qgis.core import (
 )
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.PyQt.QtGui import QIcon
-from qgis.utils import iface
 
 from ..__about__ import __icon_dir_path__
 from ..commons.helpers import (
@@ -197,6 +194,9 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
     def createInstance(self):  # noqa N802
         return type(self)()
 
+    def flags(self):  # noqa N802
+        return super().flags() | QgsProcessingAlgorithm.FlagNoThreading
+
     def name(self) -> str:
         """
         Returns the algorithm name, used for identifying the algorithm. This
@@ -267,7 +267,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             optional=False,
         )
         self.addParameter(database)
-        # Input vector layer = study area
+        
         study_area = QgsProcessingParameterFeatureSource(
             self.STUDY_AREA,
             self.tr(
@@ -343,7 +343,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
                 }
             }
         )
-        # period_type.setFlags(period_type.flags() | QgsProcessingParameterDefinition.FlagHidden)
+        
         self.addParameter(period_type)
 
         start_date = QgsProcessingParameterString(
@@ -353,7 +353,6 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             optional=True,
         )
         start_date.setMetadata({"widget_wrapper": {"class": DateTimeWidget}})
-        # start_date.setFlags(start_date.flags() | QgsProcessingParameterDefinition.FlagHidden)
         self.addParameter(start_date)
 
         end_date = QgsProcessingParameterString(
@@ -363,7 +362,6 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             optional=True,
         )
         end_date.setMetadata({"widget_wrapper": {"class": DateTimeWidget}})
-        # end_date.setFlags(end_date.flags() | QgsProcessingParameterDefinition.FlagHidden)
         self.addParameter(end_date)
 
         if self._has_time_interval_form:
@@ -446,8 +444,6 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
                 self.tr("""Emplacement de l'enregistrement du ficher
                     (format image PNG) de l'histogramme"""),
                 self.tr("image PNG (*.png)"),
-                # optional=True,
-                # createByDefault=False,
             )
             output_histogram.setFlags(
                 output_histogram.flags() | QgsProcessingParameterDefinition.FlagAdvanced
@@ -599,65 +595,22 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             self.parameterAsEnum(parameters, self.EXPORT_VIEWS, context)
         ]["relation"]
 
-        # regne = [
-        #     self._db_variables.value("regne")[i]
-        #     for i in (self.parameterAsEnums(parameters, self.REGNE, context))
-        # ]
-        # phylum = [
-        #     self._db_variables.value("phylum")[i]
-        #     for i in (self.parameterAsEnums(parameters, self.PHYLUM, context))
-        # ]
-        # classe = [
-        #     self._db_variables.value("classe")[i]
-        #     for i in (self.parameterAsEnums(parameters, self.CLASSE, context))
-        # ]
-        # ordre = [
-        #     self._db_variables.value("ordre")[i]
-        #     for i in (self.parameterAsEnums(parameters, self.ORDRE, context))
-        # ]
-        # famille = [
-        #     self._db_variables.value("famille")[i]
-        #     for i in (self.parameterAsEnums(parameters, self.FAMILLE, context))
-        # ]
-        # group1_inpn = [
-        #     self._db_variables.value("group1_inpn")[i]
-        #     for i in (self.parameterAsEnums(parameters, self.GROUP1_INPN, context))
-        # ]
-        # group2_inpn = [
-        #     self._db_variables.value("group2_inpn")[i]
-        #     for i in (self.parameterAsEnums(parameters, self.GROUP2_INPN, context))
-        # ]
-        # Retrieve the output PostGIS layer name and format it
         self._format_name = (
             f"{self._layer_name} {str(self._ts.strftime('%Y%m%d_%H%M%S'))}"
         )
 
         self._taxons_filters = {
             "groupe_taxo": self._groupe_taxo_filter,
-            # "regne": regne,
-            # "phylum": phylum,
-            # "classe": classe,
-            # "ordre": ordre,
-            # "famille": famille,
-            # "obs.group1_inpn": group1_inpn,
-            # "obs.group2_inpn": group2_inpn,
         }
 
-        # WHERE clauses builder
-        # TODO: Manage use case
-        # self._filters.append(
-        #     f"ST_Intersects(la.geom, ST_union({sql_query_area_builder(self._study_area)})"
-        # )
         if self._study_area:
             self._query_area = sql_query_area_builder(
                 feedback=feedback, layer=self._study_area, layer_crs=self._layer_crs
             )
-            # feedback.pushDebugInfo(f"_query_area {self._query_area}")
+
         if not self._is_data_extraction:
             self._filters += ["is_present", "is_valid"]
-        # taxon_filters = sql_taxons_filter_builder(self._taxons_filters)
-        # if taxon_filters:
-        # self._filters.append(taxon_filters)
+
         self.taxon_filtering()
 
         # Complete the "where" filter with the datetime filter
@@ -684,13 +637,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
                     raise QgsProcessingException(
                         "Veuillez renseigner un emplacement pour enregistrer votre histogramme !"
                     )
-            # taxonomic_rank_index = self.parameterAsEnum(
-            #     parameters, self.TAXONOMIC_RANK, context
-            # )
-            # self._taxonomic_rank_label = self._taxonomic_ranks_labels[
-            #     taxonomic_rank_index
-            # ]
-            # self._taxonomic_rank_db = self._taxonomic_ranks_db[taxonomic_rank_index]
+
 
         if self._has_time_interval_form:
             self._time_interval = self._time_interval_variables[
@@ -822,22 +769,24 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         if self._histogram_option != "Pas d'histogramme" and self._output_histogram:
             self.histogram_builder(self._taxonomic_rank_label)
 
+
         with open(
             os.path.join(plugin_path, os.pardir, "action_scripts", "csv_formatter.py"),
             "r",
             encoding="utf-8",
         ) as file:
             action_code = file.read()
-        action = QgsAction(
-            QgsAction.GenericPython,
-            "Exporter la couche sous format Excel dans mon dossier utilisateur avec la mise en forme adaptée",
-            action_code,
-            os.path.join(plugin_path, os.pardir, "icons", "excel.png"),
-            False,
-            "Exporter sous format Excel",
-            {"Layer"},
-        )
-        self._layer.actions().addAction(action)
+            action = QgsAction(
+                QgsAction.GenericPython,
+                "Exporter la couche sous format Excel dans mon dossier utilisateur avec la mise en forme adaptée",
+                action_code,
+                os.path.join(plugin_path, os.pardir, "icons", "excel.png"),
+                False,
+                "Exporter sous format Excel",
+                {"Layer"},
+            )
+            self._layer.actions().addAction(action)
+        
         # JOKE
         with open(
             os.path.join(plugin_path, os.pardir, "action_scripts", "joke.py"),
@@ -845,30 +794,25 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             encoding="utf-8",
         ) as file:
             joke_action_code = file.read()
-        joke_action = QgsAction(
-            QgsAction.GenericPython,
-            "Rédiger mon rapport",
-            joke_action_code,
-            os.path.join(plugin_path, os.pardir, "icons", "word.png"),
-            False,
-            "Rédiger mon rapport",
-            {"Layer"},
-        )
-        self._layer.actions().addAction(joke_action)
+            joke_action = QgsAction(
+                QgsAction.GenericPython,
+                "Rédiger mon rapport",
+                joke_action_code,
+                os.path.join(plugin_path, os.pardir, "icons", "word.png"),
+                False,
+                "Rédiger mon rapport",
+                {"Layer"},
+            )
+            self._layer.actions().addAction(joke_action)
+
+        load_layer(context, self._layer, self.OUTPUT)
 
         return {self.OUTPUT: self._layer.id()}
+    
 
-    def postProcessAlgorithm(self, context, feedback) -> Dict:  # noqa N802
-        feedback.pushDebugInfo(f"before load_layer")
-        load_layer(context, self._layer)
-        feedback.pushDebugInfo(f"after load_layer")
-
-        # Open the attribute table of the PostGIS layer if there are less than 1000 features
-        if self._layer_features_count <= 1000:
-            iface.showAttributeTable(self._layer)
-        iface.setActiveLayer(self._layer)
-
+    def postProcessAlgorithm(self, _context, _feedback) -> Dict:  # noqa N802
         return {}
+
 
     def histogram_builder(
         self,
@@ -907,6 +851,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             self._output_histogram += ".png"
         plt.savefig(self._output_histogram)
 
+
     def taxon_filtering_condition(self) -> Optional[str]:
         """Filtering taxa"""
         taxon_filters = self.sql_taxons_filter_builder()
@@ -917,6 +862,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             filters.append(self._taxref_filter_where)
         if len(filters):
             return " or ".join(filters)
+
 
     def taxon_filtering(self) -> Optional[str]:
         taxon_filtering_condition = self.taxon_filtering_condition()
