@@ -26,6 +26,7 @@ from qgis.core import (
 )
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.PyQt.QtGui import QIcon
+from qgis.utils import iface
 
 from ..__about__ import __icon_dir_path__
 from ..commons.helpers import (
@@ -811,6 +812,10 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
     
 
     def postProcessAlgorithm(self, _context, _feedback) -> Dict:  # noqa N802
+        if iface is not None and self._layer_features_count < 1000:
+            iface.showAttributeTable(self._layer)
+            iface.setActiveLayer(self._layer)
+
         return {}
 
 
