@@ -3,6 +3,7 @@
 import ast
 import json
 import os
+import re
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -62,6 +63,13 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
     AREAS_TYPE = "AREAS_TYPE"
     GROUPE_TAXO_FILTER = "GROUPE_TAXO_FILTER"
     TAXREF_FILTER = "TAXREF_FILTER"
+    TAXREF_REGNE_FILTER = "TAXREF_REGNE_FILTER"
+    TAXREF_PHYLUM_FILTER = "TAXREF_PHYLUM_FILTER"
+    TAXREF_CLASSE_FILTER = "TAXREF_CLASSE_FILTER"
+    TAXREF_ORDRE_FILTER = "TAXREF_ORDRE_FILTER"
+    TAXREF_FAMILLE_FILTER = "TAXREF_FAMILLE_FILTER"
+    TAXREF_GROUP1_INPN_FILTER = "TAXREF_GROUP1_INPN_FILTER"
+    TAXREF_GROUP2_INPN_FILTER = "TAXREF_GROUP2_INPN_FILTER"
     PERIOD = "PERIOD"
     START_DATE = "START_DATE"
     END_DATE = "END_DATE"
@@ -70,6 +78,15 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
     TEST = "TEST"
     MONTHES = "MONTHES"
     EXTRA_WHERE = "EXTRA_WHERE"
+    EXTRA_FILTER_FIELD_1 = "EXTRA_FILTER_FIELD_1"
+    EXTRA_FILTER_OPERATOR_1 = "EXTRA_FILTER_OPERATOR_1"
+    EXTRA_FILTER_VALUE_1 = "EXTRA_FILTER_VALUE_1"
+    EXTRA_FILTER_FIELD_2 = "EXTRA_FILTER_FIELD_2"
+    EXTRA_FILTER_OPERATOR_2 = "EXTRA_FILTER_OPERATOR_2"
+    EXTRA_FILTER_VALUE_2 = "EXTRA_FILTER_VALUE_2"
+    EXTRA_FILTER_FIELD_3 = "EXTRA_FILTER_FIELD_3"
+    EXTRA_FILTER_OPERATOR_3 = "EXTRA_FILTER_OPERATOR_3"
+    EXTRA_FILTER_VALUE_3 = "EXTRA_FILTER_VALUE_3"
     OUTPUT = "OUTPUT"
     OUTPUT_NAME = "OUTPUT_NAME"
     OUTPUT_HISTOGRAM = "OUTPUT_HISTOGRAM"
@@ -144,6 +161,68 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         ]
         self._histogram_variables: List[str] = []
         self._type_geom_variables: List[str] = ["Point", "LineString", "Polygon"]
+        self._taxref_filter_settings = {
+            self.TAXREF_REGNE_FILTER: ("regne", "Règne", "regne"),
+            self.TAXREF_PHYLUM_FILTER: ("phylum", "Phylum", "phylum"),
+            self.TAXREF_CLASSE_FILTER: ("classe", "Classe", "classe"),
+            self.TAXREF_ORDRE_FILTER: ("ordre", "Ordre", "ordre"),
+            self.TAXREF_FAMILLE_FILTER: ("famille", "Famille", "famille"),
+            self.TAXREF_GROUP1_INPN_FILTER: (
+                "group1_inpn",
+                "Groupe 1 INPN",
+                "group1_inpn",
+            ),
+            self.TAXREF_GROUP2_INPN_FILTER: (
+                "group2_inpn",
+                "Groupe 2 INPN",
+                "group2_inpn",
+            ),
+        }
+        self._extra_filter_fields = [
+            {"label": "Aucun filtre", "column": None, "type": None},
+            {"label": "Année", "column": "date_an", "type": "int"},
+            {"label": "Date", "column": "date_jour", "type": "date"},
+            {"label": "Nombre total", "column": "nombre_total", "type": "int"},
+            {"label": "Mortalité", "column": "mortalite", "type": "bool"},
+            {"label": "Présence", "column": "is_present", "type": "bool"},
+            {"label": "Donnée valide", "column": "is_valid", "type": "bool"},
+            {"label": "Observateur", "column": "observateur", "type": "text"},
+            {"label": "Code nidification", "column": "statut_repro", "type": "text"},
+            {"label": "Source", "column": "source", "type": "text"},
+            {"label": "Jeu de données", "column": "jdd", "type": "text"},
+            {"label": "Lieu", "column": "place", "type": "text"},
+            {"label": "Précision", "column": "precision", "type": "int"},
+        ]
+        self._extra_filter_operators = [
+            "=",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<=",
+            "Contient",
+            "Commence par",
+            "Dans la liste",
+            "Est nul",
+            "N'est pas nul",
+        ]
+        self._extra_filter_params = [
+            (
+                self.EXTRA_FILTER_FIELD_1,
+                self.EXTRA_FILTER_OPERATOR_1,
+                self.EXTRA_FILTER_VALUE_1,
+            ),
+            (
+                self.EXTRA_FILTER_FIELD_2,
+                self.EXTRA_FILTER_OPERATOR_2,
+                self.EXTRA_FILTER_VALUE_2,
+            ),
+            (
+                self.EXTRA_FILTER_FIELD_3,
+                self.EXTRA_FILTER_OPERATOR_3,
+                self.EXTRA_FILTER_VALUE_3,
+            ),
+        ]
         self._taxonomic_ranks = {
             "groupe_taxo": "Groupe taxo",
             "regne": "Règne",
@@ -168,6 +247,8 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         self._ts = datetime.now()
         self._query_area = None
         self._taxons_filters: Dict[str, List[str]] = {}
+        self._taxref_name_filter: Optional[str] = None
+        self._taxref_rank_filters: Dict[str, List[str]] = {}
         self._is_data_extraction: bool = False
         self._filters: List[str] = []
         self._period_type: str
@@ -424,6 +505,38 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         )
         self.addParameter(groupe_taxo_filter)
 
+        for param_name, (setting_key, label, _column) in self._taxref_filter_settings.items():
+            values = self._settings_list(setting_key)
+            if not values:
+                continue
+            taxref_rank_filter = QgsProcessingParameterEnum(
+                param_name,
+                self.tr(f"<strong>{label}</strong> {optional_text}"),
+                values,
+                allowMultiple=True,
+                optional=True,
+            )
+            taxref_rank_filter.setFlags(
+                taxref_rank_filter.flags()
+                | QgsProcessingParameterDefinition.FlagAdvanced
+            )
+            self.addParameter(taxref_rank_filter)
+
+        taxref_name_filter = QgsProcessingParameterString(
+            self.TAXREF_FILTER,
+            self.tr(
+                """<strong>RECHERCHE TAXREF PAR NOM</strong>&nbsp;:
+                rechercher dans <code>lb_nom</code> ou <code>nom_vern</code>.
+                Plusieurs termes peuvent être séparés par des virgules."""
+            ),
+            optional=True,
+            multiLine=False,
+        )
+        taxref_name_filter.setFlags(
+            taxref_name_filter.flags() | QgsProcessingParameterDefinition.FlagAdvanced
+        )
+        self.addParameter(taxref_name_filter)
+
         if self._has_histogram:
             histogram_options = QgsProcessingParameterEnum(
                 self.HISTOGRAM_OPTIONS,
@@ -493,35 +606,46 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             )
             self.addParameter(geomtype_data_where)
 
-        # Extra "where" conditions
-        taxref_filter = QgsProcessingParameterString(
-            self.TAXREF_FILTER,
-            self.tr(
-                """<strong>FILTRAGE AVANCE DES TAXONS</strong>&nbsp;: Vous pouvez ajouter des <u>conditions <code>where</code> sur TaxRef
-                supplémentaires dans l'encadré suivant</u>, <strong>en langage SQL</strong>"""
-            ),
-            optional=True,
-            multiLine=True,
-        )
-        taxref_filter.setFlags(
-            taxref_filter.flags() | QgsProcessingParameterDefinition.FlagAdvanced
-        )
-        self.addParameter(taxref_filter)
+        for index, (field_param, operator_param, value_param) in enumerate(
+            self._extra_filter_params, start=1
+        ):
+            extra_field = QgsProcessingParameterEnum(
+                field_param,
+                self.tr(f"<strong>FILTRE AVANCÉ {index}</strong> - Champ"),
+                [field["label"] for field in self._extra_filter_fields],
+                defaultValue=0,
+                allowMultiple=False,
+                optional=True,
+            )
+            extra_field.setFlags(
+                extra_field.flags() | QgsProcessingParameterDefinition.FlagAdvanced
+            )
+            self.addParameter(extra_field)
 
-        # Extra "where" conditions
-        extra_where = QgsProcessingParameterString(
-            self.EXTRA_WHERE,
-            self.tr(
-                """<strong>AUTRES CONDITIONS SQL&nbsp;: </strong> Vous pouvez ajouter des <u>conditions <code>where</code>
-                supplémentaires dans l'encadré suivant</u>, <strong>en langage SQL</strong>"""
-            ),
-            multiLine=True,
-            optional=True,
-        )
-        extra_where.setFlags(
-            extra_where.flags() | QgsProcessingParameterDefinition.FlagAdvanced
-        )
-        self.addParameter(extra_where)
+            extra_operator = QgsProcessingParameterEnum(
+                operator_param,
+                self.tr(f"Filtre avancé {index} - Opérateur"),
+                self._extra_filter_operators,
+                defaultValue=0,
+                allowMultiple=False,
+                optional=True,
+            )
+            extra_operator.setFlags(
+                extra_operator.flags()
+                | QgsProcessingParameterDefinition.FlagAdvanced
+            )
+            self.addParameter(extra_operator)
+
+            extra_value = QgsProcessingParameterString(
+                value_param,
+                self.tr(f"Filtre avancé {index} - Valeur"),
+                optional=True,
+                multiLine=False,
+            )
+            extra_value.setFlags(
+                extra_value.flags() | QgsProcessingParameterDefinition.FlagAdvanced
+            )
+            self.addParameter(extra_value)
         self.log(
             message=f"initAlgorithm {self._name} SD{self.START_DATE} ED{self.END_DATE} end"
         )
@@ -569,9 +693,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             ]
         )
 
-        self._extra_where = self.parameterAsString(
-            parameters, self.EXTRA_WHERE, context
-        )
+        self._extra_where = self.extra_filters_condition(parameters, context)
         self._layer_name = self.parameterAsString(parameters, self.OUTPUT_NAME, context)
         self._areas_type = self._areas_types_codes[
             self.parameterAsEnum(parameters, self.AREAS_TYPE, context)
@@ -585,6 +707,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         self._taxref_filter_where = self.parameterAsString(
             parameters, self.TAXREF_FILTER, context
         )
+        self._taxref_rank_filters = self.taxref_rank_filters(parameters, context)
         self._period_type = self._period_variables[
             self.parameterAsEnum(parameters, self.PERIOD, context)
         ]
@@ -856,6 +979,172 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             self._output_histogram += ".png"
         plt.savefig(self._output_histogram)
 
+    def _settings_list(self, key: str) -> List[str]:
+        value = self._db_variables.value(key)
+        if value is None:
+            return []
+        if isinstance(value, (list, tuple, set)):
+            return [str(item) for item in value if item not in (None, "")]
+        if isinstance(value, str):
+            value = value.strip()
+            if not value:
+                return []
+            try:
+                loaded_value = json.loads(value)
+            except json.JSONDecodeError:
+                return [value]
+            if isinstance(loaded_value, list):
+                return [
+                    str(item)
+                    for item in loaded_value
+                    if item not in (None, "")
+                ]
+            return [str(loaded_value)]
+        return [str(value)]
+
+    @staticmethod
+    def _sql_literal(value: str) -> str:
+        return "'{}'".format(str(value).replace("'", "''"))
+
+    @staticmethod
+    def _sql_like_value(value: str) -> str:
+        return str(value).replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+    def taxref_rank_filters(
+        self, parameters: Dict[str, Any], context: QgsProcessingContext
+    ) -> Dict[str, List[str]]:
+        filters = {}
+        for param_name, (setting_key, _label, column) in self._taxref_filter_settings.items():
+            if self.parameterDefinition(param_name) is None:
+                continue
+            selected_indexes = self.parameterAsEnums(parameters, param_name, context)
+            values = self._settings_list(setting_key)
+            selected_values = [
+                values[index] for index in selected_indexes if index < len(values)
+            ]
+            if selected_values:
+                filters[column] = selected_values
+        return filters
+
+    def extra_filters_condition(
+        self, parameters: Dict[str, Any], context: QgsProcessingContext
+    ) -> Optional[str]:
+        conditions = []
+        for field_param, operator_param, value_param in self._extra_filter_params:
+            field_index = self.parameterAsEnum(parameters, field_param, context)
+            if field_index <= 0:
+                continue
+            if field_index >= len(self._extra_filter_fields):
+                raise QgsProcessingException("Filtre avancé invalide.")
+
+            field = self._extra_filter_fields[field_index]
+            operator = self._extra_filter_operators[
+                self.parameterAsEnum(parameters, operator_param, context)
+            ]
+            value = self.parameterAsString(parameters, value_param, context).strip()
+            conditions.append(
+                self.extra_filter_condition(
+                    field["column"], field["type"], operator, value
+                )
+            )
+
+        if conditions:
+            return " AND ".join(conditions)
+        return None
+
+    def extra_filter_condition(
+        self, column: str, field_type: str, operator: str, value: str
+    ) -> str:
+        if operator in ("Est nul", "N'est pas nul"):
+            sql_operator = "IS NULL" if operator == "Est nul" else "IS NOT NULL"
+            return f"{column} {sql_operator}"
+
+        if not value:
+            raise QgsProcessingException(
+                f"Veuillez renseigner une valeur pour le filtre avancé sur {column}."
+            )
+
+        if operator in ("Contient", "Commence par") and field_type != "text":
+            raise QgsProcessingException(
+                "Les opérateurs textuels ne peuvent être utilisés que sur des champs texte."
+            )
+
+        if operator == "Dans la liste":
+            values = [item.strip() for item in value.split(",") if item.strip()]
+            if not values:
+                raise QgsProcessingException(
+                    f"Veuillez renseigner une liste de valeurs pour {column}."
+                )
+            return f"{column} IN ({', '.join(self.sql_typed_values(values, field_type))})"
+
+        if field_type == "text":
+            if operator == "Contient":
+                return (
+                    f"{column} ILIKE {self._sql_literal('%' + self._sql_like_value(value) + '%')}"
+                    " ESCAPE '\\'"
+                )
+            if operator == "Commence par":
+                return (
+                    f"{column} ILIKE {self._sql_literal(self._sql_like_value(value) + '%')}"
+                    " ESCAPE '\\'"
+                )
+            if operator not in ("=", "!="):
+                raise QgsProcessingException(
+                    "Les champs texte acceptent uniquement =, !=, Contient, "
+                    "Commence par, Dans la liste, Est nul et N'est pas nul."
+                )
+            return f"{column} {operator} {self._sql_literal(value)}"
+
+        if operator in ("Contient", "Commence par"):
+            raise QgsProcessingException(
+                "Les opérateurs Contient et Commence par sont réservés aux champs texte."
+            )
+
+        if operator not in ("=", "!=", ">", ">=", "<", "<="):
+            raise QgsProcessingException(f"Opérateur non autorisé pour {column}.")
+
+        return f"{column} {operator} {self.sql_typed_value(value, field_type)}"
+
+    def sql_typed_values(self, values: List[str], field_type: str) -> List[str]:
+        return [self.sql_typed_value(value, field_type) for value in values]
+
+    def sql_typed_value(self, value: str, field_type: str) -> str:
+        if field_type == "int":
+            if not re.fullmatch(r"-?\d+", value):
+                raise QgsProcessingException(f"La valeur {value} doit être un entier.")
+            return value
+
+        if field_type == "date":
+            if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+                raise QgsProcessingException(
+                    f"La valeur {value} doit être une date au format AAAA-MM-JJ."
+                )
+            return f"{self._sql_literal(value)}::date"
+
+        if field_type == "bool":
+            bool_values = {
+                "true": "true",
+                "1": "true",
+                "t": "true",
+                "yes": "true",
+                "y": "true",
+                "oui": "true",
+                "false": "false",
+                "0": "false",
+                "f": "false",
+                "no": "false",
+                "n": "false",
+                "non": "false",
+            }
+            normalized_value = value.strip().lower()
+            if normalized_value not in bool_values:
+                raise QgsProcessingException(
+                    f"La valeur {value} doit être un booléen: oui/non ou true/false."
+                )
+            return bool_values[normalized_value]
+
+        return self._sql_literal(value)
+
 
     def taxon_filtering_condition(self) -> Optional[str]:
         """Filtering taxa"""
@@ -863,19 +1152,21 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         filters = []
         if taxon_filters:
             filters.append(taxon_filters)
-        if self._taxref_filter_where:
-            filters.append(self._taxref_filter_where)
         if len(filters):
-            return " or ".join(filters)
+            return " AND ".join(filters)
 
 
     def taxon_filtering(self) -> Optional[str]:
         taxon_filtering_condition = self.taxon_filtering_condition()
         if taxon_filtering_condition:
             raw_query = f"""obs.cd_nom in (SELECT cd_nom
-FROM (SELECT taxref.*, vn_id, groupe_taxo_fr AS groupe_taxo
+FROM (SELECT taxref.*,
+             cor.vn_id,
+             cor.groupe_taxo_fr AS groupe_taxo,
+             COALESCE(taxref.lb_nom, cor.tx_nom_sci, cor.vn_nom_sci) AS lb_nom_recherche,
+             COALESCE(taxref.nom_vern, cor.tx_nom_fr, cor.vn_nom_fr) AS nom_vern_recherche
       FROM taxonomie.taxref
-               LEFT JOIN taxonomie.mv_c_cor_vn_taxref ON mv_c_cor_vn_taxref.cd_nom = taxref.cd_nom ) as t
+               LEFT JOIN taxonomie.mv_c_cor_vn_taxref AS cor ON cor.cd_nom = taxref.cd_nom ) as t
 WHERE {taxon_filtering_condition})
          """
             return self._filters.append(raw_query)
@@ -887,9 +1178,29 @@ WHERE {taxon_filtering_condition})
         rank_filters = []
         for key, value in self._taxons_filters.items():
             if value:
-                value_list = ",".join([f"'{v}'" for v in value])
+                value_list = ",".join([self._sql_literal(v) for v in value])
                 rank_filters.append(f"{key} in ({value_list})")
+        for key, value in self._taxref_rank_filters.items():
+            if value:
+                value_list = ",".join([self._sql_literal(v) for v in value])
+                rank_filters.append(f"{key} in ({value_list})")
+        if self._taxref_filter_where:
+            terms = [
+                term.strip()
+                for term in self._taxref_filter_where.split(",")
+                if term.strip()
+            ]
+            for term in terms:
+                like_term = self._sql_literal(
+                    "%" + self._sql_like_value(term) + "%"
+                )
+                rank_filters.append(
+                    "("
+                    f"lb_nom_recherche ILIKE {like_term} ESCAPE '\\' "
+                    f"OR nom_vern_recherche ILIKE {like_term} ESCAPE '\\'"
+                    ")"
+                )
         if len(rank_filters) > 0:
-            taxons_where = f"({' or '.join(rank_filters)})"
+            taxons_where = f"({' AND '.join(rank_filters)})"
             return taxons_where
         return None
