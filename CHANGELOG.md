@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 <!-- ## Unreleased [{version_tag}](https://github.com/opengisch/qgis-plugin-ci/releases/tag/{version_tag}) - YYYY-MM-DD -->
 
+## [3.11.1](https://github.com/lpoaura/PluginQGis-LPOData/releases/tag/3.11.1) - 2026-07-09
+
+### :bug: Fixes
+
+* Amélioration des performances sur les extractions depuis les exports
+* Utilisation des geométries en WKB plutôt que WKT
+
+### :ballot_box_with_check: TODO
+
+Rien de particulier.
+
 
 ## [3.11.0](https://github.com/lpoaura/PluginQGis-LPOData/releases/tag/3.11.0) - 2026-07-02
 
