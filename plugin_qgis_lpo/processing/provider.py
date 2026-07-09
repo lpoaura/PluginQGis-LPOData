@@ -47,9 +47,7 @@ class QgisLpoProvider(QgsProcessingProvider):
             StateOfKnowledge(),
             SummaryMap(),
         ]
-        export_sinp = not eval(
-            (self._db_variables.value("exclude_export_sinp")).capitalize()
-        )
+        export_sinp = not str(self._db_variables.value("exclude_export_sinp")).strip().lower() in {"true", "1", "t", "yes", "y"}
         self.log(message=f"export_sinp {export_sinp}", log_level=0, push=False)
         if export_sinp:
             algorithms += [

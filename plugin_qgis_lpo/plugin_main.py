@@ -189,9 +189,7 @@ class QgisLpoPlugin:
                 processing.run(
                     "plugin_qgis_lpo:RefreshData", {"DATABASE": "geonature_lpo"}
                 )
-                exclude_export_sinp = eval(
-                    (self._dbVariables.value("exclude_export_sinp")).capitalize()
-                )
+                exclude_export_sinp = str(self._dbVariables.value("exclude_export_sinp")).strip().lower() in {"true", "1", "t", "yes", "y"}
                 if exclude_export_sinp:
                     self.main_menu.removeAction(self.tools_menu.act_extract_export_data)
 
