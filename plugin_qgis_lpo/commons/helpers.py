@@ -22,6 +22,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from qgis import processing
 from qgis.core import (
     QgsDistanceArea,
+    QgsErrorMessage,
     QgsField,
     QgsFields,
     QgsFeatureRequest,
@@ -82,10 +83,7 @@ def inspect_layer_features(
     most ``limit`` features with a single feature request.
     """
     if not layer.isValid():
-        raise QgsProcessingException("""La couche PostGIS chargée n'est pas valide !
-            Checkez les logs de PostGIS pour visualiser les messages d'erreur.
-            Pour cela, rendez-vous dans l'onglet "Vue > Panneaux > Journal des messages"
-            de QGis, puis l'onglet "PostGIS".""")
+        raise QgsProcessingException(invalid_layer_message(layer))
 
     request = QgsFeatureRequest().setLimit(limit + 1)
     count = 0
@@ -95,13 +93,80 @@ def inspect_layer_features(
             break
 
     if count == 0:
-        raise QgsProcessingException("Couche de résultat vide")
+        raise QgsProcessingException(
+            """La requête SQL a bien été exécutée, mais la couche de résultat est vide.
+            Aucun objet ne correspond aux filtres sélectionnés."""
+        )
 
     feedback.pushInfo(
         "La couche PostGIS demandée est valide et non vide, "
         "la requête SQL a été exécutée avec succès !"
     )
     return True, count <= limit
+
+
+def _qgis_error_to_text(error: Any) -> str:
+    """Return the most useful text exposed by a QgsError-like object."""
+    if error is None:
+        return ""
+
+    try:
+        if error.isEmpty():
+            return ""
+    except AttributeError:
+        pass
+
+    messages = []
+    for getter in (
+        lambda: error.summary(),
+        lambda: error.message(QgsErrorMessage.Text),
+        lambda: error.message(),
+    ):
+        try:
+            message = str(getter()).strip()
+        except (AttributeError, TypeError):
+            continue
+        if message and message not in messages:
+            messages.append(message)
+
+    return "\n".join(messages)
+
+
+def invalid_layer_reason(layer: QgsVectorLayer) -> str:
+    """Return QGIS/provider diagnostics explaining why a layer is invalid."""
+    reasons = []
+
+    for label, getter in (
+        ("couche", lambda: layer.error()),
+        (
+            "fournisseur de données",
+            lambda: layer.dataProvider().error() if layer.dataProvider() else None,
+        ),
+    ):
+        try:
+            reason = _qgis_error_to_text(getter())
+        except RuntimeError:
+            reason = ""
+        if reason:
+            reasons.append(f"{label}: {reason}")
+
+    return "\n".join(reasons)
+
+
+def invalid_layer_message(layer: QgsVectorLayer) -> str:
+    """Build a user-facing error message for an invalid PostGIS layer."""
+    reason = invalid_layer_reason(layer)
+    message = "La couche PostGIS chargée n'est pas valide."
+    if reason:
+        message += f"\n\nCause remontée par QGIS/PostGIS :\n{reason}"
+    else:
+        message += "\n\nQGIS/PostGIS n'a pas renvoyé de cause détaillée."
+
+    return (
+        f"{message}\n\n"
+        "Consultez aussi les logs PostGIS pour plus de détails : "
+        'Vue > Panneaux > Journal des messages, puis onglet "PostGIS".'
+    )
 
 
 
@@ -128,7 +193,7 @@ def get_geom_info(geom: QgsGeometry, feedback) -> dict:
     narrow corridor following a river, even with a similar number of vertices.
     """
     num_vertices = get_geom_vertices_count(geom)
-    feedback.pushInfo(f"Type geom: {type(geom)}")
+    feedback.pushDebugInfo(f"Type geom: {type(geom)}")
     area, perimiter = d.measureArea(geom), d.measurePerimeter(geom)
     bbox = geom.boundingBox()
     bbox_width = bbox.width()

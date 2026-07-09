@@ -1,7 +1,5 @@
 """Generic Qgis Processing Algorithm classes"""
 
-import ast
-import json
 import os
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -33,6 +31,7 @@ from ..commons.helpers import (
     execute_sql_queries,
     format_layer_export,
     inspect_layer_features,
+    invalid_layer_message,
     load_layer,
     simplify_name,
     sql_datetime_filter_builder,
@@ -43,6 +42,7 @@ from ..commons.helpers import (
     sql_timeinterval_cols_builder,
 )
 from ..commons.widgets import DateTimeWidget
+from ..toolbelt.db_settings import DbSettings
 from ..toolbelt.log_handler import PlgLogger
 from .qgis_processing_postgis import uri_from_name
 
@@ -108,6 +108,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         self._query = ""
         self._return_geo_agg: bool = False
         self._db_variables = QgsSettings()
+        self._reload_db_settings()
         self._connection: str
         self._layer_name: str
         self._layer: QgsVectorLayer
@@ -165,14 +166,14 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         self._output_name = "output"
         self._study_area = None
         self._format_name: str = "output"
-        self._areas_type: str
+        self._areas_type: str = ""
         self._ts = datetime.now()
-        self._query_area = None
+        self._query_area: str = ""
         self._taxons_filters: Dict[str, List[str]] = {}
         self._is_data_extraction: bool = False
         self._filters: List[str] = []
-        self._period_type: str
-        self._export_view: str
+        self._period_type: str = "Pas de filtre temporel"
+        self._export_view: str = ""
         self._extra_where: Optional[str] = None
         self._source_data_where: Optional[str] = None
         self._type_geom_where: Optional[str] = None
@@ -182,12 +183,12 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         self._output_histogram: str
         self._group_by_species: str = ""
         self._taxonomic_rank: str = "Espèces"
-        self._taxa_fields: Optional[str] = None
-        self._custom_fields: Optional[str] = None
+        self._taxa_fields: str = ""
+        self._custom_fields: str = ""
         self._x_var: Optional[List[str]] = None
         self._status_columns_db: List[str] = ["lr_r"]
         self._status_columns_with_alias: List[str] = ['lr_r as "LR Régionale"']
-        self._time_interval: str
+        self._time_interval: str = ""
 
     def tr(self, string: str) -> str:
         """QgsProcessingAlgorithm translatable string with the self.tr() function."""
@@ -248,6 +249,10 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
     def shortDescription(self) -> str:  # noqa N802
         return self.tr(self._short_description)
 
+    def _reload_db_settings(self) -> None:
+        """Reload typed database settings from QGIS settings."""
+        self._db_settings = DbSettings.from_qsettings(self._db_variables)
+
     def initAlgorithm(self, _config: None) -> None:  # noqa N802
         """
         Here we define the inputs and output of the algorithm, along
@@ -258,6 +263,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         optional_text = "(facultatif)"
         # self._ts = datetime.now()
         # self._db_variables = QgsSettings()
+        self._reload_db_settings()
         database = QgsProcessingParameterProviderConnection(
             self.DATABASE,
             self.tr(
@@ -310,18 +316,15 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             )
             self.addParameter(taxonomic_rank)
 
-        export_views = [
-            json.loads(item) for item in self._db_variables.value("export_views")
-        ]
-
         if self._has_export_views_list:
+            export_views = self._db_settings.export_views
             export_views_list = QgsProcessingParameterEnum(
                 self.EXPORT_VIEWS,
                 self.tr(
                     f"""<strong style="color:#0a84db">FORMAT D'EXPORT</strong> {required_text} :
-                        sélectionnez une <u>vue</u> pour exporter les données"""
+                    sélectionnez une <u>vue</u> pour exporter les données"""
                 ),
-                [f"{item['label']} ({item['relation']})" for item in export_views],
+                [f"{item.label} ({item.relation})" for item in export_views],
                 allowMultiple=False,
                 defaultValue=0,
                 optional=False,
@@ -419,7 +422,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
                 f"""<strong style="color:#0a84db">GROUPE TAXONOMIQUE</strong> {optional_text} :
                     filtrer les données par groupes taxonomiques"""
             ),
-            self._db_variables.value("groupe_taxo"),
+            self._db_settings.groupe_taxo,
             allowMultiple=True,
             optional=True,
         )
@@ -467,7 +470,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             source_data_where = QgsProcessingParameterEnum(
                 self.SOURCE_DATA,
                 self.tr("<strong>SOURCES DE DONNEES</strong>"),
-                self._db_variables.value("source_data"),
+                self._db_settings.source_data,
                 defaultValue=[0, 1, 2],
                 allowMultiple=True,
                 optional=False,
@@ -541,6 +544,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         # Retrieve the input vector layer = study area
         if feedback is None:
             feedback = QgsProcessingFeedback()
+        self._reload_db_settings()
 
         # Form values
         self._connection = self.parameterAsString(parameters, self.DATABASE, context)
@@ -548,7 +552,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         self.log(
             message=str(
                 [
-                    self._db_variables.value("source_data")[i]
+                    self._db_settings.source_data[i]
                     for i in (
                         self.parameterAsEnums(parameters, self.SOURCE_DATA, context)
                     )
@@ -558,7 +562,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         )
         self._source_data_where = sql_source_filter_builder(
             [
-                self._db_variables.value("source_data")[i]
+                self._db_settings.source_data[i]
                 for i in (self.parameterAsEnums(parameters, self.SOURCE_DATA, context))
             ]
         )
@@ -578,7 +582,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             self.parameterAsEnum(parameters, self.AREAS_TYPE, context)
         ]
         self._groupe_taxo_filter = [
-            self._db_variables.value("groupe_taxo")[i]
+            self._db_settings.groupe_taxo[i]
             for i in (
                 self.parameterAsEnums(parameters, self.GROUPE_TAXO_FILTER, context)
             )
@@ -590,12 +594,10 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             self.parameterAsEnum(parameters, self.PERIOD, context)
         ]
 
-        export_views = [
-            json.loads(item) for item in self._db_variables.value("export_views")
-        ]
-        self._export_view = export_views[
-            self.parameterAsEnum(parameters, self.EXPORT_VIEWS, context)
-        ]["relation"]
+        if self._has_export_views_list:
+            self._export_view = self._db_settings.export_views[
+                self.parameterAsEnum(parameters, self.EXPORT_VIEWS, context)
+            ].relation
 
         self._format_name = (
             f"{self._layer_name} {str(self._ts.strftime('%Y%m%d_%H%M%S'))}"
@@ -702,27 +704,14 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         if time_filter:
             self._filters.append(time_filter)
 
-        status_columns = self._db_variables.value("status_columns")
+        status_columns = self._db_settings.status_columns
         feedback.pushDebugInfo(f"status_columns {status_columns}")
         if status_columns:
             feedback.pushDebugInfo(f"in status_columns condition {status_columns}")
-            try:
-                status_columns_as_dict = ast.literal_eval(
-                    json.loads(self._db_variables.value("status_columns"))
-                )
-                feedback.pushDebugInfo(
-                    f"status_columns_as_dict {status_columns_as_dict}"
-                )
-                self._status_columns_db = [
-                    key for key, _value in status_columns_as_dict.items()
-                ]
-                self._status_columns_with_alias = [
-                    f'{key} as "{value}"'
-                    for key, value in status_columns_as_dict.items()
-                ]
-            except Exception as e:
-                feedback.pushDebugInfo(f"status column ERROR {e}")
-                pass
+            self._status_columns_db = [key for key, _value in status_columns.items()]
+            self._status_columns_with_alias = [
+                f'{key} as "{value}"' for key, value in status_columns.items()
+            ]
 
         # EXECUTE THE SQL QUERY
         self._uri = uri_from_name(self._connection)
@@ -833,10 +822,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
     ) -> tuple[bool, bool]:
         """generate histogram"""
         if not self._layer.isValid():
-            raise QgsProcessingException("""La couche PostGIS chargée n'est pas valide !
-                Checkez les logs de PostGIS pour visualiser les messages d'erreur.
-                Pour cela, rendez-vous dans l'onglet "Vue > Panneaux > Journal des messages"
-                de QGis, puis l'onglet "PostGIS".""")
+            raise QgsProcessingException(invalid_layer_message(self._layer))
 
         plt.close()
         x_var = []

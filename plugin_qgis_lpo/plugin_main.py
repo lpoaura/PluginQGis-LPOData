@@ -40,6 +40,7 @@ from plugin_qgis_lpo.processing.provider import QgisLpoProvider
 from plugin_qgis_lpo.processing.qgis_processing_postgis import get_connection_name
 from plugin_qgis_lpo.processing.species_map import CarteParEspece
 from plugin_qgis_lpo.toolbelt import PlgLogger
+from plugin_qgis_lpo.toolbelt.db_settings import DB_SETTINGS_DEFAULTS, DbSettings
 
 # ############################################################################
 # ########## Classes ###############
@@ -189,8 +190,8 @@ class QgisLpoPlugin:
                 processing.run(
                     "plugin_qgis_lpo:RefreshData", {"DATABASE": "geonature_lpo"}
                 )
-                exclude_export_sinp = str(self._dbVariables.value("exclude_export_sinp")).strip().lower() in {"true", "1", "t", "yes", "y"}
-                if exclude_export_sinp:
+                db_settings = DbSettings.from_qsettings(self._dbVariables)
+                if db_settings.exclude_export_sinp:
                     self.main_menu.removeAction(self.tools_menu.act_extract_export_data)
 
                 self.provider.refreshAlgorithms()
@@ -289,23 +290,6 @@ class QgisLpoPlugin:
 
     def initSettings(self):
         self._dbVariables = QgsSettings()
-        variables = [
-            "groupe_taxo",
-            "regne",
-            "phylum",
-            "classe",
-            "ordre",
-            "famille",
-            "group1_inpn",
-            "group2_inpn",
-            "source_data",
-            "status_columns",
-            "exclude_export_sinp",
-            "export_views",
-        ]
-        for variable in variables:
+        for variable, default_value in DB_SETTINGS_DEFAULTS.items():
             if not self._dbVariables.value(variable):
-                if variable == "exclude_export_sinp":
-                    self._dbVariables.setValue(variable, "false")
-                else:
-                    self._dbVariables.setValue(variable, set())
+                self._dbVariables.setValue(variable, default_value)

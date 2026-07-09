@@ -161,11 +161,13 @@ WHERE view_pk_column = 'id_synthese'
 
         if query_output:
             if setting == "exclude_export_sinp":
-                query_output = (
-                    "true"
-                    if query_output.lower() in ["true", "1", "t", "y", "yes"]
-                    else "false"
-                )
+                query_output = str(query_output).lower() in [
+                    "true",
+                    "1",
+                    "t",
+                    "y",
+                    "yes",
+                ]
             self._db_variables.setValue(setting, query_output)
 
         self.log(

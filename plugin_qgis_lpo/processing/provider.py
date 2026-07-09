@@ -5,7 +5,7 @@ Processing provider module.
 """
 
 # PyQGIS
-from qgis.core import QgsProcessingProvider, QgsSettings
+from qgis.core import QgsProcessingProvider
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.PyQt.QtGui import QIcon
 
@@ -22,6 +22,7 @@ from plugin_qgis_lpo.processing.summary_table_per_time_interval import (
 )
 
 # project
+from plugin_qgis_lpo.toolbelt.db_settings import DbSettings
 from plugin_qgis_lpo.toolbelt.log_handler import PlgLogger
 
 # ##################################
@@ -37,7 +38,7 @@ class QgisLpoProvider(QgsProcessingProvider):
     def loadAlgorithms(self):
         """Loads all algorithms belonging to this provider."""
         self.log = PlgLogger().log
-        self._db_variables = QgsSettings()
+        self._db_settings = DbSettings.from_qsettings()
         algorithms = [
             RefreshData(),
             ExtractData(),
@@ -47,7 +48,7 @@ class QgisLpoProvider(QgsProcessingProvider):
             StateOfKnowledge(),
             SummaryMap(),
         ]
-        export_sinp = not str(self._db_variables.value("exclude_export_sinp")).strip().lower() in {"true", "1", "t", "yes", "y"}
+        export_sinp = not self._db_settings.exclude_export_sinp
         self.log(message=f"export_sinp {export_sinp}", log_level=0, push=False)
         if export_sinp:
             algorithms += [
