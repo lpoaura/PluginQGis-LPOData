@@ -30,9 +30,9 @@ from qgis.utils import iface
 
 from ..__about__ import __icon_dir_path__
 from ..commons.helpers import (
-    check_layer_is_valid,
     execute_sql_queries,
     format_layer_export,
+    inspect_layer_features,
     load_layer,
     simplify_name,
     sql_datetime_filter_builder,
@@ -111,7 +111,8 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         self._connection: str
         self._layer_name: str
         self._layer: QgsVectorLayer
-        self._layer_features_count: int = 0
+        self._layer_has_features: bool = False
+        self._layer_can_open_attribute_table: bool = False
         self._areas_variables: List[str] = [
             "Mailles 0.5*0.5",
             "Mailles 1*1",
@@ -753,22 +754,27 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             ),
         )
         self.log(message=query)
-        feedback.pushDebugInfo(f"query: {query}")
+        feedback.pushDebugInfo(f"QUERY: \n{query}")
         geom_field = "geom" if self._is_map_layer else None
 
         self._uri.setDataSource("", f"({query})", geom_field, "", self._primary_key)  # type: ignore
 
         self._layer = QgsVectorLayer(self._uri.uri(), self._format_name, "postgres")
-        self._layer_features_count = self._layer.featureCount()
-        self.log(message=f"features count {self._layer_features_count}")
-        feedback.pushDebugInfo(f"features count {self._layer_features_count}")
-
-        if self._layer_features_count == 0:
-            raise QgsProcessingException(f"Couche de résultat vide")
-        check_layer_is_valid(feedback, self._layer)
-
         if self._histogram_option != "Pas d'histogramme" and self._output_histogram:
-            self.histogram_builder(self._taxonomic_rank_label)
+            (
+                self._layer_has_features,
+                self._layer_can_open_attribute_table,
+            ) = self.histogram_builder(self._taxonomic_rank_label, feedback, 1000)
+        else:
+            (
+                self._layer_has_features,
+                self._layer_can_open_attribute_table,
+            ) = inspect_layer_features(feedback, self._layer, 1000)
+        self.log(message=f"layer has features {self._layer_has_features}")
+        feedback.pushDebugInfo(f"layer has features {self._layer_has_features}")
+        feedback.pushDebugInfo(
+            f"layer can open attribute table {self._layer_can_open_attribute_table}"
+        )
 
 
         with open(
@@ -812,7 +818,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
     
 
     def postProcessAlgorithm(self, _context, _feedback) -> Dict:  # noqa N802
-        if iface is not None and self._layer_features_count < 1000:
+        if iface is not None and self._layer_can_open_attribute_table:
             iface.showAttributeTable(self._layer)
             iface.setActiveLayer(self._layer)
 
@@ -822,21 +828,38 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
     def histogram_builder(
         self,
         taxonomic_rank_label: str,
-    ) -> None:
+        feedback: QgsProcessingFeedback,
+        attribute_table_limit: int,
+    ) -> tuple[bool, bool]:
         """generate histogram"""
+        if not self._layer.isValid():
+            raise QgsProcessingException("""La couche PostGIS chargée n'est pas valide !
+                Checkez les logs de PostGIS pour visualiser les messages d'erreur.
+                Pour cela, rendez-vous dans l'onglet "Vue > Panneaux > Journal des messages"
+                de QGis, puis l'onglet "PostGIS".""")
+
         plt.close()
-        x_var = [
-            (
-                feature[self._taxonomic_rank_label]
-                if feature[self._taxonomic_rank_label] != "Pas de correspondance taxref"
+        x_var = []
+        y_var = []
+        feature_count = 0
+        for feature in self._layer.getFeatures():
+            feature_count += 1
+            taxon_label = feature[self._taxonomic_rank_label]
+            x_var.append(
+                taxon_label
+                if taxon_label != "Pas de correspondance taxref"
                 else "Aucune correspondance"
             )
-            for feature in self._layer.getFeatures()
-        ]
-        y_var = [
-            int(feature[self._histogram_option])
-            for feature in self._layer.getFeatures()
-        ]
+            y_var.append(int(feature[self._histogram_option]))
+
+        if feature_count == 0:
+            raise QgsProcessingException("Couche de résultat vide")
+
+        feedback.pushInfo(
+            "La couche PostGIS demandée est valide et non vide, "
+            "la requête SQL a été exécutée avec succès !"
+        )
+
         if len(x_var) <= 20:
             plt.subplots_adjust(bottom=0.5)
         elif len(x_var) <= 80:
@@ -855,6 +878,7 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         if self._output_histogram[-4:] != ".png":
             self._output_histogram += ".png"
         plt.savefig(self._output_histogram)
+        return True, feature_count <= attribute_table_limit
 
 
     def taxon_filtering_condition(self) -> Optional[str]:

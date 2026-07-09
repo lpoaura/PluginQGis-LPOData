@@ -24,6 +24,7 @@ from qgis.core import (
     QgsDistanceArea,
     QgsField,
     QgsFields,
+    QgsFeatureRequest,
     QgsGeometry,
     QgsProcessingAlgorithm,
     QgsProcessingContext,
@@ -73,24 +74,35 @@ def simplify_name(string: str) -> str:
     return string.lower().translate(translation_table)
 
 
-def check_layer_is_valid(feedback: QgsProcessingFeedback, layer: QgsVectorLayer):
+def inspect_layer_features(
+    feedback: QgsProcessingFeedback, layer: QgsVectorLayer, limit: int
+) -> Tuple[bool, bool]:
     """
-    Check if the input vector layer is valid.
+    Check that a layer is valid and non-empty, then determine whether it has at
+    most ``limit`` features with a single feature request.
     """
     if not layer.isValid():
         raise QgsProcessingException("""La couche PostGIS chargée n'est pas valide !
             Checkez les logs de PostGIS pour visualiser les messages d'erreur.
             Pour cela, rendez-vous dans l'onglet "Vue > Panneaux > Journal des messages"
             de QGis, puis l'onglet "PostGIS".""")
-    else:
 
-        # iface.messageBar().pushMessage("Info", "La couche PostGIS demandée est valide, la requête SQL a été exécutée avec succès !", level=Qgis.Info, duration=10)
-        feedback.pushInfo(
-            "La couche PostGIS demandée est valide, "
-            "la requête SQL a été exécutée avec succès !"
-            f"{layer} {layer.featureCount()}"
-        )
-    return None
+    request = QgsFeatureRequest().setLimit(limit + 1)
+    count = 0
+    for _feature in layer.getFeatures(request):
+        count += 1
+        if count > limit:
+            break
+
+    if count == 0:
+        raise QgsProcessingException("Couche de résultat vide")
+
+    feedback.pushInfo(
+        "La couche PostGIS demandée est valide et non vide, "
+        "la requête SQL a été exécutée avec succès !"
+    )
+    return True, count <= limit
+
 
 
 def get_deep_count(nested_list):
