@@ -90,7 +90,7 @@ class SummaryMap(BaseProcessingAlgorithm):
             WITH query_geom AS (
                 SELECT  {query_area} AS geom
             ),
-            areas AS MATERIALIZED (
+            areas AS (
                 SELECT
                     la.id_area,
                     la.area_name,

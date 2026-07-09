@@ -127,7 +127,7 @@ class SummaryTablePerSpecies(BaseProcessingAlgorithm):
         /* comptage nb total d'observations */
         SELECT COUNT(*) AS total_count
         FROM observations),
-     data AS (
+    data AS (
         /* selection des données + statut */
         SELECT
          obs.cd_nom

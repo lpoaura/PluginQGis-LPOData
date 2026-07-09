@@ -66,7 +66,7 @@ class ExtractExportData(BaseProcessingAlgorithm):
         self._has_export_views_list = True
         self._has_type_geom_filter = True
         self._primary_key = "id_synthese"
-        self._query = """WITH data AS (SELECT id_synthese
+        self._query = """WITH data AS MATERIALIZED (SELECT id_synthese
                    , date_an
                    , date_jour
                    , desc_source

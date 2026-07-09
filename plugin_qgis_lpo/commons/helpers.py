@@ -29,7 +29,6 @@ from qgis.core import (
     QgsProcessingException,
     QgsProcessingFeedback,
     QgsVectorLayer,
-    QgsWkbTypes,
 )
 from qgis.PyQt.QtCore import QVariant
 
@@ -127,6 +126,19 @@ def simplify_area(area, crs, feedback):
     return area
 
 
+def sql_geom_from_wkb(geom: QgsGeometry, crs: str, layer_crs: str) -> str:
+    """
+    Construct a PostGIS geometry expression from WKB instead of WKT.
+    """
+    wkb_hex = bytes(geom.asWkb()).hex()
+    return (
+        "ST_Transform("
+        f"ST_GeomFromWKB(decode('{wkb_hex}', 'hex'), {crs}), "
+        f"{layer_crs}"
+        ")"
+    )
+
+
 def sql_query_area_builder(
     feedback: QgsProcessingFeedback, layer: QgsVectorLayer, layer_crs: str = "2154"
 ):
@@ -154,19 +166,17 @@ NB : 'EPSG:2154' pour Lambert 93 !"""
         # TODO: Fix geometry simplification that make QGIS crash
         # geom = simplify_area(area, crs, feedback)
         geom = area
-        # Retrieve the geometry type (single or multiple)
-        geom_single_type = QgsWkbTypes.isSingleType(geom.wkbType())
-        feedback.pushDebugInfo(f"geom_single_type {geom_single_type}")
+        if geom.isEmpty():
+            feedback.pushDebugInfo("empty geometry ignored")
+            continue
 
-        # Increment the sql array
-        if geom_single_type:
-            array_polygons.append(
-                f"ST_transform(ST_PolygonFromText('{geom.asWkt()}', {crs}), {layer_crs})"
-            )
-        else:
-            array_polygons.append(
-                f"ST_transform(ST_MPolyFromText('{geom.asWkt()}', {crs}), {layer_crs})"
-            )
+        # Increment the sql array using WKB to avoid verbose WKT literals.
+        array_polygons.append(sql_geom_from_wkb(geom, crs, layer_crs))
+
+    if not array_polygons:
+        raise QgsProcessingException(
+            "La couche zone d'étude ne contient aucune géométrie exploitable."
+        )
     # Remove the last "," in the sql array which is useless, and end the array
     if len(array_polygons) > 1:
         geom_list = ",".join(array_polygons)
@@ -206,14 +216,13 @@ NB : 'EPSG:2154' pour Lambert 93 !"""
         ugeom = simplify_area(ugeom, crs, feedback)
         feedback.pushDebugInfo(f"new geom: {get_geom_info(ugeom)}")
 
-    geom_single_type = QgsWkbTypes.isSingleType(ugeom.wkbType())
-    feedback.pushDebugInfo(f"geom_single_type {geom_single_type}")
+    if ugeom.isEmpty():
+        raise QgsProcessingException(
+            "La couche zone d'étude ne contient aucune géométrie exploitable."
+        )
+
     feedback.pushDebugInfo(f"new geom: {get_geom_info(ugeom)}")
-    if geom_single_type:
-        geom = f"ST_PolygonFromText('{ugeom.asWkt()}', {crs})"
-    else:
-        geom = f"ST_MPolyFromText('{ugeom.asWkt()}', {crs})"
-    return f"ST_transform({geom},{layer_crs})"
+    return sql_geom_from_wkb(ugeom, crs, layer_crs)
 
 
 def sql_queries_list_builder(
