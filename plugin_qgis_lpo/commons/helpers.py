@@ -15,6 +15,7 @@
  ***************************************************************************/
 """
 
+import math
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -34,6 +35,30 @@ from qgis.PyQt.QtCore import QVariant
 
 d = QgsDistanceArea()
 d.setEllipsoid("WGS84")
+
+# Seuils de simplification de la zone d'étude.
+#
+# Le plugin conserve la géométrie inline dans la requête PostGIS pour que les
+# couches QGIS restent rechargeables après fermeture/réouverture du projet. Le
+# coût de cette approche est la taille du WKB injecté dans la requête. Ces seuils
+# déclenchent donc une simplification légère dès qu'une géométrie devient
+# assez détaillée pour alourdir le parsing SQL ou le transfert vers PostgreSQL.
+SIMPLIFY_MIN_VERTICES = 5000
+SIMPLIFY_MIN_WKB_BYTES = 250_000
+
+# Garde-fou: si la simplification modifie trop la surface, on revient à la
+# géométrie originale. Ce seuil est volontairement conservateur, car la zone
+# d'étude sert à inclure/exclure des observations naturalistes.
+SIMPLIFY_MAX_AREA_DELTA_RATIO = 0.005
+
+# Seuils empiriques pour qualifier la forme. La compacité vaut 1 pour une forme
+# proche du disque et tend vers 0 pour les formes découpées/linéaires. Le ratio
+# de bbox protège aussi les corridors très allongés.
+SIMPLIFY_LINEAR_COMPACTNESS = 0.03
+SIMPLIFY_IRREGULAR_COMPACTNESS = 0.12
+SIMPLIFY_LINEAR_BBOX_RATIO = 0.05
+SIMPLIFY_IRREGULAR_BBOX_RATIO = 0.20
+METERS_PER_DEGREE = 111320
 
 
 def simplify_name(string: str) -> str:
@@ -79,33 +104,192 @@ def get_deep_count(nested_list):
 
 
 def get_geom_vertices_count(geom: QgsGeometry) -> int:
-    if geom.isMultipart():
-        # For multipart geometries
-        lgeom = geom.asMultiPolygon()
-    else:
-        lgeom = geom.asPolygon()
-    return get_deep_count(lgeom)
+    """Count vertices for any geometry type supported by QgsGeometry."""
+    return sum(1 for _vertex in geom.vertices())
 
 
 def get_geom_info(geom: QgsGeometry, feedback) -> dict:
-    """Information data on geometry: Area, Mean distance between each vertice
+    """Return metrics used to decide whether a geometry can be simplified.
 
-    Args:
-        geom (QgsGeometry): _description_
-
-    Returns:
-        dict: _description_
+    The simplification decision deliberately mixes size and shape indicators:
+    a compact administrative polygon can tolerate more simplification than a
+    narrow corridor following a river, even with a similar number of vertices.
     """
     num_vertices = get_geom_vertices_count(geom)
     feedback.pushInfo(f"Type geom: {type(geom)}")
     area, perimiter = d.measureArea(geom), d.measurePerimeter(geom)
+    bbox = geom.boundingBox()
+    bbox_width = bbox.width()
+    bbox_height = bbox.height()
+    min_bbox_side = min(bbox_width, bbox_height)
+    max_bbox_side = max(bbox_width, bbox_height)
+    compactness = (
+        (4 * math.pi * area / (perimiter * perimiter)) if perimiter else 0
+    )
+    bbox_ratio = (min_bbox_side / max_bbox_side) if max_bbox_side else 0
     # feedback.pushInfo(f'Unit: {d.areaUnits(geom)}, ellipsoid {d.ellipsoid(geom)}, elipsoidCrs {d.ellipsoidCrs(geom)}')
     return {
         "area": area,
         "perimiter": perimiter,
         "count_nodes": num_vertices,
-        "node_mean_dist": perimiter / num_vertices,
+        "node_mean_dist": perimiter / num_vertices if num_vertices else 0,
+        "compactness": compactness,
+        "bbox_ratio": bbox_ratio,
+        "min_bbox_side": min_bbox_side,
     }
+
+
+def simplify_tolerance_to_crs_units(tolerance_meters: float, crs: str) -> float:
+    """Convert meter-based tolerances for geographic CRS used in user layers."""
+    if crs == "4326":
+        return tolerance_meters / METERS_PER_DEGREE
+    return tolerance_meters
+
+
+def push_simplification_debug(
+    geom_info: dict, wkb_size: int, feedback: QgsProcessingFeedback
+) -> None:
+    """Log all metrics used by the simplification decision."""
+    feedback.pushDebugInfo(
+        "Critères de simplification zone d'étude: "
+        f"sommets={geom_info['count_nodes']} "
+        f"(seuil={SIMPLIFY_MIN_VERTICES}), "
+        f"wkb={wkb_size} octets "
+        f"(seuil={SIMPLIFY_MIN_WKB_BYTES}), "
+        f"surface={round(geom_info['area'], 3)} m², "
+        f"périmètre={round(geom_info['perimiter'], 3)} m, "
+        f"longueur moyenne segment={round(geom_info['node_mean_dist'], 3)} m, "
+        f"compacité={round(geom_info['compactness'], 6)} "
+        f"(linéaire<{SIMPLIFY_LINEAR_COMPACTNESS}, "
+        f"irrégulier<{SIMPLIFY_IRREGULAR_COMPACTNESS}), "
+        f"ratio bbox={round(geom_info['bbox_ratio'], 6)} "
+        f"(linéaire<{SIMPLIFY_LINEAR_BBOX_RATIO}, "
+        f"irrégulier<{SIMPLIFY_IRREGULAR_BBOX_RATIO}), "
+        f"petit côté bbox={round(geom_info['min_bbox_side'], 3)}."
+    )
+
+
+def choose_simplification_tolerance(
+    geom_info: dict, wkb_size: int, crs: str, feedback: QgsProcessingFeedback
+) -> Optional[float]:
+    """Choose a conservative simplification tolerance from geometry metrics.
+
+    The thresholds are generic and do not depend on GeoNature/ref_geo area
+    types. They are designed to keep linear or narrow study areas precise while
+    still reducing very detailed compact polygons.
+    """
+    push_simplification_debug(geom_info, wkb_size, feedback)
+
+    if (
+        geom_info["count_nodes"] < SIMPLIFY_MIN_VERTICES
+        and wkb_size < SIMPLIFY_MIN_WKB_BYTES
+    ):
+        feedback.pushInfo(
+            "Simplification non nécessaire: "
+            f"{geom_info['count_nodes']} sommets et {wkb_size} octets WKB, "
+            "sous les seuils de complexité."
+        )
+        return None
+
+    area = geom_info["area"]
+    compactness = geom_info["compactness"]
+    bbox_ratio = geom_info["bbox_ratio"]
+    min_bbox_side = geom_info["min_bbox_side"]
+
+    # Shape profile first, then area bucket. Linear profiles are capped to a few
+    # meters because a small displacement can change the meaning of a corridor.
+    if (
+        compactness < SIMPLIFY_LINEAR_COMPACTNESS
+        or bbox_ratio < SIMPLIFY_LINEAR_BBOX_RATIO
+    ):
+        profile = "linéaire"
+        tolerance_meters = 0.5 if area < 100e6 else 1 if area < 1000e6 else 2
+    elif (
+        compactness < SIMPLIFY_IRREGULAR_COMPACTNESS
+        or bbox_ratio < SIMPLIFY_IRREGULAR_BBOX_RATIO
+    ):
+        profile = "irrégulier"
+        tolerance_meters = 1 if area < 100e6 else 3 if area < 1000e6 else 5
+    else:
+        profile = "compact"
+        tolerance_meters = 2 if area < 100e6 else 5 if area < 1000e6 else 10
+
+    # Never simplify more than 1% of the smallest bbox side. This protects
+    # narrow polygons whose area alone would otherwise allow a large tolerance.
+    if min_bbox_side:
+        tolerance_meters = min(tolerance_meters, min_bbox_side * 0.01)
+
+    tolerance = simplify_tolerance_to_crs_units(tolerance_meters, crs)
+    feedback.pushInfo(
+        "Géométrie complexe détectée: "
+        f"{geom_info['count_nodes']} sommets, profil {profile}, "
+        f"tolérance {round(tolerance_meters, 2)} m."
+    )
+    return tolerance if tolerance > 0 else None
+
+
+def simplified_geometry_is_acceptable(
+    original_geom: QgsGeometry,
+    simplified_geom: QgsGeometry,
+    original_info: dict,
+    feedback: QgsProcessingFeedback,
+) -> bool:
+    """Validate the simplified geometry before using it in the SQL query."""
+    if simplified_geom.isEmpty():
+        feedback.pushInfo("Simplification ignorée: géométrie simplifiée vide.")
+        return False
+
+    if not simplified_geom.isGeosValid():
+        feedback.pushInfo("Simplification ignorée: géométrie simplifiée invalide.")
+        return False
+
+    simplified_area = d.measureArea(simplified_geom)
+    original_area = original_info["area"]
+    if original_area:
+        area_delta_ratio = abs(simplified_area - original_area) / original_area
+        if area_delta_ratio > SIMPLIFY_MAX_AREA_DELTA_RATIO:
+            feedback.pushInfo(
+                "Simplification ignorée: variation de surface "
+                f"{round(area_delta_ratio * 100, 3)}% supérieure au seuil "
+                f"{SIMPLIFY_MAX_AREA_DELTA_RATIO * 100}%."
+            )
+            return False
+
+    original_vertices = original_info["count_nodes"]
+    simplified_vertices = get_geom_vertices_count(simplified_geom)
+    feedback.pushInfo(
+        "Simplification appliquée: "
+        f"{original_vertices} -> {simplified_vertices} sommets."
+    )
+    return True
+
+
+def prepare_study_area_geometry(
+    geom: QgsGeometry, crs: str, feedback: QgsProcessingFeedback
+) -> QgsGeometry:
+    """Validate and simplify a study-area geometry when it is safe to do so.
+
+    The original geometry is returned whenever validation or simplification
+    fails one of the quality checks. The caller can therefore use the returned
+    geometry directly without handling partial simplification failures.
+    """
+    if geom.isEmpty():
+        return geom
+
+    if not geom.isGeosValid():
+        feedback.pushInfo("Géométrie zone d'étude invalide: correction makeValid().")
+        geom = geom.makeValid()
+
+    geom_info = get_geom_info(geom, feedback)
+    wkb_size = len(bytes(geom.asWkb()))
+    tolerance = choose_simplification_tolerance(geom_info, wkb_size, crs, feedback)
+    if tolerance is None:
+        return geom
+
+    simplified_geom = geom.simplify(tolerance)
+    if simplified_geometry_is_acceptable(geom, simplified_geom, geom_info, feedback):
+        return simplified_geom
+    return geom
 
 
 def simplify_area(area, crs, feedback):
@@ -129,6 +313,9 @@ def simplify_area(area, crs, feedback):
 def sql_geom_from_wkb(geom: QgsGeometry, crs: str, layer_crs: str) -> str:
     """
     Construct a PostGIS geometry expression from WKB instead of WKT.
+
+    WKB is still inlined in the query so saved QGIS project layers remain
+    reloadable without any temporary database table.
     """
     wkb_hex = bytes(geom.asWkb()).hex()
     return (
@@ -144,9 +331,13 @@ def sql_query_area_builder(
 ):
     """
     Construct the sql array containing the input vector layer's features geometry.
+
+    The study area is unioned and optionally simplified before WKB generation.
+    Producing a single geometry keeps the final SQL shorter than one WKB literal
+    per feature followed by a PostGIS ST_Union.
     """
-    # Initialization of the sql array containing the study area's features geometry
-    array_polygons = []
+    # Initialization of the list containing the study area's features geometry.
+    geoms = []
     # Retrieve the CRS of the layer
     crs = layer.sourceCrs().authid()
     if crs.split(":")[0] != "EPSG":
@@ -158,31 +349,27 @@ NB : 'EPSG:2154' pour Lambert 93 !"""
         )
     else:
         crs = crs.split(":")[1]
-    # For each entity in the study area...
     for feature in layer.getFeatures():
-        # Retrieve the geometry
         area = feature.geometry()  # QgsGeometry object
-
-        # TODO: Fix geometry simplification that make QGIS crash
-        # geom = simplify_area(area, crs, feedback)
-        geom = area
-        if geom.isEmpty():
+        if area.isEmpty():
             feedback.pushDebugInfo("empty geometry ignored")
             continue
+        geoms.append(area)
 
-        # Increment the sql array using WKB to avoid verbose WKT literals.
-        array_polygons.append(sql_geom_from_wkb(geom, crs, layer_crs))
-
-    if not array_polygons:
+    if not geoms:
         raise QgsProcessingException(
             "La couche zone d'étude ne contient aucune géométrie exploitable."
         )
-    # Remove the last "," in the sql array which is useless, and end the array
-    if len(array_polygons) > 1:
-        geom_list = ",".join(array_polygons)
-        return f"(select st_union(st_collect(ARRAY[{geom_list}])) as geom)"
 
-    return f"(select st_union({array_polygons[0]}) as geom)"
+    geom = QgsGeometry.unaryUnion(geoms) if len(geoms) > 1 else geoms[0]
+    geom = prepare_study_area_geometry(geom, crs, feedback)
+
+    if geom.isEmpty():
+        raise QgsProcessingException(
+            "La couche zone d'étude ne contient aucune géométrie exploitable."
+        )
+
+    return f"(select {sql_geom_from_wkb(geom, crs, layer_crs)} as geom)"
 
 
 def sql_query_area_builder_new(
@@ -205,16 +392,13 @@ NB : 'EPSG:2154' pour Lambert 93 !"""
     else:
         crs = crs.split(":")[1]
 
-    geoms = [f.geometry() for f in layer.getFeatures()]
+    geoms = [f.geometry() for f in layer.getFeatures() if not f.geometry().isEmpty()]
+    if not geoms:
+        raise QgsProcessingException(
+            "La couche zone d'étude ne contient aucune géométrie exploitable."
+        )
     ugeom = QgsGeometry.unaryUnion(geoms)
-    geom_info = get_geom_info(ugeom)
-    # If area hover 10km² and mean distance between node on perimeter is less than 500m
-    if geom_info["area"] > 10e6 and geom_info["node_mean_dist"] < 500:
-        # if True:
-        feedback.pushInfo(f"!!! Complexe geometry: {geom_info}")
-        # I need to simplify geometry with a tolerance of 500 meters
-        ugeom = simplify_area(ugeom, crs, feedback)
-        feedback.pushDebugInfo(f"new geom: {get_geom_info(ugeom)}")
+    ugeom = prepare_study_area_geometry(ugeom, crs, feedback)
 
     if ugeom.isEmpty():
         raise QgsProcessingException(
