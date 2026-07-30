@@ -75,34 +75,49 @@ def simplify_name(string: str) -> str:
     return string.lower().translate(translation_table)
 
 
-def inspect_layer_features(
-    feedback: QgsProcessingFeedback, layer: QgsVectorLayer, limit: int
-) -> Tuple[bool, bool]:
-    """
-    Check that a layer is valid and non-empty, then determine whether it has at
-    most ``limit`` features with a single feature request.
-    """
+def check_layer_is_valid_and_not_empty(
+    feedback: QgsProcessingFeedback, layer: QgsVectorLayer
+) -> bool:
+    """Check layer validity and non-emptiness with a single-feature request."""
     if not layer.isValid():
         raise QgsProcessingException(invalid_layer_message(layer))
 
+    request = QgsFeatureRequest().setLimit(1)
+    for _feature in layer.getFeatures(request):
+        feedback.pushInfo(
+            "La couche PostGIS demandée est valide et non vide, "
+            "la requête SQL a été exécutée avec succès !"
+        )
+        return True
+
+    raise QgsProcessingException(
+        """La requête SQL a bien été exécutée, mais la couche de résultat est vide.
+        Aucun objet ne correspond aux filtres sélectionnés."""
+    )
+
+
+def layer_has_at_most_features(layer: QgsVectorLayer, limit: int) -> bool:
+    """Return False as soon as more than ``limit`` features are read."""
     request = QgsFeatureRequest().setLimit(limit + 1)
     count = 0
     for _feature in layer.getFeatures(request):
         count += 1
         if count > limit:
-            break
+            return False
+    return True
 
-    if count == 0:
-        raise QgsProcessingException(
-            """La requête SQL a bien été exécutée, mais la couche de résultat est vide.
-            Aucun objet ne correspond aux filtres sélectionnés."""
-        )
 
-    feedback.pushInfo(
-        "La couche PostGIS demandée est valide et non vide, "
-        "la requête SQL a été exécutée avec succès !"
+def inspect_layer_features(
+    feedback: QgsProcessingFeedback, layer: QgsVectorLayer, limit: int
+) -> Tuple[bool, bool]:
+    """
+    Check that a layer is valid and non-empty with LIMIT 1, then determine
+    whether it has at most ``limit`` features using a bounded feature request.
+    """
+    return (
+        check_layer_is_valid_and_not_empty(feedback, layer),
+        layer_has_at_most_features(layer, limit),
     )
-    return True, count <= limit
 
 
 def _qgis_error_to_text(error: Any) -> str:

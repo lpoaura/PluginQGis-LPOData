@@ -19,6 +19,7 @@ from qgis.core import (
     QgsProcessingParameterFileDestination,
     QgsProcessingParameterProviderConnection,
     QgsProcessingParameterString,
+    QgsProviderRegistry,
     QgsSettings,
     QgsVectorLayer,
 )
@@ -746,9 +747,13 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         feedback.pushDebugInfo(f"QUERY: \n{query}")
         geom_field = "geom" if self._is_map_layer else None
 
+        query_has_results = self.check_query_has_results(query, feedback)
         self._uri.setDataSource("", f"({query})", geom_field, "", self._primary_key)  # type: ignore
 
         self._layer = QgsVectorLayer(self._uri.uri(), self._format_name, "postgres")
+        if not self._layer.isValid() and query_has_results:
+            raise QgsProcessingException(invalid_layer_message(self._layer))
+
         if self._histogram_option != "Pas d'histogramme" and self._output_histogram:
             (
                 self._layer_has_features,
@@ -812,6 +817,27 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             iface.setActiveLayer(self._layer)
 
         return {}
+
+
+    def check_query_has_results(
+        self, query: str, feedback: QgsProcessingFeedback
+    ) -> bool:
+        """Raise a clear empty-result error before QGIS tries to load the layer."""
+        safe_query = query.strip().rstrip(";")
+        empty_check_query = f"SELECT 1 FROM ({safe_query}) AS lpo_result LIMIT 1"
+        feedback.pushDebugInfo(f"EMPTY RESULT CHECK QUERY: \n{empty_check_query}")
+        connection = (
+            QgsProviderRegistry.instance()
+            .providerMetadata("postgres")
+            .createConnection(self._connection)
+        )
+        result = connection.executeSql(empty_check_query)
+        if not result:
+            raise QgsProcessingException(
+                """La requête SQL a bien été exécutée, mais la couche de résultat est vide.
+                Aucun objet ne correspond aux filtres sélectionnés."""
+            )
+        return True
 
 
     def histogram_builder(
