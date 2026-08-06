@@ -45,7 +45,7 @@ jobs:
         run: pytest tests/unit/
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: lpoaura/PluginQGis-LPOData
@@ -87,7 +87,7 @@ jobs:
         run: pytest tests/qgis/
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: lpoaura/PluginQGis-LPOData
